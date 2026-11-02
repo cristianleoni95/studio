@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icona-180.png"><link rel="icon" href="icona-192.png"><meta name="theme-color" content="#0d1117"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<title>Leoni Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<style>
+:root{--bg:#0d1117;--panel:#151b23;--panel2:#1c2430;--line:#2a3442;--txt:#e6edf3;--mut:#8b98a8;--acc:#f5b301;--acc2:#3b82f6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--r:12px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);background:#0a0e13;position:sticky;top:0;z-index:5}
+.logo{font-weight:800;letter-spacing:.5px;font-size:18px}.logo b{color:var(--acc)}
+.sp{flex:1}.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--panel2);color:var(--mut)}
+.pill.ok{color:var(--ok)}.pill.err{color:var(--err)}
+button,.btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:8px 14px;font:inherit;cursor:pointer}
+button:hover{border-color:#3b4a5e}button.pri{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+button.sm{padding:4px 9px;font-size:12px}button.dang{color:var(--err)}
+nav{display:flex;gap:4px;padding:10px 22px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:none;color:var(--mut);padding:8px 14px;border-radius:8px}nav button.on{background:var(--panel2);color:var(--txt)}
+main{padding:20px 22px}.hid{display:none!important}
+.cols{display:grid;grid-template-columns:240px 200px 1fr;gap:14px;height:330px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;overflow:auto}
+.box h3{margin:2px 4px 10px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut)}
+.it{padding:9px 10px;border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.it:hover{background:var(--panel2)}.it.on{background:#24303f;outline:1px solid #34465c}
+.it small{color:var(--mut)}
+.proj{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;border:1px solid transparent}
+.proj:hover{background:var(--panel2)}.proj input{width:17px;height:17px;accent-color:var(--acc)}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;background:#263140;color:var(--mut);white-space:nowrap}
+.b-coda{color:#93c5fd;background:#1e3a5f}.b-lav{color:#fde68a;background:#4a3b0f}.b-fatto{color:#86efac;background:#14412a}.b-exp{color:#111;background:var(--ok)}.b-err{color:#fecaca;background:#5a1d1d}
+.bar{position:sticky;bottom:0;margin-top:14px;background:#0a0e13;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}
+select,input[type=text],textarea{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;min-width:180px}
+textarea{min-height:70px;width:100%}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer}
+.card:hover{border-color:#3b4a5e}.card h4{margin:0 0 6px;font-size:16px}.sw{display:inline-block;width:16px;height:16px;border-radius:4px;vertical-align:middle;margin-right:4px;border:1px solid #0006}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:900px}.form .full{grid-column:1/-1}
+.mut{color:var(--mut)}.empty{color:var(--mut);padding:20px;text-align:center}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ok);color:#06210f;padding:10px 16px;border-radius:9px;font-weight:600;opacity:0;transition:.3s}
+.toast.on{opacity:1}
+.stile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stile b{color:var(--acc)}
+h2.step{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.pick{display:flex;flex-wrap:wrap;gap:12px;padding:4px 2px 10px}
+.pc2{flex:0 0 130px;background:var(--panel);border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s}
+.pc2:hover{border-color:#4b5d75;transform:translateY(-2px)}.pc2.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
+.pc2 .vid{position:relative;aspect-ratio:9/16;background:#0a0e13;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px;text-align:center;padding:0}
+.pc2 video{width:100%;height:100%;object-fit:cover;display:block}
+.pc2 .nm{padding:8px 10px;font-weight:600;font-size:13px;line-height:1.25}
+.pc2.on .nm{color:var(--acc)}
+.pc2 .noprev{padding:14px;line-height:1.3}
+.pc2.none .vid{aspect-ratio:9/16;font-size:30px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.scard video,.scard .ph{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#0a0e13}
+.scard .ph{display:flex;align-items:center;justify-content:center;color:var(--mut);text-align:center;padding:20px;font-size:13px}
+.scard .tx{padding:12px 14px}.scard .tx b{color:var(--acc);display:block;margin-bottom:4px}.scard .tag{font-size:11px;color:#111;background:var(--acc2);color:#fff;border-radius:99px;padding:2px 8px;margin-left:6px}
+.riep{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+@media (max-width:900px){.cols{grid-template-columns:1fr}.form{grid-template-columns:1fr}}
+.pc2{position:relative}.pc2 .chk{position:absolute;top:6px;right:6px;z-index:2;background:var(--acc,#f5b301);color:#000;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.pc2 .star{position:absolute;top:6px;left:8px;z-index:2;color:#f5b301;font-size:16px;text-shadow:0 1px 3px #000}
+@media (max-width:700px){.cols{grid-template-columns:1fr!important}.pc2{flex:0 0 31%!important}header{flex-wrap:wrap;gap:8px}.bar{flex-wrap:wrap}table{font-size:12px}main{padding:10px!important}}
+#login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center}
+#login form{width:min(360px,90vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:12px}
+#login input{padding:12px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:16px}
+.st-modi{display:flex;gap:8px;flex-wrap:wrap}.st-modi button.on{background:var(--acc);color:#111;border-color:var(--acc);font-weight:700}
+.st-form{display:grid;gap:12px;max-width:760px}.st-form textarea{min-height:110px;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:15px}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:16px}
+.st-job{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.st-job img,.st-job video{width:100%;display:block;background:#000}
+.st-job .tx{padding:8px 10px;font-size:12px}.st-job .ph{aspect-ratio:9/16;display:grid;place-items:center;color:var(--mut);text-align:center;padding:10px}
+.foto-prev{display:flex;gap:8px}.foto-prev img{height:90px;border-radius:8px}
+</style></head><body>
+<div id="login"><form onsubmit="entra(event)"><div class="logo" style="text-align:center;font-size:20px">LEONI <b>STUDIO</b></div>
+<input id="lg_email" type="email" placeholder="Email" autocomplete="username" required><input id="lg_pw" type="password" placeholder="Password" autocomplete="current-password" required>
+<button class="pri">Entra</button><div id="lg_err" style="color:var(--err);min-height:20px;text-align:center"></div></form></div>
+<header>
+  <div class="logo">LEONI <b>STUDIO</b></div><span id="pc" class="pill">PC: —</span>
+  <span id="dv" class="pill">DaVinci: —</span>
+  <div class="sp"></div>
+  <button onclick="aggiornaDV()">⟳ Aggiorna da DaVinci</button>
+  <button class="pri" onclick="copiaComando()">Copia comando per Claude</button>
+</header>
+<nav>
+  <button data-t="video" class="on">Video</button><button data-t="coda">Coda <span id="ncoda" class="badge">0</span></button>
+  <button data-t="clienti">Clienti</button><button data-t="stili">Stili</button><button data-t="studio">StudioAI</button>
+</nav>
+<main>
+<!-- VIDEO -->
+<section id="t-video">
+  <h2 class="step" style="margin-top:0"><i>1</i> Scegli cliente, giornata e video</h2>
+  <div class="cols">
+    <div class="box"><h3>Clienti</h3><div id="lcli"></div></div>
+    <div class="box"><h3>Giornate</h3><div id="lgio"></div></div>
+    <div class="box"><h3 id="tprog">Progetti</h3><div id="lprog"><div class="empty">Scegli un cliente e una giornata</div></div></div>
+  </div>
+  <h2 class="step"><i>2</i> Stile dei sottotitoli <span class="mut" style="text-transform:none;letter-spacing:0">· passa sopra per vedere l'anteprima</span></h2>
+  <div id="pkStile" class="pick"></div>
+  <h2 class="step"><i>3</i> Sottotitoli semplici <span class="mut" style="text-transform:none;letter-spacing:0">· per b-roll, parti veloci o video semplici · uno solo</span></h2>
+  <div id="pkSem" class="pick"></div>
+  <h2 class="step"><i>4</i> Complementi <span class="mut" style="text-transform:none;letter-spacing:0">· puoi sceglierne <b style="color:var(--txt)">più di uno</b>: clicca per aggiungere, riclicca per togliere · ★ = preferiti</span></h2>
+  <div id="compsel" class="riep" style="margin-bottom:10px"></div>
+  <div id="pkComp" class="pick"></div>
+  <h2 class="step"><i>5</i> Effetti camera <span class="mut" style="text-transform:none;letter-spacing:0">· movimenti e luce sulla ripresa: zoom, flare, camera viva · anche più di uno</span></h2>
+  <div id="camsel" class="riep" style="margin-bottom:10px"></div>
+  <div id="pkCam" class="pick"></div>
+  <h2 class="step"><i>6</i> Audio <span class="mut" style="text-transform:none;letter-spacing:0">· clicca per sentire · solo strumentali, livello fisso e forte ma con la voce che si distingue · canzoni in Claude_Edit_Marius\MUSICA</span></h2>
+  <div id="pkAud" class="pick"></div>
+  <h2 class="step"><i>7</i> Nitidezza <span class="mut" style="text-transform:none;letter-spacing:0">· a sinistra prima, a destra dopo</span></h2>
+  <div id="pkNit" class="pick"></div>
+  <h2 class="step"><i>8</i> Voce <span class="mut" style="text-transform:none;letter-spacing:0">· clicca per sentire · si applica solo se la scegli</span></h2>
+  <div id="pkVoc" class="pick"></div>
+  <h2 class="step"><i>9</i> Copertina</h2>
+  <div id="pkCov" class="pick"></div>
+  <h2 class="step"><i>10</i> Export e invio</h2>
+  <div class="bar" style="margin-top:0">
+    <select id="sStile" class="hid"></select><select id="sAud" class="hid"></select><select id="sCov" class="hid"></select><select id="sVoc" class="hid"></select><select id="sSem" class="hid"></select><select id="sNit" class="hid"></select>
+    <div class="riep" id="riep"></div>
+    <label>Preset export<select id="sPreset"></select></label>
+    <label style="flex:1">Note per Claude<input type="text" id="sNote" placeholder="es. correggi l'italiano, video 3 senza maschera…"></label>
+    <button class="pri" id="bAdd" onclick="aggiungi()">Aggiungi alla coda</button>
+  </div>
+</section>
+<!-- CODA -->
+<section id="t-coda" class="hid">
+  <div style="display:flex;gap:10px;margin-bottom:12px"><span class="mut" style="flex:1">Claude li fa in quest'ordine, uno dopo l'altro: apre il progetto, copia la tua timeline, lavora, salva, chiude, passa al successivo e alla fine esporta.</span>
+  <button onclick="pulisci()">Togli completati ed esportati</button></div>
+  <div class="box"><table><thead><tr><th>#</th><th>Cliente</th><th>Giornata</th><th>Progetto</th><th>Sottotitoli</th><th>Complemento</th><th>Effetti camera</th><th>Audio</th><th>Voce</th><th>Semplici</th><th>Nitido</th><th>Copertina</th><th>Export</th><th>Stato</th><th></th></tr></thead><tbody id="tcoda"></tbody></table></div>
+</section>
+<!-- CLIENTI -->
+<section id="t-clienti" class="hid">
+  <div style="display:flex;gap:10px;margin-bottom:14px"><span class="mut" style="flex:1">Qui salvi font, colori e regole di ogni cliente: Claude li usa automaticamente.</span><button class="pri" onclick="nuovoCliente()">+ Nuovo cliente</button></div>
+  <div id="gcli" class="grid"></div>
+  <div id="fcli" class="box hid" style="margin-top:16px">
+    <div class="form">
+      <label>Nome cliente<input type="text" id="f_nome"></label>
+      <label>Cartella in DaVinci<select id="f_cart"></select></label>
+      <label>Font principale<input type="text" id="f_font1" placeholder="Urbanist ExtraBold"></label>
+      <label>Font grande<input type="text" id="f_font2" placeholder="Unbounded ExtraBold"></label>
+      <label>Font corsivo<input type="text" id="f_font3" placeholder="Apple Garamond Bold Italic"></label>
+      <label>Colori (principale / accento)<span><input type="color" id="f_c1"> <input type="color" id="f_c2"></span></label>
+      <label>Sottotitoli predefiniti<select id="f_stile"></select></label>
+      <label>Complemento predefinito<select id="f_comp"></select></label>
+      <label>Effetti camera predefiniti<select id="f_cam"></select></label>
+      <label>Musica predefinita<select id="f_aud"></select></label>
+      <label>Voce predefinita<select id="f_voc"></select></label>
+      <label>Sottotitoli semplici predefiniti<select id="f_sem"></select></label>
+      <label>Nitidezza<select id="f_nit"></select></label>
+      <label>Copertina<select id="f_cov"></select></label>
+      <label>Preset export predefinito<select id="f_preset"></select></label>
+      <label>Cartella export<input type="text" id="f_exp" placeholder="D:\Clienti\Rextaura"></label>
+      <label class="full">Regole e note per Claude<textarea id="f_note"></textarea></label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px"><button class="pri" onclick="salvaCliente()">Salva</button><button onclick="chiudiForm()">Annulla</button><div class="sp"></div><button class="dang" onclick="eliminaCliente()">Elimina</button></div>
+  </div>
+</section>
+<!-- STILI -->
+<section id="t-studio" class="hid">
+ <div class="st-form">
+  <div class="st-modi" id="stModi"><button data-m="immagine" class="on">Crea foto</button><button data-m="modifica">Modifica foto</button><button data-m="anima">Anima foto</button><button data-m="video">Video da testo</button></div>
+  <div id="stFoto" class="hid"><label class="mut">Foto (la seconda è facoltativa: referenza per vestiti, persona, sfondo)</label><br><input type="file" id="f1" accept="image/*"> <input type="file" id="f2" accept="image/*"><div class="foto-prev" id="fprev"></div></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><label>Formato <select id="stFormato"><option value="v">Reel 9:16</option><option value="o">Orizzontale 16:9</option><option value="q">Quadrato</option></select></label>
+   <label id="stSecL" class="hid">Secondi <select id="stSec"><option>4</option><option selected>5</option><option>8</option><option>10</option></select></label></div>
+  <textarea id="stPrompt" placeholder="Descrivi cosa vuoi (in inglese viene meglio). Es: photorealistic shot of a barber cutting hair, warm light, 35mm lens"></textarea>
+  <div><button class="pri" onclick="inviaStudio()">Genera sul PC</button> <span class="mut" id="stInfo"></span></div>
+ </div>
+ <div class="st-grid" id="stLista"></div>
+</section>
+<section id="t-stili" class="hid"><p class="mut" style="margin-top:0">Le anteprime partono da sole. Gli stili senza anteprima la avranno appena faccio il primo video con quello stile.</p><div id="lstili" class="sgrid"></div></section>
+</main>
+<div id="toast" class="toast"></div>
+<script>
+const VER=Date.now();
+const STILI=[
+ ['Sottotitoli fighi modificabili','Gruppi medio / grande / corsivo giallo, in alto dietro la maschera e al petto davanti, entrate tipo TR Switch, scatto morbido.','fighi_modificabili'],
+ ['Sottotitoli fighi','Il primo stile, scritte già renderizzate, entrate miste.','fighi'],
+ ['Sottotitoli fighi 2 (camera ferma)','Come i modificabili, con zoom in/out sul parlato fermo (gli zoom li fai tu).','fighi2'],
+ ['Sottotitoli fighi liquid glass','I fighi con qualche riquadro in vetro solo in alcuni punti.','fighi_glass'],
+ ['Sottotitoli social','Base dei modificabili per i clienti: entrate miste, gruppi coordinati, Differenza sulle colorate, colori del brand.','social'],
+ ['Sottotitoli miei','Frase sopra, parola grande Playfair dietro la testa, effetto "va via e prende il posto", viola.','miei'],
+ ['Sottotitoli 3D camera','Testi su piani 3D con camera 3D in Fusion.','3d_camera'],
+ ['Sottotitoli misti','Blocchi alternati: fighi modificabili, miei, 3D, con semplici animati in mezzo.','misti'],
+ ['Sottotitoli semplici','Bianchi con ombra, per soggetto piccolo o parlato veloce.','semplici'],
+ ['Stile Amazon','Grafiche liquid glass Apple, card, grafici, contatori, titoli MotionText.','amazon'],
+ ['Reel animato','Pezzi a tutto schermo con grafiche animate al posto della camera.','reel_animato']];
+const COMP=[['Nessuno','Solo i sottotitoli, la persona resta a tutto schermo.',''],
+ ['Manichino 3D','Animazione Blender realistica: manichino blu senza faccia in un ambiente vero, a tutto schermo sulla frase da spiegare.','c_manichino_realistico',1],
+ ['Riquadro grafiche','Persona in riquadro stondato in basso, pannelli grafici sopra, con qualche notifica in vetro.','riquadro_grafiche',1],
+ ['Riquadro 3D','Persona in riquadro, sopra scene 3D isometriche animate e vivaci.','riquadro_3d',1],
+ ['Manichino 3D argilla','Come il Manichino 3D ma stile argilla/plastilina, più semplice e giocoso.','c_manichino_argilla'],
+ ['Oggetti 3D realistici','Oggetti 3D Blender realistici (pacco, scatole, monete, trofeo) accanto alla persona.','c_oggetti3D_realistici'],
+ ['Notifiche in vetro','Notifiche tipo iPhone in liquid glass che scendono dall\'alto con numeri e risultati.','c_notifiche'],
+ ['Oggetti 3D','Piccoli oggetti 3D animati accanto alla testa sulle parole chiave (pacco, carrello, monete).','c_oggetti3D'],
+ ['Disegni a mano','Frecce, cerchi e sottolineature a pennarello che si disegnano da sole.','c_disegni'],
+ ['Prova visiva','Schermo diviso: sopra una cornice con la prova (foto, video, prima/dopo), sotto chi parla.','c_prova_visiva'],
+ ['Gancio + capitoli','Titolo gancio iniziale che diventa etichetta, capitoli numerati e barra di avanzamento.','c_gancio_capitoli']];
+const CAM=[['Nessuno','Camera così com\'è, nessun movimento aggiunto.',''],
+ ['Camera viva','Zoom veloci sulle frasi forti, flash e piccola scossa sulle parole d\'impatto.','c_camera_viva',1],
+ ['Zoom laterale','Zoom in che sposta la faccia da un lato e lascia spazio dall\'altro per scritte o grafiche, alternando destra e sinistra, poi torna largo.','cam_zoom_laterale',1],
+ ['Punch-in a scatto','Zoom secco sulla faccia sulle frasi importanti, poi torna largo di colpo.','cam_punch_in'],
+ ['Zoom morbido','Zoom in lento e zoom out lento, la camera respira mentre parla.','cam_zoom_morbido'],
+ ['Flare fotocamera','I tuoi Flare Transitions (con suono) tagliati a metà, in composizione Aggiungi, mai due uguali di fila: all\'inizio come gancio, nei cambi di inquadratura e prima/dopo b-roll o render Blender.','cam_flare',1]];
+const AUD=[['Nessuna musica','Solo la voce, nessuna canzone.',''],
+ ['Energica','Ritmo alto, beat deciso: per reel veloci, risultati, prima/dopo.','aud_energica'],
+ ['Trap','Beat trap e drill, bassi pesanti: per reel aggressivi, business, soldi, risultati.','aud_trap'],
+ ['Hip hop','Beat hip hop e boom bap, groove morbido: per storytelling, interviste, lifestyle.','aud_hiphop'],
+ ['Social','Pop moderno e fashion, tipo reel virali: per moda, negozi, vlog, prodotti.','aud_social'],
+ ['Cinematic','Orchestrale e d\'impatto, da trailer: per showroom, prima/dopo, momenti wow.','aud_cinematic'],
+ ['Folk','Chitarra acustica, naturale e calda: per artigiani, cibo, territorio, mercati.','aud_folk'],
+ ['Motivazionale','Crescente e ispirante: per storie, percorsi, consigli.','aud_motivazionale'],
+ ['Chill','Morbida e moderna: per negozi, lifestyle, prodotti.','aud_chill'],
+ ['Emozionale','Piano e archi: per racconti personali e momenti importanti.','aud_emozionale'],
+ ['Elegante','Raffinata, lounge: per lusso, profumi, design.','aud_elegante']];
+const VOC=[['Voce originale','Nessun intervento sulla voce.','voc_originale'],
+ ['Podcast calda','Voce pulita, calda e piena come un microfono da podcast a condensatore, compressa e già al volume giusto per i social.','voc_podcast',1],
+ ['Normalizzata social','Solo volume portato allo standard di YouTube e social (-14 LUFS), senza cambiare il suono della voce.','voc_social']];
+const SEM=[['Nessuno','Nessun sottotitolo semplice.',''],
+ ['Base DaVinci','Bianco con ombra, fermo: come la traccia sottotitoli di DaVinci.','sem_1'],
+ ['Box nero','Bianco su riquadro nero trasparente con angoli tondi.','sem_2'],
+ ['Pop','Maiuscolo con contorno nero, entra con un piccolo rimbalzo.','sem_3'],
+ ['Karaoke giallo','La parola che sta dicendo diventa gialla.','sem_4'],
+ ['Parola per parola','Le parole compaiono una alla volta mentre le dice.','sem_5'],
+ ['Macchina da scrivere','Lettere battute una alla volta con il cursore.','sem_6'],
+ ['Sale e sfuma','Ogni frase sale dal basso con dissolvenza.','sem_7'],
+ ['Parole chiave','Bianco con le parole importanti in giallo e linea che si allunga sotto.','sem_8'],
+ ['Minimal glow','Minuscolo sottile con bagliore bianco, entra da sfocato.','sem_9'],
+ ['Evidenziatore','Un riquadro colorato (colore del brand) segue la parola detta.','sem_10']];
+const NIT=[['Nessuna','Nessuna nitidezza aggiunta.',''],['Leoni Films nitido regolabile','Il tuo filtro DCTL LeoniFilms_ReelNitido_Regolabile messo in timeline (non nell\'export), regolabile con gli slider.','nit_leoni',1],['Leoni Films nitido','Il tuo filtro DCTL LeoniFilms_ReelNitido (versione fissa, senza slider) messo in timeline.','nit_leoni']];
+const COV=[['Nessuna copertina','Niente copertina.',''],
+ ['Copertina classica','Frase piccola e parola gigante sopra la testa, riga in stampatello e corsivo giallo al petto.','cov_classica',1],
+ ['Copertina liquid glass','Card in vetro (liquid glass) sul busto con titolo grande e corsivo giallo, etichetta in alto.','cov_vetro'],
+ ['Copertina numeri in basso','Foto che sfuma nel blu scuro in basso, etichetta gialla e numeri grandi compatti.','cov_numeri_basso'],
+ ['Copertina evidenziatore','Parola grande nera su barra gialla inclinata dietro la testa, riga su barra bianca al petto.','cov_evidenziatore'],
+ ['Copertina prezzo barrato','Prezzo barrato in rosso dietro la testa, prezzo nuovo verde grande al petto.','cov_prezzo'],
+ ['Copertina rivista','Sfondo a tinta unita con la persona scontornata, titolo serif tipo rivista ed etichetta.','cov_rivista'],
+ ['Copertina numero gigante','Numero enorme giallo di fianco alla testa con la frase sotto, frase al petto.','cov_numero']];
+const MS={comp:['Nessuno'],cam:['Nessuno']};const LISTS={comp:COMP,cam:CAM};
+const msStr=k=>MS[k].join(' + ');
+function setMS(k,v){MS[k]=(v||'Nessuno').split(' + ').filter(x=>LISTS[k].some(c=>c[0]===x));if(!MS[k].length)MS[k]=['Nessuno']}
+const compStr=()=>msStr('comp');function setComp(v){setMS('comp',v)}
+function vid(slug,auto){return slug?`<video src="${AV(slug+'.mp4')}" poster="${AV(slug+'.jpg')}" muted loop playsinline preload="none" ${auto?'autoplay':''}></video>`:''}
+function picker(el,list,sel,cur,multi){
+  const isOn=x=>multi?MS[multi].includes(x[0]):x[0]===cur;
+  el.innerHTML=list.map((x,i)=>`<div class="pc2${isOn(x)?' on':''}${x[3]?' fav':''}${!x[2]&&x[0]==='Nessuno'?' none':''}" data-i="${i}" title="${x[1].replace(/"/g,'&quot;')}">
+    ${multi&&isOn(x)&&x[0]!=='Nessuno'?'<span class="chk">✓</span>':''}${x[3]?'<span class="star">★</span>':''}<div class="vid">${x[2]?vid(x[2],isOn(x)):(x[0]==='Nessuno'?'—':'<div class="noprev">anteprima<br>in arrivo</div>')}</div><div class="nm">${x[0]}</div></div>`).join('');
+  el.querySelectorAll('.pc2').forEach(c=>{const v=c.querySelector('video');
+    c.onmouseenter=()=>v&&v.play().catch(()=>{});c.onmouseleave=()=>{if(v&&!c.classList.contains('on')){v.pause()}};
+    c.onclick=()=>{const n=list[+c.dataset.i][0];
+      if(!multi){sel.value=n}else if(n==='Nessuno'){MS[multi]=['Nessuno']}else{let a=MS[multi].filter(x=>x!=='Nessuno');a=a.includes(n)?a.filter(x=>x!==n):[...a,n];MS[multi]=a.length?a:['Nessuno']}
+      drawPick();if(list===AUD||list===VOC){const v2=el.querySelector('.pc2.on video');document.querySelectorAll('#pkAud video,#pkVoc video').forEach(x=>{x.muted=true;x.pause()});if(v2){v2.muted=false;v2.currentTime=0;v2.play().catch(()=>{})}}}});
+}
+function drawPick(){picker($('#pkStile'),STILI,$('#sStile'),$('#sStile').value);picker($('#pkComp'),COMP,null,null,'comp');picker($('#pkCam'),CAM,null,null,'cam');picker($('#pkAud'),AUD,$('#sAud'),$('#sAud').value);picker($('#pkSem'),SEM,$('#sSem'),$('#sSem').value);picker($('#pkNit'),NIT,$('#sNit'),$('#sNit').value);picker($('#pkVoc'),VOC,$('#sVoc'),$('#sVoc').value);picker($('#pkCov'),COV,$('#sCov'),$('#sCov').value);
+  const cs=MS.comp.filter(x=>x!=='Nessuno'),ce=MS.cam.filter(x=>x!=='Nessuno');
+  $('#riep').innerHTML=`<span class="mut">Scelto:</span> <b>${$('#sStile').value}</b>${cs.length?' · Complementi: '+cs.map(x=>'<b>'+x+'</b>').join(' + '):''}${ce.length?' · Effetti camera: '+ce.map(x=>'<b>'+x+'</b>').join(' + '):''}${$('#sAud').value!=='Nessuna musica'?' · Musica: <b>'+$('#sAud').value+'</b>':''}${$('#sSem').value!=='Nessuno'?' · Semplici: <b>'+$('#sSem').value+'</b>':''}${$('#sNit').value!=='Nessuna'?' · <b>Nitido</b>':''}${$('#sVoc').value!=='Voce originale'?' · Voce: <b>'+$('#sVoc').value+'</b>':''}${$('#sCov').value!=='Nessuna copertina'?' · <b>'+$('#sCov').value+'</b>':''}`;
+  $('#compsel').innerHTML=cs.length?'Complementi scelti: <b>'+cs.join(' + ')+'</b>':'Nessun complemento scelto';
+  $('#camsel').innerHTML=ce.length?'Effetti camera scelti: <b>'+ce.join(' + ')+'</b>':'Nessun effetto camera scelto'}
+let CLI=[],CODA=[],DV=null,PRESET=[],selCli=null,selGio=null,edit=-1;
+const $=s=>document.querySelector(s);
+const CFG=window.CRM_CONFIG;const sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);
+let ANTE={};const AV=n=>ANTE[n]||'';
+async function kget(k,d){const {data,error}=await sb.from('impostazioni').select('valore').eq('chiave',k).maybeSingle();if(error)throw error;return data?data.valore:d}
+async function kput(k,v){const {error}=await sb.from('impostazioni').upsert({chiave:k,valore:v,aggiornato_il:new Date().toISOString()});if(error){toast('Errore: '+error.message);throw error}}
+const pausa=ms=>new Promise(r=>setTimeout(r,ms));
+async function api(u,b){
+ if(u==='/api/clienti')return b?(await kput('leoni_clienti',b),{ok:true}):kget('leoni_clienti',[]);
+ if(u==='/api/coda')return b?(await kput('leoni_coda',b),{ok:true}):kget('leoni_coda',[]);
+ if(u==='/api/coda/aggiungi'){const c=await kget('leoni_coda',[]);const d=new Date(),z=n=>String(n).padStart(2,'0');
+   b.forEach(j=>{j.id=Math.random().toString(36).slice(2,10);j.stato='in coda';j.aggiunto=`${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`});
+   await kput('leoni_coda',c.concat(b));return {ok:true}}
+ if(u==='/api/davinci')return kget('leoni_davinci',{ok:false,errore:'Premi "Aggiorna da DaVinci"'});
+ if(u==='/api/preset')return kget('leoni_preset',[]);
+ if(u==='/api/davinci/aggiorna'){const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'aggiorna_davinci',stato:'nuovo'});
+   for(let i=0;i<60;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);if(c.stato==='errore')return {ok:false,errore:c.messaggio||'DaVinci non risponde: deve essere aperto sul PC'};return kget('leoni_davinci',{ok:false})}}
+   await sb.from('impostazioni').delete().eq('chiave',id);return {ok:false,errore:'Il PC non risponde: è acceso?'}}
+ throw new Error('api '+u)}
+async function statoPC(){try{const p=await kget('leoni_pc',null);const e=$('#pc');
+ if(p&&Date.now()-new Date(p.ultimo).getTime()<60000){e.textContent='PC acceso'+(p.davinci?' · DaVinci aperto':'')+(p.occupato?' · sta generando':'');e.className='pill ok'}else{e.textContent='PC spento';e.className='pill err'}}catch(e){}}
+async function entra(ev){ev.preventDefault();$('#lg_err').textContent='';const {error}=await sb.auth.signInWithPassword({email:$('#lg_email').value.trim(),password:$('#lg_pw').value});
+ if(error){$('#lg_err').textContent='Email o password errate';return}$('#login').style.display='none';init()}
+// ---------- StudioAI ----------
+let MODO='immagine';
+document.addEventListener('click',e=>{const b=e.target.closest('#stModi button');if(!b)return;MODO=b.dataset.m;document.querySelectorAll('#stModi button').forEach(x=>x.classList.toggle('on',x===b));
+ $('#stFoto').classList.toggle('hid',!(MODO==='modifica'||MODO==='anima'));$('#stSecL').classList.toggle('hid',!(MODO==='anima'||MODO==='video'))});
+document.addEventListener('change',e=>{if(e.target.id==='f1'||e.target.id==='f2'){$('#fprev').innerHTML=['f1','f2'].map(i=>$('#'+i).files[0]?`<img src="${URL.createObjectURL($('#'+i).files[0])}">`:'').join('')}});
+function rimpicciolisci(file,max=1600){return new Promise((ok,ko)=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.88))};im.onerror=ko;im.src=URL.createObjectURL(file)})}
+async function inviaStudio(){const pr=$('#stPrompt').value.trim();if(!pr){toast('Scrivi cosa vuoi');return}
+ const f=$('#stFormato').value,id=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ let preset=MODO,j={id,prompt:pr,stato:'in_coda',creato:new Date().toLocaleString('it-IT'),modo:MODO,upload:[]};
+ if(MODO==='immagine'){Object.assign(j,f==='v'?{larghezza:1088,altezza:1920}:f==='o'?{larghezza:1920,altezza:1088}:{larghezza:1024,altezza:1024})}
+ if(MODO==='anima'||MODO==='video'){preset=f==='o'?'video_orizzontale':'video_verticale';j.secondi=+$('#stSec').value}
+ if(MODO==='modifica'||MODO==='anima'){const fs=['f1','f2'].map(i=>$('#'+i).files[0]).filter(Boolean);if(!fs.length){toast('Scegli una foto');return}
+   $('#stInfo').textContent='Carico la foto…';for(let i=0;i<(MODO==='anima'?1:fs.length);i++){const k=`leoni_upload_${id}_${i+1}`;await kput(k,await rimpicciolisci(fs[i]));j.upload.push(k)}}
+ j.preset=preset;await kput('leoni_job_'+id,j);$('#stInfo').textContent='';$('#stPrompt').value='';toast('Inviato al PC');caricaStudio()}
+async function caricaStudio(){const {data}=await sb.from('impostazioni').select('chiave,valore').like('chiave','leoni_job_%').order('chiave',{ascending:false}).limit(60);
+ const L=(data||[]).map(r=>r.valore);const nome={immagine:'Crea foto',modifica:'Modifica foto',anima:'Anima foto',video:'Video da testo'};
+ $('#stLista').innerHTML=L.map(j=>{const r=j.risultato;const media=r?(r.tipo==='video'?`<video src="${r.url}" controls playsinline loop></video>`:`<a href="${r.url}" target="_blank"><img src="${r.url}"></a>`):`<div class="ph">${j.stato==='errore'?'Errore':j.stato==='in_lavorazione'?'Sto generando…':'In coda'}</div>`;
+  return `<div class="st-job">${media}<div class="tx"><b>${nome[j.modo]||j.preset}</b> · ${j.creato||''}<br><span class="mut">${(j.prompt||'').slice(0,90)}</span>${j.messaggio?`<br><span style="color:var(--err)">${j.messaggio.slice(0,160)}</span>`:''}
+  <div style="margin-top:6px;display:flex;gap:6px">${r?`<a class="btn" href="${r.url}" download="${r.nome}">Scarica</a>`:''}<button class="sm dang" onclick="togliJob('${j.id}')">✕</button></div></div></div>`}).join('')||'<div class="empty">Ancora nessun lavoro</div>'}
+async function togliJob(id){await sb.from('impostazioni').delete().eq('chiave','leoni_job_'+id);caricaStudio()}
+setInterval(()=>{if(!$('#t-studio').classList.contains('hid'))caricaStudio();statoPC()},8000);
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}
+function opts(sel,list,val){sel.innerHTML=list.map(x=>`<option${x===val?' selected':''}>${x}</option>`).join('')}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  ['video','coda','clienti','stili','studio'].forEach(t=>$('#t-'+t).classList.toggle('hid',t!==b.dataset.t));if(b.dataset.t==='coda')drawCoda();if(b.dataset.t==='studio')caricaStudio()});
+// ---------- dati ----------
+async function init(){
+  ANTE=await kget('leoni_anteprime',{});statoPC();
+  [CLI,CODA,DV,PRESET]=await Promise.all([api('/api/clienti'),api('/api/coda'),api('/api/davinci'),api('/api/preset').catch(()=>[])]);
+  if(!PRESET.length)PRESET=['Leoni Reel 4K Nitido'];
+  opts($('#sStile'),STILI.map(s=>s[0]));opts($('#sAud'),AUD.map(x=>x[0]));opts($('#sCov'),COV.map(x=>x[0]));opts($('#sVoc'),VOC.map(x=>x[0]));opts($('#sSem'),SEM.map(x=>x[0]));opts($('#sNit'),NIT.map(x=>x[0]));opts($('#sPreset'),PRESET);
+  drawDV();drawCli();drawStili();drawCoda();drawPick();
+}
+function cliCard(cart){return CLI.find(c=>(c.cartella||'').toLowerCase()===(cart||'').toLowerCase())}
+function statoDi(cli,gio,prog){const j=[...CODA].reverse().find(x=>x.cartella===cli&&x.giornata===gio&&x.progetto===prog);return j?j.stato:null}
+function badge(s){if(!s)return'';const c={'in coda':'b-coda','in lavorazione':'b-lav','fatto':'b-fatto','esportato':'b-exp','errore':'b-err'}[s]||'';return `<span class="badge ${c}">${s}</span>`}
+// ---------- DaVinci ----------
+function drawDV(){
+  const p=$('#dv');
+  if(!DV||!DV.ok){p.textContent='DaVinci: '+(DV&&DV.errore?DV.errore:'non letto');p.className='pill err';$('#lcli').innerHTML='<div class="empty">Apri DaVinci e premi "Aggiorna da DaVinci"</div>';return}
+  p.textContent='DaVinci letto '+DV.aggiornato;p.className='pill ok';
+  $('#lcli').innerHTML=Object.keys(DV.clienti).map(c=>{const card=cliCard(c);const n=Object.values(DV.clienti[c]).reduce((a,b)=>a+b.length,0);
+    return `<div class="it${c===selCli?' on':''}" onclick="selC('${c.replace(/'/g,"\\'")}')"><span>${card?card.nome:c}</span><small>${n}</small></div>`}).join('');
+  drawGio();
+}
+async function aggiornaDV(){$('#dv').textContent='DaVinci: leggo…';DV=await api('/api/davinci/aggiorna');PRESET=await api('/api/preset').catch(()=>PRESET);if(PRESET.length)opts($('#sPreset'),PRESET);drawDV();toast(DV.ok?'Progetti aggiornati':'DaVinci non risponde')}
+function selC(c){selCli=c;selGio=null;const card=cliCard(c);
+  if(card){$('#sStile').value=card.stile||$('#sStile').value;setComp(card.complemento);setMS('cam',card.camera);if(card.audio)$('#sAud').value=card.audio;if(card.copertina)$('#sCov').value=card.copertina;if(card.voce)$('#sVoc').value=card.voce;if(card.semplici)$('#sSem').value=card.semplici;if(card.nitidezza)$('#sNit').value=card.nitidezza;if(card.preset)$('#sPreset').value=card.preset}
+  drawDV();drawPick()}
+function drawGio(){
+  if(!selCli){$('#lgio').innerHTML='';return}
+  const g=DV.clienti[selCli];const keys=Object.keys(g).filter(k=>k!=='_senza_giornata'||g[k].length);
+  $('#lgio').innerHTML=keys.map(k=>`<div class="it${k===selGio?' on':''}" onclick="selG('${k.replace(/'/g,"\\'")}')"><span>${k==='_senza_giornata'?'(fuori cartella)':k}</span><small>${g[k].length}</small></div>`).join('')||'<div class="empty">Nessuna giornata</div>';
+  drawProg()}
+function selG(k){selGio=k;drawGio()}
+function drawProg(){
+  if(!selGio){$('#lprog').innerHTML='<div class="empty">Scegli una giornata</div>';$('#tprog').textContent='Progetti';return}
+  const list=DV.clienti[selCli][selGio];$('#tprog').textContent='Progetti · '+(selGio==='_senza_giornata'?'fuori cartella':selGio);
+  $('#lprog').innerHTML=(list.length?`<div class="proj"><input type="checkbox" id="tutti" onchange="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked);conta()"><b>Seleziona tutti</b></div>`:'')+
+   list.map(p=>`<label class="proj" style="flex-direction:row;color:var(--txt);font-size:14px"><input type="checkbox" class="pc" value="${p}" onchange="conta()"><span style="flex:1">${p}</span>${badge(statoDi(selCli,selGio,p))}</label>`).join('')||'<div class="empty">Nessun progetto</div>';
+  conta()}
+function conta(){const n=document.querySelectorAll('.pc:checked').length;$('#bAdd').textContent=n?`Aggiungi alla coda (${n})`:'Aggiungi alla coda'}
+async function aggiungi(){
+  const sel=[...document.querySelectorAll('.pc:checked')].map(c=>c.value);if(!sel.length){toast('Seleziona almeno un progetto');return}
+  const card=cliCard(selCli);
+  const jobs=sel.map(p=>({cliente:card?card.nome:selCli,cartella:selCli,giornata:selGio==='_senza_giornata'?'':selGio,progetto:p,stile:$('#sStile').value,complemento:compStr(),camera:msStr('cam'),audio:$('#sAud').value,voce:$('#sVoc').value,semplici:$('#sSem').value,nitidezza:$('#sNit').value,copertina:$('#sCov').value,preset:$('#sPreset').value,note:$('#sNote').value}));
+  await api('/api/coda/aggiungi',jobs);CODA=await api('/api/coda');drawProg();drawCoda();toast(sel.length+' video in coda');$('#sNote').value=''}
+// ---------- coda ----------
+function drawCoda(){
+  $('#ncoda').textContent=CODA.filter(j=>j.stato==='in coda'||j.stato==='in lavorazione').length;
+  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td><small>${j.preset}</small></td><td>${badge(j.stato)}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
+   <td style="white-space:nowrap"><button class="sm" onclick="sposta(${i},-1)">▲</button> <button class="sm" onclick="sposta(${i},1)">▼</button> <button class="sm" onclick="rimetti(${i})" title="Rimetti in coda">↺</button> <button class="sm dang" onclick="togli(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="15" class="empty">La coda è vuota</td></tr>'}
+async function salvaCoda(){await api('/api/coda',CODA);drawCoda();drawProg&&selGio&&drawProg()}
+function sposta(i,d){const k=i+d;if(k<0||k>=CODA.length)return;[CODA[i],CODA[k]]=[CODA[k],CODA[i]];salvaCoda()}
+function togli(i){CODA.splice(i,1);salvaCoda()}
+function rimetti(i){CODA[i].stato='in coda';delete CODA[i].messaggio;salvaCoda()}
+function pulisci(){CODA=CODA.filter(j=>!['fatto','esportato'].includes(j.stato));salvaCoda()}
+function copiaComando(){const n=CODA.filter(j=>j.stato==='in coda').length;
+  const t='Esegui la coda del Pannello Leoni (C:\\Users\\video\\Videos\\Claude_Edit_Marius\\PANNELLO\\coda.json)';
+  const fatto=()=>toast(n?`Comando copiato: incollalo in Claude (${n} video in coda)`:'Comando copiato (la coda è vuota)');if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(fatto)}else{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');fatto()}catch(e){prompt('Copia il comando:',t)}ta.remove()}}
+// ---------- clienti ----------
+function drawCli(){
+  $('#gcli').innerHTML=CLI.map((c,i)=>`<div class="card" onclick="apriCliente(${i})"><h4>${c.nome}</h4>
+   <div class="mut" style="margin-bottom:6px">Cartella DaVinci: ${c.cartella||'—'}</div>
+   <div><span class="sw" style="background:${c.colore1||'#fff'}"></span><span class="sw" style="background:${c.colore2||'#f5b301'}"></span> ${[c.font1,c.font3].filter(Boolean).join(' · ')}</div>
+   <div class="mut" style="margin-top:6px">${c.stile||''}${c.complemento&&c.complemento!=='Nessuno'?' + '+c.complemento:''}${c.camera&&c.camera!=='Nessuno'?' + '+c.camera:''}</div></div>`).join('')||'<div class="empty">Nessun cliente</div>'}
+function fillForm(c){
+  const cart=DV&&DV.ok?Object.keys(DV.clienti):[];if(c.cartella&&!cart.includes(c.cartella))cart.push(c.cartella);
+  opts($('#f_cart'),['',...cart],c.cartella||'');opts($('#f_stile'),STILI.map(s=>s[0]),c.stile);{const L=COMP.map(x=>x[0]);if(c.complemento&&!L.includes(c.complemento))L.push(c.complemento);opts($('#f_comp'),L,c.complemento||'Nessuno')}opts($('#f_preset'),PRESET,c.preset);{const L=CAM.map(x=>x[0]);if(c.camera&&!L.includes(c.camera))L.push(c.camera);opts($('#f_cam'),L,c.camera||'Nessuno')}opts($('#f_aud'),AUD.map(x=>x[0]),c.audio||'Nessuna musica');opts($('#f_cov'),COV.map(x=>x[0]),c.copertina||'Nessuna copertina');opts($('#f_voc'),VOC.map(x=>x[0]),c.voce||'Voce originale');opts($('#f_sem'),SEM.map(x=>x[0]),c.semplici||'Nessuno');opts($('#f_nit'),NIT.map(x=>x[0]),c.nitidezza||'Nessuna');
+  $('#f_nome').value=c.nome||'';$('#f_font1').value=c.font1||'';$('#f_font2').value=c.font2||'';$('#f_font3').value=c.font3||'';
+  $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_exp').value=c.export||'';$('#f_note').value=c.note||'';
+  $('#fcli').classList.remove('hid');$('#fcli').scrollIntoView({behavior:'smooth'})}
+function apriCliente(i){edit=i;fillForm(CLI[i])}
+function nuovoCliente(){edit=-1;fillForm({})}
+function chiudiForm(){$('#fcli').classList.add('hid')}
+async function salvaCliente(){
+  const c={nome:$('#f_nome').value.trim(),cartella:$('#f_cart').value,font1:$('#f_font1').value,font2:$('#f_font2').value,font3:$('#f_font3').value,colore1:$('#f_c1').value,colore2:$('#f_c2').value,
+   stile:$('#f_stile').value,complemento:$('#f_comp').value,camera:$('#f_cam').value,audio:$('#f_aud').value,voce:$('#f_voc').value,semplici:$('#f_sem').value,nitidezza:$('#f_nit').value,copertina:$('#f_cov').value,preset:$('#f_preset').value,export:$('#f_exp').value,note:$('#f_note').value};
+  if(!c.nome){toast('Serve il nome');return}
+  if(edit>=0)CLI[edit]=c;else CLI.push(c);await api('/api/clienti',CLI);drawCli();drawDV();chiudiForm();toast('Cliente salvato')}
+async function eliminaCliente(){if(edit<0)return chiudiForm();if(!confirm('Eliminare la scheda di '+CLI[edit].nome+'? (i progetti in DaVinci non vengono toccati)'))return;CLI.splice(edit,1);await api('/api/clienti',CLI);drawCli();chiudiForm()}
+function drawStili(){
+  const card=(x,comp,tag)=>`<div class="scard">${x[2]?`<video src="${AV(x[2]+'.mp4')}" poster="${AV(x[2]+'.jpg')}" muted loop playsinline autoplay></video>`:`<div class="ph">${x[0]==='Nessuno'?'':'Anteprima in arrivo:<br>la creo al primo video con questo stile'}</div>`}
+   <div class="tx"><b>${x[0]}${comp?'<span class="tag">'+(tag||'complemento')+'</span>':''}</b><span class="mut">${x[1]}</span></div></div>`;
+  $('#lstili').innerHTML=STILI.map(x=>card(x,false)).join('')+COMP.slice(1).map(x=>card(x,true)).join('')+CAM.slice(1).map(x=>card(x,true,'effetto camera')).join('')}
+setInterval(async()=>{if($('#login').style.display!=='none')return;const c=await api('/api/coda');if(JSON.stringify(c)!==JSON.stringify(CODA)){CODA=c;drawCoda();if(selGio)drawProg()}},5000);
+sb.auth.getSession().then(({data})=>{if(data.session){$('#login').style.display='none';init()}});
+</script></body></html>
