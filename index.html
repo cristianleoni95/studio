@@ -360,13 +360,15 @@ function drawProg(){
    list.map(p=>`<label class="proj" style="flex-direction:row;color:var(--txt);font-size:14px"><input type="checkbox" class="pc" value="${p}" onchange="conta()"><span style="flex:1">${p}</span>${badge(statoDi(selCli,selGio,p))}</label>`).join('')||'<div class="empty">Nessun progetto</div>';
   conta()}
 function conta(){const n=RIP.length||document.querySelectorAll('.pc:checked').length;$('#bAdd').textContent=n?`Aggiungi alla coda (${n})`:'Aggiungi alla coda'}
+function nuovoN(){let m=0;const g=(DV&&DV.clienti&&DV.clienti[selCli])||{};const L=selGio&&selGio!=='_senza_giornata'?(g[selGio]||[]):Object.values(g).flat();
+  L.concat(CODA.filter(j=>j.cartella===selCli).map(j=>j.progetto)).forEach(n=>{const x=/^video\s*(\d+)$/i.exec(n||'');if(x)m=Math.max(m,+x[1])});return m+1}
 async function aggiungi(){
   const pr=[...document.querySelectorAll('.pc:checked')].map(c=>c.value);
   if(RIP.length&&!selCli){toast('Scegli il cliente');return}
   if(RIP.length&&pr.length>1){toast('Con le clip scegli al massimo un progetto DaVinci (o nessuno: lo crea Claude)');return}
-  const sel=RIP.length?RIP:pr;if(!sel.length){toast('Seleziona un progetto o una clip');return}
+  const sel=RIP.length?[...RIP].sort((a,b)=>bn(a).localeCompare(bn(b),undefined,{numeric:true})):pr;if(!sel.length){toast('Seleziona un progetto o una clip');return}
   const card=cliCard(selCli);
-  const jobs=sel.map(p=>({cliente:card?card.nome:selCli,cartella:selCli,giornata:selGio&&selGio!=='_senza_giornata'?selGio:'',progetto:RIP.length?(pr[0]||bn(p).replace(/\.[^.]+$/,'')):p,clip:RIP.length?p:'',tagli:$('#sTag').value,stile:$('#sStile').value,complemento:compStr(),camera:msStr('cam'),audio:$('#sAud').value,voce:$('#sVoc').value,semplici:$('#sSem').value,nitidezza:$('#sNit').value,copertina:$('#sCov').value,preset:$('#sPreset').value,note:$('#sNote').value}));
+  const jobs=sel.map(p=>({cliente:card?card.nome:selCli,cartella:selCli,giornata:selGio&&selGio!=='_senza_giornata'?selGio:'',progetto:RIP.length?(pr[0]||'video '+(nuovoN()+sel.indexOf(p))):p,clip:RIP.length?p:'',tagli:$('#sTag').value,stile:$('#sStile').value,complemento:compStr(),camera:msStr('cam'),audio:$('#sAud').value,voce:$('#sVoc').value,semplici:$('#sSem').value,nitidezza:$('#sNit').value,copertina:$('#sCov').value,preset:$('#sPreset').value,note:$('#sNote').value}));
   await api('/api/coda/aggiungi',jobs);CODA=await api('/api/coda');drawProg();drawCoda();toast(sel.length+' video in coda');$('#sNote').value='';if(RIP.length){RIP=[];ripApri(RPATH)}}
 
 // ---------- riprese originali (dal disco) ----------
