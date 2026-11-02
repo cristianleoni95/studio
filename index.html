@@ -43,6 +43,13 @@ th{font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--mut);
 .stile b{color:var(--acc)}
 h2.step{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);margin:22px 0 10px;display:flex;align-items:center;gap:8px}
 h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.fsec{grid-column:1/-1}.fsl{font-size:12px;color:var(--mut);margin:6px 0 2px}.fwrap{position:relative}.fprev{font-size:26px;color:var(--txt);min-height:34px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fdd{position:absolute;z-index:30;top:100%;left:0;right:0;max-height:340px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0008}
+.fdd{background:#1b1b1d;border-color:#333;max-height:420px;min-width:420px}.fdd .fr{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:10px;padding:0 12px;height:28px;cursor:pointer}.fdd .fr:hover,.fdd .fr.sel{background:#2a2a2e}.fdd .fl{font:13px system-ui,sans-serif;color:#c9c9cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fdd .fs{font-size:19px;line-height:28px;color:#e8e8ea;white-space:nowrap;overflow:hidden}.fdd .fe{padding:8px 12px;font:12px system-ui;color:#888}
+.rbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.rbar .sp{flex:1}.rpath{font-size:13px;color:var(--acc);word-break:break-all}
+.rcart{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.rcart div{padding:6px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px}.rcart div:hover{border-color:var(--acc)}
+.rvid{display:flex;flex-wrap:wrap;gap:10px;max-height:460px;overflow:auto}.rv{width:150px;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#0a0e13;position:relative}.rv.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
+.rv video{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#000}.rv .rn{padding:6px 8px;font-size:12px;font-weight:600;word-break:break-all}.rv .rd{padding:0 8px 6px;font-size:11px;color:var(--mut)}.rv .rk{position:absolute;top:6px;left:6px;background:var(--acc);color:#111;border-radius:50%;width:22px;height:22px;display:none;align-items:center;justify-content:center;font-weight:800}.rv.on .rk{display:flex}
 .pick{display:flex;flex-wrap:wrap;gap:12px;padding:4px 2px 10px}
 .pc2{flex:0 0 130px;background:var(--panel);border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s}
 .pc2:hover{border-color:#4b5d75;transform:translateY(-2px)}.pc2.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
@@ -95,6 +102,9 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
     <div class="box"><h3>Giornate</h3><div id="lgio"></div></div>
     <div class="box"><h3 id="tprog">Progetti</h3><div id="lprog"><div class="empty">Scegli un cliente e una giornata</div></div></div>
   </div>
+  <div class="box" style="margin-top:14px"><h3 style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">Riprese originali <span class="mut" style="font-weight:400;text-transform:none;letter-spacing:0">· scegli le clip della camera dal disco (nomi originali, non cambi niente): ogni clip scelta = un video in coda</span></h3>
+    <div class="rbar"><span id="rdischi"></span><button class="sm" onclick="ripSu()">⬆ Su</button><b id="rpath" class="rpath"></b><span class="sp"></span><button class="sm" onclick="ripPred()" title="La prossima volta il pannello parte da qui per questo cliente">★ Cartella predefinita del cliente</button></div>
+    <div id="rcart" class="rcart"></div><div id="rvid" class="rvid"><div class="empty">Scegli un cliente</div></div><div id="rsel" class="riep" style="margin-top:8px"></div></div>
   <h2 class="step"><i>2</i> Tagli <span class="mut" style="text-transform:none;letter-spacing:0">· nessun taglio (li fai tu) o tagli automatici dalla registrazione lunga</span></h2>
   <div id="pkTag" class="pick"></div>
   <h2 class="step"><i>3</i> Stile dei sottotitoli <span class="mut" style="text-transform:none;letter-spacing:0">· passa sopra per vedere l'anteprima</span></h2>
@@ -138,19 +148,21 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
     <div class="form">
       <label>Nome cliente<input type="text" id="f_nome"></label>
       <label>Cartella in DaVinci<select id="f_cart"></select></label>
-      <label>Font principale<input type="text" id="f_font1" placeholder="Urbanist ExtraBold"></label>
-      <label>Font grande<input type="text" id="f_font2" placeholder="Unbounded ExtraBold"></label>
-      <label>Font corsivo<input type="text" id="f_font3" placeholder="Apple Garamond Bold Italic"></label>
+      <label class="fwrap">Font principale<input type="text" id="f_font1" placeholder="Urbanist ExtraBold" autocomplete="off" data-fnt><div class="fprev" id="fp_font1"></div><div class="fdd hid"></div></label>
+      <label class="fwrap">Font grande<input type="text" id="f_font2" placeholder="Unbounded ExtraBold" autocomplete="off" data-fnt><div class="fprev" id="fp_font2"></div><div class="fdd hid"></div></label>
+      <label class="fwrap">Font corsivo<input type="text" id="f_font3" placeholder="Apple Garamond Bold Italic" autocomplete="off" data-fnt><div class="fprev" id="fp_font3"></div><div class="fdd hid"></div></label>
       <label>Colori (principale / accento)<span><input type="color" id="f_c1"> <input type="color" id="f_c2"></span></label>
-      <label>Sottotitoli predefiniti<select id="f_stile"></select></label>
-      <label>Complemento predefinito<select id="f_comp"></select></label>
-      <label>Effetti camera predefiniti<select id="f_cam"></select></label>
-      <label>Musica predefinita<select id="f_aud"></select></label>
-      <label>Voce predefinita<select id="f_voc"></select></label>
-      <label>Sottotitoli semplici predefiniti<select id="f_sem"></select></label>
-      <label>Nitidezza<select id="f_nit"></select></label>
-      <label>Copertina<select id="f_cov"></select></label>
+      <div class="fsec"><div class="fsl">Tagli</div><div id="fpTag" class="pick"></div><select id="f_tag" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Sottotitoli predefiniti</div><div id="fpStile" class="pick"></div><select id="f_stile" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Sottotitoli semplici predefiniti</div><div id="fpSem" class="pick"></div><select id="f_sem" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Complementi predefiniti · anche più di uno</div><div id="fpComp" class="pick"></div></div>
+      <div class="fsec"><div class="fsl">Effetti camera predefiniti · anche più di uno</div><div id="fpCam" class="pick"></div></div>
+      <div class="fsec"><div class="fsl">Musica predefinita</div><div id="fpAud" class="pick"></div><select id="f_aud" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Nitidezza</div><div id="fpNit" class="pick"></div><select id="f_nit" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Voce predefinita</div><div id="fpVoc" class="pick"></div><select id="f_voc" class="hid"></select></div>
+      <div class="fsec"><div class="fsl">Copertina</div><div id="fpCov" class="pick"></div><select id="f_cov" class="hid"></select></div>
       <label>Preset export predefinito<select id="f_preset"></select></label>
+      <label>Cartella riprese originali<input type="text" id="f_rip" placeholder="E:\cristin leoni"></label>
       <label>Cartella export<input type="text" id="f_exp" placeholder="D:\Clienti\Rextaura"></label>
       <label class="full">Regole e note per Claude<textarea id="f_note"></textarea></label>
     </div>
@@ -240,7 +252,7 @@ const COV=[['Nessuna copertina','Niente copertina.',''],
  ['Copertina prezzo barrato','Prezzo barrato in rosso dietro la testa, prezzo nuovo verde grande al petto.','cov_prezzo'],
  ['Copertina rivista','Sfondo a tinta unita con la persona scontornata, titolo serif tipo rivista ed etichetta.','cov_rivista'],
  ['Copertina numero gigante','Numero enorme giallo di fianco alla testa con la frase sotto, frase al petto.','cov_numero']];
-const MS={comp:['Nessuno'],cam:['Nessuno']};const LISTS={comp:COMP,cam:CAM};
+const MS={comp:['Nessuno'],cam:['Nessuno'],fcomp:['Nessuno'],fcam:['Nessuno']};const LISTS={comp:COMP,cam:CAM,fcomp:COMP,fcam:CAM};
 const msStr=k=>MS[k].join(' + ');
 function setMS(k,v){MS[k]=(v||'Nessuno').split(' + ').filter(x=>LISTS[k].some(c=>c[0]===x));if(!MS[k].length)MS[k]=['Nessuno']}
 const compStr=()=>msStr('comp');function setComp(v){setMS('comp',v)}
@@ -253,7 +265,7 @@ function picker(el,list,sel,cur,multi){
     c.onmouseenter=()=>v&&v.play().catch(()=>{});c.onmouseleave=()=>{if(v&&!c.classList.contains('on')){v.pause()}};
     c.onclick=()=>{const n=list[+c.dataset.i][0];
       if(!multi){sel.value=n}else if(n==='Nessuno'){MS[multi]=['Nessuno']}else{let a=MS[multi].filter(x=>x!=='Nessuno');a=a.includes(n)?a.filter(x=>x!==n):[...a,n];MS[multi]=a.length?a:['Nessuno']}
-      drawPick();if(list===AUD||list===VOC){const v2=el.querySelector('.pc2.on video');document.querySelectorAll('#pkAud video,#pkVoc video').forEach(x=>{x.muted=true;x.pause()});if(v2){v2.muted=false;v2.currentTime=0;v2.play().catch(()=>{})}}}});
+      (el.closest('#fcli')?drawForm:drawPick)();if(list===AUD||list===VOC){const v2=el.querySelector('.pc2.on video');document.querySelectorAll('#pkAud video,#pkVoc video,#fpAud video,#fpVoc video').forEach(x=>{x.muted=true;x.pause()});if(v2){v2.muted=false;v2.currentTime=0;v2.play().catch(()=>{})}}}});
 }
 function drawPick(){picker($('#pkTag'),TAG,$('#sTag'),$('#sTag').value);picker($('#pkStile'),STILI,$('#sStile'),$('#sStile').value);picker($('#pkComp'),COMP,null,null,'comp');picker($('#pkCam'),CAM,null,null,'cam');picker($('#pkAud'),AUD,$('#sAud'),$('#sAud').value);picker($('#pkSem'),SEM,$('#sSem'),$('#sSem').value);picker($('#pkNit'),NIT,$('#sNit'),$('#sNit').value);picker($('#pkVoc'),VOC,$('#sVoc'),$('#sVoc').value);picker($('#pkCov'),COV,$('#sCov'),$('#sCov').value);
   const cs=MS.comp.filter(x=>x!=='Nessuno'),ce=MS.cam.filter(x=>x!=='Nessuno');
@@ -278,6 +290,9 @@ async function api(u,b){
  if(u==='/api/davinci/aggiorna'){const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'aggiorna_davinci',stato:'nuovo'});
    for(let i=0;i<60;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);if(c.stato==='errore')return {ok:false,errore:c.messaggio||'DaVinci non risponde: deve essere aperto sul PC'};return kget('leoni_davinci',{ok:false})}}
    await sb.from('impostazioni').delete().eq('chiave',id);return {ok:false,errore:'Il PC non risponde: è acceso?'}}
+ if(u.startsWith('/api/sfoglia')){const p=decodeURIComponent((u.split('p=')[1]||''));const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'sfoglia',p,stato:'nuovo'});
+   for(let i=0;i<90;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);if(c.stato==='errore')throw new Error(c.messaggio||'Errore sul PC');return c.risultato}}
+   await sb.from('impostazioni').delete().eq('chiave',id);throw new Error('Il PC non risponde: è acceso?')}
  throw new Error('api '+u)}
 async function statoPC(){try{const p=await kget('leoni_pc',null);const e=$('#pc');
  if(p&&Date.now()-new Date(p.ultimo).getTime()<60000){e.textContent='PC acceso'+(p.davinci?' · DaVinci aperto':'')+(p.occupato?' · sta generando':'');e.className='pill ok'}else{e.textContent='PC spento';e.className='pill err'}}catch(e){}}
@@ -331,7 +346,7 @@ function drawDV(){
 async function aggiornaDV(){$('#dv').textContent='DaVinci: leggo…';DV=await api('/api/davinci/aggiorna');PRESET=await api('/api/preset').catch(()=>PRESET);if(PRESET.length)opts($('#sPreset'),PRESET);drawDV();toast(DV.ok?'Progetti aggiornati':'DaVinci non risponde')}
 function selC(c){selCli=c;selGio=null;const card=cliCard(c);
   if(card){$('#sStile').value=card.stile||$('#sStile').value;setComp(card.complemento);setMS('cam',card.camera);if(card.audio)$('#sAud').value=card.audio;if(card.copertina)$('#sCov').value=card.copertina;if(card.voce)$('#sVoc').value=card.voce;if(card.tagli)$('#sTag').value=card.tagli;if(card.semplici)$('#sSem').value=card.semplici;if(card.nitidezza)$('#sNit').value=card.nitidezza;if(card.preset)$('#sPreset').value=card.preset}
-  drawDV();drawPick()}
+  drawDV();drawPick();RIP=[];ripStart(c)}
 function drawGio(){
   if(!selCli){$('#lgio').innerHTML='';return}
   const g=DV.clienti[selCli];const keys=Object.keys(g).filter(k=>k!=='_senza_giornata'||g[k].length);
@@ -344,16 +359,36 @@ function drawProg(){
   $('#lprog').innerHTML=(list.length?`<div class="proj"><input type="checkbox" id="tutti" onchange="document.querySelectorAll('.pc').forEach(c=>c.checked=this.checked);conta()"><b>Seleziona tutti</b></div>`:'')+
    list.map(p=>`<label class="proj" style="flex-direction:row;color:var(--txt);font-size:14px"><input type="checkbox" class="pc" value="${p}" onchange="conta()"><span style="flex:1">${p}</span>${badge(statoDi(selCli,selGio,p))}</label>`).join('')||'<div class="empty">Nessun progetto</div>';
   conta()}
-function conta(){const n=document.querySelectorAll('.pc:checked').length;$('#bAdd').textContent=n?`Aggiungi alla coda (${n})`:'Aggiungi alla coda'}
+function conta(){const n=RIP.length||document.querySelectorAll('.pc:checked').length;$('#bAdd').textContent=n?`Aggiungi alla coda (${n})`:'Aggiungi alla coda'}
 async function aggiungi(){
-  const sel=[...document.querySelectorAll('.pc:checked')].map(c=>c.value);if(!sel.length){toast('Seleziona almeno un progetto');return}
+  const pr=[...document.querySelectorAll('.pc:checked')].map(c=>c.value);
+  if(RIP.length&&!selCli){toast('Scegli il cliente');return}
+  if(RIP.length&&pr.length>1){toast('Con le clip scegli al massimo un progetto DaVinci (o nessuno: lo crea Claude)');return}
+  const sel=RIP.length?RIP:pr;if(!sel.length){toast('Seleziona un progetto o una clip');return}
   const card=cliCard(selCli);
-  const jobs=sel.map(p=>({cliente:card?card.nome:selCli,cartella:selCli,giornata:selGio==='_senza_giornata'?'':selGio,progetto:p,tagli:$('#sTag').value,stile:$('#sStile').value,complemento:compStr(),camera:msStr('cam'),audio:$('#sAud').value,voce:$('#sVoc').value,semplici:$('#sSem').value,nitidezza:$('#sNit').value,copertina:$('#sCov').value,preset:$('#sPreset').value,note:$('#sNote').value}));
-  await api('/api/coda/aggiungi',jobs);CODA=await api('/api/coda');drawProg();drawCoda();toast(sel.length+' video in coda');$('#sNote').value=''}
+  const jobs=sel.map(p=>({cliente:card?card.nome:selCli,cartella:selCli,giornata:selGio&&selGio!=='_senza_giornata'?selGio:'',progetto:RIP.length?(pr[0]||bn(p).replace(/\.[^.]+$/,'')):p,clip:RIP.length?p:'',tagli:$('#sTag').value,stile:$('#sStile').value,complemento:compStr(),camera:msStr('cam'),audio:$('#sAud').value,voce:$('#sVoc').value,semplici:$('#sSem').value,nitidezza:$('#sNit').value,copertina:$('#sCov').value,preset:$('#sPreset').value,note:$('#sNote').value}));
+  await api('/api/coda/aggiungi',jobs);CODA=await api('/api/coda');drawProg();drawCoda();toast(sel.length+' video in coda');$('#sNote').value='';if(RIP.length){RIP=[];ripApri(RPATH)}}
+
+// ---------- riprese originali (dal disco) ----------
+let RIP=[],RPATH='';const jn=(a,b)=>a.endsWith('\\')?a+b:a+'\\'+b;const bn=p=>p.split('\\').pop();
+function ripStart(c){const card=cliCard(c);let m='';try{m=localStorage.getItem('rip_'+c)||''}catch(e){}ripApri((card&&card.riprese)||m||'E:\\')}
+async function ripApri(p){let d;$('#rvid').innerHTML='<div class="empty">Leggo la cartella…</div>';try{d=await api('/api/sfoglia?p='+encodeURIComponent(p))}catch(e){$('#rvid').innerHTML='<div class="empty">'+(e.message||'Il PC non risponde')+'</div>';return}
+  RPATH=d.p;try{selCli&&localStorage.setItem('rip_'+selCli,d.p)}catch(e){}
+  $('#rdischi').innerHTML=(d.dischi||[]).map(x=>`<button class="sm${d.p.startsWith(x.p)?' pri':''}" onclick="ripApri('${x.p.replace(/\\/g,'\\\\')}')">${x.n}</button>`).join(' ');
+  $('#rpath').textContent=d.p+(d.errore?'  ('+d.errore+')':'');$('#rpath').dataset.su=d.su||'';
+  $('#rcart').innerHTML=(d.cartelle||[]).map(n=>`<div data-p="${jn(d.p,n).replace(/"/g,'&quot;')}">📁 ${n}</div>`).join('');
+  $('#rcart').querySelectorAll('div').forEach(x=>x.onclick=()=>ripApri(x.dataset.p));
+  const V=d.video||[];$('#rvid').innerHTML=V.map(v=>{const f=jn(d.p,v.n);return `<div class="rv${RIP.includes(f)?' on':''}" data-p="${f.replace(/"/g,'&quot;')}"><span class="rk">✓</span>${v.thumb?`<img src="${v.thumb}" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#000">`:'<video muted preload="none" playsinline></video>'}<div class="rn">${v.n}</div><div class="rd">${v.data} · ${v.mb>1024?(v.mb/1024).toFixed(1)+' GB':v.mb+' MB'}</div></div>`}).join('')||'<div class="empty">Nessuna clip video in questa cartella</div>';
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const v=e.target.querySelector('video');if(!v)return;v.preload='metadata';v.src='/media?p='+encodeURIComponent(e.target.dataset.p)+'#t=2';io.unobserve(e.target)}}),{root:$('#rvid')});
+  $('#rvid').querySelectorAll('.rv').forEach(r=>{io.observe(r);const v=r.querySelector('video');if(v){r.onmouseenter=()=>v.src&&v.play().catch(()=>{});r.onmouseleave=()=>v.pause()}
+    r.onclick=()=>{const f=r.dataset.p;RIP=RIP.includes(f)?RIP.filter(x=>x!==f):[...RIP,f];r.classList.toggle('on');ripSel()}});ripSel()}
+function ripSu(){const s=$('#rpath').dataset.su;if(s)ripApri(s)}
+function ripSel(){$('#rsel').innerHTML=RIP.length?`Clip scelte (${RIP.length}): `+RIP.map(f=>`<b>${bn(f)}</b>`).join(', ')+` <button class="sm" onclick="RIP=[];ripApri(RPATH)">Togli tutte</button>`:'<span class="mut">Nessuna clip scelta: se lasci vuoto si lavora sui progetti DaVinci selezionati sopra</span>';conta()}
+async function ripPred(){if(!selCli){toast('Scegli prima il cliente');return}const i=CLI.findIndex(c=>c.cartella===selCli||c.nome===selCli);if(i<0){toast('Crea prima la scheda cliente');return}CLI[i].riprese=RPATH;await api('/api/clienti',CLI);toast('Cartella riprese salvata per '+CLI[i].nome)}
 // ---------- coda ----------
 function drawCoda(){
   $('#ncoda').textContent=CODA.filter(j=>j.stato==='in coda'||j.stato==='in lavorazione').length;
-  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td><small>${j.preset}</small></td><td>${badge(j.stato)}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
+  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.clip?`<br><small class="mut">🎞 ${j.clip}</small>`:''}${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td><small>${j.preset}</small></td><td>${badge(j.stato)}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
    <td style="white-space:nowrap"><button class="sm" onclick="sposta(${i},-1)">▲</button> <button class="sm" onclick="sposta(${i},1)">▼</button> <button class="sm" onclick="rimetti(${i})" title="Rimetti in coda">↺</button> <button class="sm dang" onclick="togli(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="15" class="empty">La coda è vuota</td></tr>'}
 async function salvaCoda(){await api('/api/coda',CODA);drawCoda();drawProg&&selGio&&drawProg()}
 function sposta(i,d){const k=i+d;if(k<0||k>=CODA.length)return;[CODA[i],CODA[k]]=[CODA[k],CODA[i]];salvaCoda()}
@@ -371,16 +406,32 @@ function drawCli(){
    <div class="mut" style="margin-top:6px">${c.stile||''}${c.complemento&&c.complemento!=='Nessuno'?' + '+c.complemento:''}${c.camera&&c.camera!=='Nessuno'?' + '+c.camera:''}</div></div>`).join('')||'<div class="empty">Nessun cliente</div>'}
 function fillForm(c){
   const cart=DV&&DV.ok?Object.keys(DV.clienti):[];if(c.cartella&&!cart.includes(c.cartella))cart.push(c.cartella);
-  opts($('#f_cart'),['',...cart],c.cartella||'');opts($('#f_stile'),STILI.map(s=>s[0]),c.stile);{const L=COMP.map(x=>x[0]);if(c.complemento&&!L.includes(c.complemento))L.push(c.complemento);opts($('#f_comp'),L,c.complemento||'Nessuno')}opts($('#f_preset'),PRESET,c.preset);{const L=CAM.map(x=>x[0]);if(c.camera&&!L.includes(c.camera))L.push(c.camera);opts($('#f_cam'),L,c.camera||'Nessuno')}opts($('#f_aud'),AUD.map(x=>x[0]),c.audio||'Nessuna musica');opts($('#f_cov'),COV.map(x=>x[0]),c.copertina||'Nessuna copertina');opts($('#f_voc'),VOC.map(x=>x[0]),c.voce||'Voce originale');opts($('#f_sem'),SEM.map(x=>x[0]),c.semplici||'Nessuno');opts($('#f_nit'),NIT.map(x=>x[0]),c.nitidezza||'Nessuna');
-  $('#f_nome').value=c.nome||'';$('#f_font1').value=c.font1||'';$('#f_font2').value=c.font2||'';$('#f_font3').value=c.font3||'';
-  $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_exp').value=c.export||'';$('#f_note').value=c.note||'';
+  opts($('#f_cart'),['',...cart],c.cartella||'');opts($('#f_preset'),PRESET,c.preset);
+  opts($('#f_tag'),TAG.map(x=>x[0]),c.tagli||'Nessun taglio');opts($('#f_stile'),STILI.map(x=>x[0]),c.stile||STILI[0][0]);opts($('#f_aud'),AUD.map(x=>x[0]),c.audio||'Nessuna musica');opts($('#f_cov'),COV.map(x=>x[0]),c.copertina||'Nessuna copertina');opts($('#f_voc'),VOC.map(x=>x[0]),c.voce||'Voce originale');opts($('#f_sem'),SEM.map(x=>x[0]),c.semplici||'Nessuno');opts($('#f_nit'),NIT.map(x=>x[0]),c.nitidezza||'Nessuna');setMS('fcomp',c.complemento);setMS('fcam',c.camera);drawForm();
+  $('#f_nome').value=c.nome||'';$('#f_font1').value=c.font1||'';$('#f_font2').value=c.font2||'';$('#f_font3').value=c.font3||'';['1','2','3'].forEach(k=>fontPrev(k));
+  $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_exp').value=c.export||'';$('#f_rip').value=c.riprese||'';$('#f_note').value=c.note||'';
   $('#fcli').classList.remove('hid');$('#fcli').scrollIntoView({behavior:'smooth'})}
+function drawForm(){picker($('#fpTag'),TAG,$('#f_tag'),$('#f_tag').value);picker($('#fpStile'),STILI,$('#f_stile'),$('#f_stile').value);picker($('#fpSem'),SEM,$('#f_sem'),$('#f_sem').value);picker($('#fpComp'),COMP,null,null,'fcomp');picker($('#fpCam'),CAM,null,null,'fcam');picker($('#fpAud'),AUD,$('#f_aud'),$('#f_aud').value);picker($('#fpNit'),NIT,$('#f_nit'),$('#f_nit').value);picker($('#fpVoc'),VOC,$('#f_voc'),$('#f_voc').value);picker($('#fpCov'),COV,$('#f_cov'),$('#f_cov').value)}
+// ---------- font con anteprima (come DaVinci) ----------
+let FONTS=null;const FLOAD={};
+async function fontList(){if(FONTS)return FONTS;try{FONTS=await api('/api/font');if(!Array.isArray(FONTS))FONTS=[]}catch(e){FONTS=[]}return FONTS}
+function fontFam(f){const fam='F_'+f.id;if(!FLOAD[f.id]){FLOAD[f.id]=1;try{const ff=new FontFace(fam,`url(/font/${f.id})`);ff.load().then(x=>document.fonts.add(x)).catch(()=>{})}catch(e){}}return fam}
+async function fontPrev(k){const v=$('#f_font'+k).value.trim(),el=$('#fp_font'+k);if(!v){el.textContent='';return}const L=await fontList();const f=L.find(x=>x.n.toLowerCase()===v.toLowerCase());
+  el.style.fontFamily=f?`"${fontFam(f)}",system-ui`:'system-ui';el.textContent=f?'Ciao sono Cristian 123':'scegli dalla lista'}
+function fontDD(inp,tutti){const dd=inp.parentNode.querySelector('.fdd'),k=inp.id.slice(-1);fontList().then(L=>{if(!L.length){dd.classList.add('hid');return}
+  const q=tutti?[]:inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);const R=L.filter(f=>q.every(w=>f.n.toLowerCase().includes(w))).slice(0,1000);const cur=inp.value.trim().toLowerCase();
+  dd.innerHTML=R.map(f=>`<div class="fr${f.n.toLowerCase()===cur?' sel':''}" data-n="${f.n.replace(/"/g,'&quot;')}" data-id="${f.id}"><span class="fl">${f.n}</span><span class="fs">AaBbzZ</span></div>`).join('')||'<div class="fe">Nessun font</div>';
+  dd.classList.remove('hid');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const r=e.target;r.querySelector('.fs').style.fontFamily=`"${fontFam({id:r.dataset.id})}",system-ui`;io.unobserve(r)}}),{root:dd});dd.querySelectorAll('.fr').forEach(r=>io.observe(r));
+  const sl=dd.querySelector('.sel');if(sl&&!q.length)sl.scrollIntoView({block:'center'});dd.querySelectorAll('[data-n]').forEach(r=>r.onmousedown=e=>{e.preventDefault();inp.value=r.dataset.n;dd.classList.add('hid');fontPrev(k)})})}
+document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('[data-fnt]').forEach(inp=>{inp.onfocus=()=>{inp.select();fontDD(inp,1)};inp.oninput=()=>{fontDD(inp);fontPrev(inp.id.slice(-1))};inp.onkeydown=e=>{const dd=inp.parentNode.querySelector('.fdd');if(dd.classList.contains('hid')&&/Arrow/.test(e.key))fontDD(inp,1);const R=[...dd.querySelectorAll('.fr')];if(!R.length)return;let i=R.findIndex(r=>r.classList.contains('sel'));
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();i=e.key==='ArrowDown'?Math.min(R.length-1,i+1):Math.max(0,i<0?0:i-1);R.forEach(r=>r.classList.remove('sel'));R[i].classList.add('sel');R[i].scrollIntoView({block:'nearest'});inp.value=R[i].dataset.n;fontPrev(inp.id.slice(-1))}
+    else if(e.key==='Enter'||e.key==='Escape'){e.preventDefault();dd.classList.add('hid')}};inp.onblur=()=>setTimeout(()=>inp.parentNode.querySelector('.fdd').classList.add('hid'),150)}));
 function apriCliente(i){edit=i;fillForm(CLI[i])}
 function nuovoCliente(){edit=-1;fillForm({})}
 function chiudiForm(){$('#fcli').classList.add('hid')}
 async function salvaCliente(){
   const c={nome:$('#f_nome').value.trim(),cartella:$('#f_cart').value,font1:$('#f_font1').value,font2:$('#f_font2').value,font3:$('#f_font3').value,colore1:$('#f_c1').value,colore2:$('#f_c2').value,
-   stile:$('#f_stile').value,complemento:$('#f_comp').value,camera:$('#f_cam').value,audio:$('#f_aud').value,voce:$('#f_voc').value,semplici:$('#f_sem').value,nitidezza:$('#f_nit').value,copertina:$('#f_cov').value,preset:$('#f_preset').value,export:$('#f_exp').value,note:$('#f_note').value};
+   stile:$('#f_stile').value,tagli:$('#f_tag').value,complemento:msStr('fcomp'),camera:msStr('fcam'),audio:$('#f_aud').value,voce:$('#f_voc').value,semplici:$('#f_sem').value,nitidezza:$('#f_nit').value,copertina:$('#f_cov').value,preset:$('#f_preset').value,export:$('#f_exp').value,riprese:$('#f_rip').value,note:$('#f_note').value};
   if(!c.nome){toast('Serve il nome');return}
   if(edit>=0)CLI[edit]=c;else CLI.push(c);await api('/api/clienti',CLI);drawCli();drawDV();chiudiForm();toast('Cliente salvato')}
 async function eliminaCliente(){if(edit<0)return chiudiForm();if(!confirm('Eliminare la scheda di '+CLI[edit].nome+'? (i progetti in DaVinci non vengono toccati)'))return;CLI.splice(edit,1);await api('/api/clienti',CLI);drawCli();chiudiForm()}
