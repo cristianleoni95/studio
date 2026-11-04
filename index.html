@@ -50,6 +50,10 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 .rcart{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.rcart div{padding:6px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px}.rcart div:hover{border-color:var(--acc)}
 .rvid{display:flex;flex-wrap:wrap;gap:10px;max-height:460px;overflow:auto}.rv{width:150px;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#0a0e13;position:relative}.rv.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
 .rv video{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#000}.rv .rn{padding:6px 8px;font-size:12px;font-weight:600;word-break:break-all}.rv .rd{padding:0 8px 6px;font-size:11px;color:var(--mut)}.rv .rk{position:absolute;top:6px;left:6px;background:var(--acc);color:#111;border-radius:50%;width:22px;height:22px;display:none;align-items:center;justify-content:center;font-weight:800}.rv.on .rk{display:flex}
+.fcol{font-size:12px;color:var(--mut)}.ccol{display:flex;gap:18px;flex-wrap:wrap;margin-top:4px}.cc{display:flex;flex-direction:column;align-items:center;gap:3px}.cc input[type=color]{width:64px;height:34px;border:1px solid var(--line);border-radius:8px;background:none}.cc small{color:var(--mut)}.dif{flex-direction:row!important;align-items:center;gap:4px;font-size:11px;color:var(--txt)}
+.prog{margin-top:6px;min-width:230px}.pbar{height:8px;border-radius:6px;background:#1c2633;overflow:hidden}.pbar i{display:block;height:100%;background:linear-gradient(90deg,#f5b301,#ffd65c,#f5b301);background-size:200% 100%;animation:sc 1.6s linear infinite;transition:width .6s}
+@keyframes sc{from{background-position:0 0}to{background-position:200% 0}}.pfase{font-size:12px;margin:4px 0}.psteps{display:flex;flex-wrap:wrap;gap:4px}.psteps span{font-size:10.5px;padding:2px 6px;border-radius:10px;background:#141b24;color:var(--mut)}.psteps .ok{color:#3fb950}.psteps .now{background:#f5b301;color:#111;font-weight:700}
+#lavbanner{position:sticky;top:0;z-index:20;margin:0 0 12px;padding:10px 14px;border:1px solid #f5b30155;border-radius:12px;background:#1a1606;font-size:13px}#lavbanner .pbar{margin-top:6px}#lavbanner .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f5b301;animation:pl 1s infinite;margin-right:4px}@keyframes pl{50%{opacity:.25}}.psel{max-width:170px;font-size:12px}
 .pick{display:flex;flex-wrap:wrap;gap:12px;padding:4px 2px 10px}
 .pc2{flex:0 0 130px;background:var(--panel);border:2px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.15s}
 .pc2:hover{border-color:#4b5d75;transform:translateY(-2px)}.pc2.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
@@ -94,6 +98,7 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
   <button data-t="clienti">Clienti</button><button data-t="stili">Stili</button><button data-t="studio">StudioAI</button>
 </nav>
 <main>
+<div id="lavbanner" class="hid"></div>
 <!-- VIDEO -->
 <section id="t-video">
   <h2 class="step" style="margin-top:0"><i>1</i> Scegli cliente, giornata e video</h2>
@@ -151,7 +156,7 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
       <label class="fwrap">Font principale<input type="text" id="f_font1" placeholder="Urbanist ExtraBold" autocomplete="off" data-fnt><div class="fprev" id="fp_font1"></div><div class="fdd hid"></div></label>
       <label class="fwrap">Font grande<input type="text" id="f_font2" placeholder="Unbounded ExtraBold" autocomplete="off" data-fnt><div class="fprev" id="fp_font2"></div><div class="fdd hid"></div></label>
       <label class="fwrap">Font corsivo<input type="text" id="f_font3" placeholder="Apple Garamond Bold Italic" autocomplete="off" data-fnt><div class="fprev" id="fp_font3"></div><div class="fdd hid"></div></label>
-      <label>Colori (principale / accento)<span><input type="color" id="f_c1"> <input type="color" id="f_c2"></span></label>
+      <div class="full fcol">Colori del cliente <span class="mut" style="font-size:11px">· spunta "Differenza" se quel colore va in composizione Differenza (es. verde → viola sullo sfondo chiaro)</span><span class="ccol"><span class="cc"><input type="color" id="f_c1"><small>principale</small><label class="dif"><input type="checkbox" id="f_d1"> Differenza</label></span><span class="cc"><input type="color" id="f_c2"><small>accento</small><label class="dif"><input type="checkbox" id="f_d2"> Differenza</label></span><span class="cc"><input type="color" id="f_c3"><small>terzo</small><label class="dif"><input type="checkbox" id="f_d3"> Differenza</label></span></span></div>
       <div class="fsec"><div class="fsl">Tagli</div><div id="fpTag" class="pick"></div><select id="f_tag" class="hid"></select></div>
       <div class="fsec"><div class="fsl">Sottotitoli predefiniti</div><div id="fpStile" class="pick"></div><select id="f_stile" class="hid"></select></div>
       <div class="fsec"><div class="fsl">Sottotitoli semplici predefiniti</div><div id="fpSem" class="pick"></div><select id="f_sem" class="hid"></select></div>
@@ -388,10 +393,16 @@ function ripSu(){const s=$('#rpath').dataset.su;if(s)ripApri(s)}
 function ripSel(){$('#rsel').innerHTML=RIP.length?`Clip scelte (${RIP.length}): `+RIP.map(f=>`<b>${bn(f)}</b>`).join(', ')+` <button class="sm" onclick="RIP=[];ripApri(RPATH)">Togli tutte</button>`:'<span class="mut">Nessuna clip scelta: se lasci vuoto si lavora sui progetti DaVinci selezionati sopra</span>';conta()}
 async function ripPred(){if(!selCli){toast('Scegli prima il cliente');return}const i=CLI.findIndex(c=>c.cartella===selCli||c.nome===selCli);if(i<0){toast('Crea prima la scheda cliente');return}CLI[i].riprese=RPATH;await api('/api/clienti',CLI);toast('Cartella riprese salvata per '+CLI[i].nome)}
 // ---------- coda ----------
-function drawCoda(){
+function drawCoda(){bannerLavoro();
   $('#ncoda').textContent=CODA.filter(j=>j.stato==='in coda'||j.stato==='in lavorazione').length;
-  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.clip?`<br><small class="mut">🎞 ${j.clip}</small>`:''}${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td><small>${j.preset}</small></td><td>${badge(j.stato)}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
+  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.clip?`<br><small class="mut">🎞 ${j.clip}</small>`:''}${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td>${j.stato==='esportato'?`<small>${j.preset}</small>`:`<select class="psel" onchange="cambiaPreset(${i},this.value)">${[...new Set([...(PRESET||[]),j.preset])].map(x=>`<option${x===j.preset?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${badge(j.stato)}${j.stato==='in lavorazione'?barra(j):''}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
    <td style="white-space:nowrap"><button class="sm" onclick="sposta(${i},-1)">▲</button> <button class="sm" onclick="sposta(${i},1)">▼</button> <button class="sm" onclick="rimetti(${i})" title="Rimetti in coda">↺</button> <button class="sm dang" onclick="togli(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="15" class="empty">La coda è vuota</td></tr>'}
+const FASI=['Tagli','Voce e musica','Maschera','Sottotitoli','Effetti camera','Grafiche','Copertina','Export'];
+function barra(j){const f=j.fase||'';const k=Math.max(0,FASI.indexOf(f));const pct=j.pct!=null?j.pct:Math.round(k/FASI.length*100);
+  return `<div class="prog"><div class="pbar"><i style="width:${pct}%"></i></div><div class="pfase">${f?`Sta facendo: <b>${f}</b>`:'Avvio…'} · ${pct}%</div><div class="psteps">${FASI.map((x,n)=>`<span class="${n<k?'ok':n===k&&f?'now':''}">${n<k?'✓ ':''}${x}</span>`).join('')}</div></div>`}
+function bannerLavoro(){const j=CODA.find(x=>x.stato==='in lavorazione');const b=$('#lavbanner');if(!b)return;
+  if(!j){b.classList.add('hid');return}b.classList.remove('hid');b.innerHTML=`<span class="dot"></span> Claude sta lavorando su <b>${j.cliente} · ${j.progetto}</b> — ${j.fase||'avvio'}${j.pct!=null?' · '+j.pct+'%':''}<div class="pbar"><i style="width:${j.pct||0}%"></i></div>`}
+function cambiaPreset(i,v){CODA[i].preset=v;salvaCoda();toast('Export cambiato: '+v)}
 async function salvaCoda(){await api('/api/coda',CODA);drawCoda();drawProg&&selGio&&drawProg()}
 function sposta(i,d){const k=i+d;if(k<0||k>=CODA.length)return;[CODA[i],CODA[k]]=[CODA[k],CODA[i]];salvaCoda()}
 function togli(i){CODA.splice(i,1);salvaCoda()}
@@ -404,14 +415,14 @@ function copiaComando(){const n=CODA.filter(j=>j.stato==='in coda').length;
 function drawCli(){
   $('#gcli').innerHTML=CLI.map((c,i)=>`<div class="card" onclick="apriCliente(${i})"><h4>${c.nome}</h4>
    <div class="mut" style="margin-bottom:6px">Cartella DaVinci: ${c.cartella||'—'}</div>
-   <div><span class="sw" style="background:${c.colore1||'#fff'}"></span><span class="sw" style="background:${c.colore2||'#f5b301'}"></span> ${[c.font1,c.font3].filter(Boolean).join(' · ')}</div>
+   <div><span class="sw" style="background:${c.colore1||'#fff'}"></span><span class="sw" style="background:${c.colore2||'#f5b301'}"></span>${c.colore3?`<span class="sw" style="background:${c.colore3}"></span>`:''} ${[c.font1,c.font3].filter(Boolean).join(' · ')}</div>
    <div class="mut" style="margin-top:6px">${c.stile||''}${c.complemento&&c.complemento!=='Nessuno'?' + '+c.complemento:''}${c.camera&&c.camera!=='Nessuno'?' + '+c.camera:''}</div></div>`).join('')||'<div class="empty">Nessun cliente</div>'}
 function fillForm(c){
   const cart=DV&&DV.ok?Object.keys(DV.clienti):[];if(c.cartella&&!cart.includes(c.cartella))cart.push(c.cartella);
   opts($('#f_cart'),['',...cart],c.cartella||'');opts($('#f_preset'),PRESET,c.preset);
   opts($('#f_tag'),TAG.map(x=>x[0]),c.tagli||'Nessun taglio');opts($('#f_stile'),STILI.map(x=>x[0]),c.stile||STILI[0][0]);opts($('#f_aud'),AUD.map(x=>x[0]),c.audio||'Nessuna musica');opts($('#f_cov'),COV.map(x=>x[0]),c.copertina||'Nessuna copertina');opts($('#f_voc'),VOC.map(x=>x[0]),c.voce||'Voce originale');opts($('#f_sem'),SEM.map(x=>x[0]),c.semplici||'Nessuno');opts($('#f_nit'),NIT.map(x=>x[0]),c.nitidezza||'Nessuna');setMS('fcomp',c.complemento);setMS('fcam',c.camera);drawForm();
   $('#f_nome').value=c.nome||'';$('#f_font1').value=c.font1||'';$('#f_font2').value=c.font2||'';$('#f_font3').value=c.font3||'';['1','2','3'].forEach(k=>fontPrev(k));
-  $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_exp').value=c.export||'';$('#f_rip').value=c.riprese||'';$('#f_note').value=c.note||'';
+  $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_c3').value=c.colore3||'#000000';$('#f_d1').checked=!!c.diff1;$('#f_d2').checked=!!c.diff2;$('#f_d3').checked=!!c.diff3;$('#f_exp').value=c.export||'';$('#f_rip').value=c.riprese||'';$('#f_note').value=c.note||'';
   $('#fcli').classList.remove('hid');$('#fcli').scrollIntoView({behavior:'smooth'})}
 function drawForm(){picker($('#fpTag'),TAG,$('#f_tag'),$('#f_tag').value);picker($('#fpStile'),STILI,$('#f_stile'),$('#f_stile').value);picker($('#fpSem'),SEM,$('#f_sem'),$('#f_sem').value);picker($('#fpComp'),COMP,null,null,'fcomp');picker($('#fpCam'),CAM,null,null,'fcam');picker($('#fpAud'),AUD,$('#f_aud'),$('#f_aud').value);picker($('#fpNit'),NIT,$('#f_nit'),$('#f_nit').value);picker($('#fpVoc'),VOC,$('#f_voc'),$('#f_voc').value);picker($('#fpCov'),COV,$('#f_cov'),$('#f_cov').value)}
 // ---------- font con anteprima (come DaVinci) ----------
@@ -432,7 +443,7 @@ function apriCliente(i){edit=i;fillForm(CLI[i])}
 function nuovoCliente(){edit=-1;fillForm({})}
 function chiudiForm(){$('#fcli').classList.add('hid')}
 async function salvaCliente(){
-  const c={nome:$('#f_nome').value.trim(),cartella:$('#f_cart').value,font1:$('#f_font1').value,font2:$('#f_font2').value,font3:$('#f_font3').value,colore1:$('#f_c1').value,colore2:$('#f_c2').value,
+  const c={nome:$('#f_nome').value.trim(),cartella:$('#f_cart').value,font1:$('#f_font1').value,font2:$('#f_font2').value,font3:$('#f_font3').value,colore1:$('#f_c1').value,colore2:$('#f_c2').value,colore3:$('#f_c3').value,diff1:$('#f_d1').checked,diff2:$('#f_d2').checked,diff3:$('#f_d3').checked,
    stile:$('#f_stile').value,tagli:$('#f_tag').value,complemento:msStr('fcomp'),camera:msStr('fcam'),audio:$('#f_aud').value,voce:$('#f_voc').value,semplici:$('#f_sem').value,nitidezza:$('#f_nit').value,copertina:$('#f_cov').value,preset:$('#f_preset').value,export:$('#f_exp').value,riprese:$('#f_rip').value,note:$('#f_note').value};
   if(!c.nome){toast('Serve il nome');return}
   if(edit>=0)CLI[edit]=c;else CLI.push(c);await api('/api/clienti',CLI);drawCli();drawDV();chiudiForm();toast('Cliente salvato')}
