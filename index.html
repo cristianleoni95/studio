@@ -67,7 +67,7 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 .scard{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .scard video,.scard .ph{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#0a0e13}
 .scard .ph{display:flex;align-items:center;justify-content:center;color:var(--mut);text-align:center;padding:20px;font-size:13px}
-.scard .tx{padding:12px 14px}.scard .tx b{color:var(--acc);display:block;margin-bottom:4px}.scard .tag{font-size:11px;color:#111;background:var(--acc2);color:#fff;border-radius:99px;padding:2px 8px;margin-left:6px}
+.scard .tx{padding:12px 14px}.scard .ideale{display:block;margin-top:8px;font-size:12px;color:var(--acc2);font-weight:600}.scard .tx b{color:var(--acc);display:block;margin-bottom:4px}.scard .tag{font-size:11px;color:#111;background:var(--acc2);color:#fff;border-radius:99px;padding:2px 8px;margin-left:6px}
 .riep{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 @media (max-width:900px){.cols{grid-template-columns:1fr}.form{grid-template-columns:1fr}}
 .pc2{position:relative}.pc2 .chk{position:absolute;top:6px;right:6px;z-index:2;background:var(--acc,#f5b301);color:#000;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
@@ -81,7 +81,9 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 .st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:16px}
 .st-job{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}.st-job img,.st-job video{width:100%;display:block;background:#000}
 .st-job .tx{padding:8px 10px;font-size:12px}.st-job .ph{aspect-ratio:9/16;display:grid;place-items:center;color:var(--mut);text-align:center;padding:10px}
-.foto-prev{display:flex;gap:8px}.foto-prev img{height:90px;border-radius:8px}
+.foto-prev{display:flex;gap:8px}
+.pcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}.gq{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center}
+.gq svg{width:110px;height:110px}.gq b{display:block;font-size:13px;margin-top:4px}.gq small{color:var(--mut)}.foto-prev img{height:90px;border-radius:8px}
 </style></head><body>
 <div id="login"><form onsubmit="entra(event)"><div class="logo" style="text-align:center;font-size:20px">LEONI <b>STUDIO</b></div>
 <input id="lg_email" type="email" placeholder="Email" autocomplete="username" required><input id="lg_pw" type="password" placeholder="Password" autocomplete="current-password" required>
@@ -95,7 +97,7 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 </header>
 <nav>
   <button data-t="video" class="on">Video</button><button data-t="coda">Coda <span id="ncoda" class="badge">0</span></button>
-  <button data-t="clienti">Clienti</button><button data-t="stili">Stili</button><button data-t="studio">StudioAI</button>
+  <button data-t="clienti">Clienti</button><button data-t="stili">Stili</button><button data-t="studio">StudioAI</button><button data-t="pcmon">PC</button>
 </nav>
 <main>
 <div id="lavbanner" class="hid"></div>
@@ -175,6 +177,11 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
   </div>
 </section>
 <!-- STILI -->
+<section id="t-pcmon" class="hid"><div class="mut" id="pcAgg" style="margin-bottom:10px">PC: in attesa dati…</div>
+ <div class="pcg" id="pcGauge"></div>
+ <div class="box" style="margin-top:14px"><h3>Ultimi 15 minuti</h3><canvas id="pcChart" width="900" height="260" style="width:100%;height:260px"></canvas>
+ <div class="mut" style="font-size:12px;margin-top:6px"><span style="color:#f5b301">■</span> GPU % &nbsp; <span style="color:#a371f7">■</span> VRAM GB×4 &nbsp; <span style="color:#3fb950">■</span> CPU % &nbsp; <span style="color:#58a6ff">■</span> RAM GB</div></div>
+</section>
 <section id="t-studio" class="hid">
  <div class="st-form">
   <div class="st-modi" id="stModi"><button data-m="immagine" class="on">Crea foto</button><button data-m="modifica">Modifica foto</button><button data-m="anima">Anima foto</button><button data-m="video">Video da testo</button></div>
@@ -191,6 +198,14 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 <div id="toast" class="toast"></div>
 <script>
 const VER=Date.now();
+const IDEALE={c_vetro_vivo:'presentatore in studio, frasi gancio e concetti chiave',c_spiegone:'numeri, prezzi, guadagni, confronti prima/dopo',
+ fighi_modificabili:'parlato a camera a mezzo busto, sfondo pulito',miei:'lifestyle, inquadratura larga, persona piccola al centro',
+ social:'reel per negozi e attività, mezzo busto nel locale',fighi2:'camera fissa, parlato calmo (gli zoom li fai tu)',
+ misti:'reel lunghi e vari a mezzo busto','3d_camera':'parlato con energia, piano americano',semplici:'b-roll, video veloci, persona lontana',
+ amazon:'video che spiegano numeri e metodi, scrivania o ufficio',fighi_glass:'negozi e brand curati, frasi importanti al petto',
+ riquadro_grafiche:'spiegare un concetto con numeri, parlato frontale',c_scena_ai:'situazioni reali da far vedere (errori, prima/dopo)',
+ c_camera_viva:'parlato lungo da ravvivare, frasi forti',cam_zoom_laterale:'camera fissa con spazio ai lati per scritte',
+ cam_punch_in:'frasi importanti, ritmo veloce',cam_zoom_morbido:'parlato calmo, lifestyle, inquadrature larghe'};
 const STILI=[
  ['Sottotitoli fighi modificabili','Gruppi medio / grande / corsivo giallo, in alto dietro la maschera e al petto davanti, entrate tipo TR Switch, scatto morbido.','fighi_modificabili'],
  ['Sottotitoli fighi','Il primo stile, scritte già renderizzate, entrate miste.','fighi'],
@@ -213,7 +228,10 @@ const COMP=[['Nessuno','Solo i sottotitoli, la persona resta a tutto schermo.','
  ['Oggetti 3D','Piccoli oggetti 3D animati accanto alla testa sulle parole chiave (pacco, carrello, monete).','c_oggetti3D'],
  ['Disegni a mano','Frecce, cerchi e sottolineature a pennarello che si disegnano da sole.','c_disegni'],
  ['Prova visiva','Schermo diviso: sopra una cornice con la prova (foto, video, prima/dopo), sotto chi parla.','c_prova_visiva'],
- ['Gancio + capitoli','Titolo gancio iniziale che diventa etichetta, capitoli numerati e barra di avanzamento.','c_gancio_capitoli']];
+ ['Gancio + capitoli','Titolo gancio iniziale che diventa etichetta, capitoli numerati e barra di avanzamento.','c_gancio_capitoli'],
+ ['Scena AI realistica','Clip realistica generata con StudioAI (5 s) a tutto schermo sulla frase da far vedere, al posto del render 3D: più veloce e più vera.','c_scena_ai',1],
+ ['Vetro vivo','Pannelli in vetro vero che deformano il video dietro: pillola titolo in alto, notifica con icona, card grande che cambia frase a tempo con la voce.','c_vetro_vivo',1],
+ ['Spiegone cinetico','Sui numeri la persona si rimpicciolisce in alto e sotto partono contatori, prezzi e grafico animati, poi torna a schermo pieno.','c_spiegone',1]];
 const CAM=[['Nessuno','Camera così com\'è, nessun movimento aggiunto.',''],
  ['Camera viva','Zoom veloci sulle frasi forti, flash e piccola scossa sulle parole d\'impatto.','c_camera_viva',1],
  ['Zoom laterale','Zoom in che sposta la faccia da un lato e lascia spazio dall\'altro per scritte o grafiche, alternando destra e sinistra, poi torna largo.','cam_zoom_laterale',1],
@@ -323,11 +341,20 @@ async function caricaStudio(){const {data}=await sb.from('impostazioni').select(
   return `<div class="st-job">${media}<div class="tx"><b>${nome[j.modo]||j.preset}</b> · ${j.creato||''}<br><span class="mut">${(j.prompt||'').slice(0,90)}</span>${j.messaggio?`<br><span style="color:var(--err)">${j.messaggio.slice(0,160)}</span>`:''}
   <div style="margin-top:6px;display:flex;gap:6px">${r?`<a class="btn" href="${r.url}" download="${r.nome}">Scarica</a>`:''}<button class="sm dang" onclick="togliJob('${j.id}')">✕</button></div></div></div>`}).join('')||'<div class="empty">Ancora nessun lavoro</div>'}
 async function togliJob(id){await sb.from('impostazioni').delete().eq('chiave','leoni_job_'+id);caricaStudio()}
-setInterval(()=>{if(!$('#t-studio').classList.contains('hid'))caricaStudio();statoPC()},8000);
+setInterval(()=>{if(!$('#t-studio').classList.contains('hid'))caricaStudio();statoPC();if(!$('#t-pcmon').classList.contains('hid'))monitorPC()},5000);
+function gauge(v,max,lab,unit,col){const p=Math.max(0,Math.min(1,(v||0)/max)),a=Math.PI*1.5*p,r=44,cx=55,cy=58;const x=(t)=>cx+r*Math.cos(t),y=(t)=>cy+r*Math.sin(t);const s0=Math.PI*0.75,s1=s0+a,big=a>Math.PI?1:0;
+ return `<div class="gq"><svg viewBox="0 0 110 110"><path d="M${x(s0)} ${y(s0)} A${r} ${r} 0 1 1 ${x(Math.PI*2.25)} ${y(Math.PI*2.25)}" stroke="#1c2633" stroke-width="10" fill="none" stroke-linecap="round"/>${p>0?`<path d="M${x(s0)} ${y(s0)} A${r} ${r} 0 ${big} 1 ${x(s1)} ${y(s1)}" stroke="${col}" stroke-width="10" fill="none" stroke-linecap="round"/>`:''}<text x="55" y="62" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">${v==null?'—':v}</text><text x="55" y="80" text-anchor="middle" fill="#8b949e" font-size="11">${unit}</text></svg><b>${lab}</b></div>`}
+async function monitorPC(){try{const p=await kget('leoni_pc',null);if(!p||!p.tele){$('#pcAgg').textContent='Nessun dato: il PC è spento o il worker non è aggiornato';return}
+ const t=p.tele,g=t.gpu||{},vivo=Date.now()-new Date(p.ultimo).getTime()<60000;$('#pcAgg').innerHTML=(vivo?'<span style="color:#3fb950">● PC acceso</span>':'<span style="color:#f85149">● PC spento</span>')+' · aggiornato '+new Date(p.ultimo).toLocaleTimeString('it-IT')+(p.davinci?' · DaVinci aperto':'');
+ const hot=v=>v>80?'#f85149':v>65?'#f5b301':'#3fb950';
+ $('#pcGauge').innerHTML=gauge(g.uso,100,'GPU','%','#f5b301')+gauge(g.vram,g.vram_tot||24,'VRAM','GB di '+(g.vram_tot||24),'#a371f7')+gauge(g.temp,95,'Temperatura GPU','°C',hot(g.temp||0))+gauge(g.watt,400,'Consumo GPU','W','#ff7b72')+gauge(t.cpu,100,'CPU','%','#3fb950')+gauge(t.ram,t.ram_tot||64,'RAM','GB di '+(t.ram_tot||64),'#58a6ff');
+ const c=$('#pcChart'),x=c.getContext('2d'),S=t.storia||[];x.clearRect(0,0,c.width,c.height);x.strokeStyle='#1c2633';for(let i=0;i<=4;i++){x.beginPath();x.moveTo(0,i*c.height/4);x.lineTo(c.width,i*c.height/4);x.stroke()}
+ const line=(k,col,mul)=>{x.strokeStyle=col;x.lineWidth=2;x.beginPath();S.forEach((r,i)=>{const v=(r[k]||0)*mul,px=i/(Math.max(1,S.length-1))*c.width,py=c.height-Math.min(100,v)/100*c.height;i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke()};
+ line(1,'#f5b301',1);line(2,'#a371f7',4);line(3,'#3fb950',1);line(4,'#58a6ff',100/(t.ram_tot||64))}catch(e){}}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');setTimeout(()=>e.classList.remove('on'),2200)}
 function opts(sel,list,val){sel.innerHTML=list.map(x=>`<option${x===val?' selected':''}>${x}</option>`).join('')}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['video','coda','clienti','stili','studio'].forEach(t=>$('#t-'+t).classList.toggle('hid',t!==b.dataset.t));if(b.dataset.t==='coda')drawCoda();if(b.dataset.t==='studio')caricaStudio()});
+  ['video','coda','clienti','stili','studio','pcmon'].forEach(t=>$('#t-'+t).classList.toggle('hid',t!==b.dataset.t));if(b.dataset.t==='pcmon')monitorPC();if(b.dataset.t==='coda')drawCoda();if(b.dataset.t==='studio')caricaStudio()});
 // ---------- dati ----------
 async function init(){
   ANTE=await kget('leoni_anteprime',{});statoPC();
@@ -450,7 +477,7 @@ async function salvaCliente(){
 async function eliminaCliente(){if(edit<0)return chiudiForm();if(!confirm('Eliminare la scheda di '+CLI[edit].nome+'? (i progetti in DaVinci non vengono toccati)'))return;CLI.splice(edit,1);await api('/api/clienti',CLI);drawCli();chiudiForm()}
 function drawStili(){
   const card=(x,comp,tag)=>`<div class="scard">${x[2]?`<video src="${AV(x[2]+'.mp4')}" poster="${AV(x[2]+'.jpg')}" muted loop playsinline autoplay></video>`:`<div class="ph">${x[0]==='Nessuno'?'':'Anteprima in arrivo:<br>la creo al primo video con questo stile'}</div>`}
-   <div class="tx"><b>${x[0]}${comp?'<span class="tag">'+(tag||'complemento')+'</span>':''}</b><span class="mut">${x[1]}</span></div></div>`;
+   <div class="tx"><b>${x[0]}${comp?'<span class="tag">'+(tag||'complemento')+'</span>':''}</b><span class="mut">${x[1]}</span>${IDEALE[x[2]]?'<span class="ideale">Ideale per: '+IDEALE[x[2]]+'</span>':''}</div></div>`;
   $('#lstili').innerHTML=STILI.map(x=>card(x,false)).join('')+COMP.slice(1).map(x=>card(x,true)).join('')+CAM.slice(1).map(x=>card(x,true,'effetto camera')).join('')}
 setInterval(async()=>{if($('#login').style.display!=='none')return;const c=await api('/api/coda');if(JSON.stringify(c)!==JSON.stringify(CODA)){CODA=c;drawCoda();if(selGio)drawProg()}},5000);
 sb.auth.getSession().then(({data})=>{if(data.session){$('#login').style.display='none';init()}});
