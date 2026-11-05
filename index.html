@@ -45,7 +45,8 @@ h2.step{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--
 h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
 .fsec{grid-column:1/-1}.fsl{font-size:12px;color:var(--mut);margin:6px 0 2px}.fwrap{position:relative}.fprev{font-size:26px;color:var(--txt);min-height:34px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fdd{position:absolute;z-index:30;top:100%;left:0;right:0;max-height:340px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0008}
-.fdd{background:#1b1b1d;border-color:#333;max-height:420px;min-width:420px}.fdd .fr{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:10px;padding:0 12px;height:28px;cursor:pointer}.fdd .fr:hover,.fdd .fr.sel{background:#2a2a2e}.fdd .fl{font:13px system-ui,sans-serif;color:#c9c9cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fdd .fs{font-size:19px;line-height:28px;color:#e8e8ea;white-space:nowrap;overflow:hidden}.fdd .fe{padding:8px 12px;font:12px system-ui;color:#888}
+.fdd{background:#1b1b1d;border-color:#333;max-height:420px;min-width:420px}.fdd .fr{display:grid;grid-template-columns:1fr 150px;align-items:center;gap:10px;padding:0 12px;height:28px;cursor:pointer}.fdd .fr:hover,.fdd .fr.sel{background:#2a2a2e}.fdd .fl{font:13px system-ui,sans-serif;color:#c9c9cc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fdd .fs{font-size:19px;line-height:28px;color:#e8e8ea;white-space:nowrap;overflow:hidden}.fdd .fe{padding:8px 12px;font:12px system-ui;color:#888}.fdd .fi{height:24px;max-width:150px;object-fit:contain;object-position:left center}
+#mcart{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px}#mcart .in{width:min(640px,100%);max-height:88vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;gap:10px}#mcList{overflow:auto;min-height:200px;border:1px solid var(--line);border-radius:10px}#mcList div{padding:11px 12px;border-bottom:1px solid var(--line);cursor:pointer}#mcList div:hover{background:#ffffff0d}#mcPath{font-size:13px;word-break:break-all}.cpk{display:flex;gap:6px}.cpk input{flex:1}
 .rbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.rbar .sp{flex:1}.rpath{font-size:13px;color:var(--acc);word-break:break-all}
 .rcart{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.rcart div{padding:6px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:13px}.rcart div:hover{border-color:var(--acc)}
 .rvid{display:flex;flex-wrap:wrap;gap:10px;max-height:460px;overflow:auto}.rv{width:150px;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#0a0e13;position:relative}.rv.on{border-color:var(--acc);box-shadow:0 0 0 3px #f5b30133}
@@ -73,6 +74,12 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 .pc2{position:relative}.pc2 .chk{position:absolute;top:6px;right:6px;z-index:2;background:var(--acc,#f5b301);color:#000;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
 .pc2 .star{position:absolute;top:6px;left:8px;z-index:2;color:#f5b301;font-size:16px;text-shadow:0 1px 3px #000}
 @media (max-width:700px){.cols{grid-template-columns:1fr!important}.pc2{flex:0 0 31%!important}header{flex-wrap:wrap;gap:8px}.bar{flex-wrap:wrap}table{font-size:12px}main{padding:10px!important}}
+#mj{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px}
+#mj .in{width:min(720px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+#mj h3{margin:0 0 4px}#mj .g2{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px}
+#mj label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut)}#mj select,#mj input[type=text]{width:100%}
+#mj .ck{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:4px}#mj .ck label{flex-direction:row;align-items:center;gap:6px;color:var(--txt);font-size:13px}
+#mj .fc{margin-top:10px;font-size:12px;color:var(--mut)}.pers{display:inline-block;margin-left:6px;font-size:10px;padding:1px 6px;border-radius:99px;background:var(--acc);color:#111;font-weight:700}
 #login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center}
 #login form{width:min(360px,90vw);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px;display:flex;flex-direction:column;gap:12px}
 #login input{padding:12px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:16px}
@@ -169,8 +176,8 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
       <div class="fsec"><div class="fsl">Voce predefinita</div><div id="fpVoc" class="pick"></div><select id="f_voc" class="hid"></select></div>
       <div class="fsec"><div class="fsl">Copertina</div><div id="fpCov" class="pick"></div><select id="f_cov" class="hid"></select></div>
       <label>Preset export predefinito<select id="f_preset"></select></label>
-      <label>Cartella riprese originali<input type="text" id="f_rip" placeholder="E:\cristin leoni"></label>
-      <label>Cartella export<input type="text" id="f_exp" placeholder="D:\Clienti\Rextaura"></label>
+      <label>Cartella riprese originali<span class="cpk"><input type="text" id="f_rip" placeholder="E:\cristin leoni"><button type="button" class="sm" onclick="cartPick('f_rip')">Sfoglia</button></span></label>
+      <label>Cartella export<span class="cpk"><input type="text" id="f_exp" placeholder="D:\Clienti\Rextaura"><button type="button" class="sm" onclick="cartPick('f_exp')">Sfoglia</button></span></label>
       <label class="full">Regole e note per Claude<textarea id="f_note"></textarea></label>
     </div>
     <div style="display:flex;gap:10px;margin-top:14px"><button class="pri" onclick="salvaCliente()">Salva</button><button onclick="chiudiForm()">Annulla</button><div class="sp"></div><button class="dang" onclick="eliminaCliente()">Elimina</button></div>
@@ -196,6 +203,27 @@ h2.step i{font-style:normal;background:var(--acc);color:#111;border-radius:99px;
 <section id="t-stili" class="hid"><p class="mut" style="margin-top:0">Le anteprime partono da sole. Gli stili senza anteprima la avranno appena faccio il primo video con quello stile.</p><div id="lstili" class="sgrid"></div></section>
 </main>
 <div id="toast" class="toast"></div>
+<div id="mcart" class="hid" onclick="if(event.target===this)cartChiudi()"><div class="in"><h3 style="margin:0">Scegli la cartella</h3><div id="mcDischi"></div>
+ <div style="display:flex;gap:8px;align-items:center"><button class="sm" onclick="cartSu()">⬆ Su</button><span id="mcPath" class="mut"></span></div><div id="mcList"></div>
+ <div style="display:flex;gap:8px;justify-content:flex-end"><button class="sm" onclick="cartChiudi()">Annulla</button><button class="pri" onclick="cartUsa()">Usa questa cartella</button></div></div></div>
+<div id="mj" class="hid" onclick="if(event.target===this)chiudiMod()"><div class="in">
+ <h3 id="mjT">Modifica video</h3><div class="mut" id="mjS"></div>
+ <div class="g2">
+  <label>Tagli<select id="mTag"></select></label>
+  <label>Stile sottotitoli<select id="mStile"></select></label>
+  <label>Sottotitoli semplici<select id="mSem"></select></label>
+  <label>Audio<select id="mAud"></select></label>
+  <label>Voce<select id="mVoc"></select></label>
+  <label>Nitidezza<select id="mNit"></select></label>
+  <label>Copertina<select id="mCov"></select></label>
+  <label>Preset export<select id="mPre"></select></label>
+ </div>
+ <div class="fc"><b style="color:var(--txt)">Complementi</b> (anche più di uno)<div class="ck" id="mComp"></div></div>
+ <div class="fc"><b style="color:var(--txt)">Effetti camera</b> (anche più di uno)<div class="ck" id="mCam"></div></div>
+ <label style="margin-top:12px">Note per Claude (solo questo video)<input type="text" id="mNote"></label>
+ <div class="fc" id="mjF"></div>
+ <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px"><button onclick="chiudiMod()">Annulla</button><button onclick="resetMod()">Torna allo standard del cliente</button><button class="pri" onclick="salvaMod()">Salva questo video</button></div>
+</div></div>
 <script>
 const VER=Date.now();
 const IDEALE={c_vetro_vivo:'presentatore in studio, frasi gancio e concetti chiave',c_spiegone:'numeri, prezzi, guadagni, confronti prima/dopo',
@@ -302,6 +330,7 @@ let ANTE={};const AV=n=>ANTE[n]||'';
 async function kget(k,d){const {data,error}=await sb.from('impostazioni').select('valore').eq('chiave',k).maybeSingle();if(error)throw error;return data?data.valore:d}
 async function kput(k,v){const {error}=await sb.from('impostazioni').upsert({chiave:k,valore:v,aggiornato_il:new Date().toISOString()});if(error){toast('Errore: '+error.message);throw error}}
 const pausa=ms=>new Promise(r=>setTimeout(r,ms));
+window.FONTFILE=async f=>{const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'font',id:f.id,n:f.n,stato:'nuovo'});for(let i=0;i<40;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);return c.url}}throw new Error('PC non risponde')};
 async function api(u,b){
  if(u==='/api/clienti')return b?(await kput('leoni_clienti',b),{ok:true}):kget('leoni_clienti',[]);
  if(u==='/api/coda')return b?(await kput('leoni_coda',b),{ok:true}):kget('leoni_coda',[]);
@@ -313,7 +342,8 @@ async function api(u,b){
  if(u==='/api/davinci/aggiorna'){const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'aggiorna_davinci',stato:'nuovo'});
    for(let i=0;i<60;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);if(c.stato==='errore')return {ok:false,errore:c.messaggio||'DaVinci non risponde: deve essere aperto sul PC'};return kget('leoni_davinci',{ok:false})}}
    await sb.from('impostazioni').delete().eq('chiave',id);return {ok:false,errore:'Il PC non risponde: è acceso?'}}
- if(u.startsWith('/api/sfoglia')){const p=decodeURIComponent((u.split('p=')[1]||''));const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'sfoglia',p,stato:'nuovo'});
+ if(u==='/api/font')return kget('leoni_font',[]);
+ if(u.startsWith('/api/sfoglia')){const sc=u.includes('&c=1');const p=decodeURIComponent((u.split('p=')[1]||'').split('&c=1')[0]);const id='leoni_cmd_'+Date.now();await kput(id,{tipo:'sfoglia',p,solo_cartelle:sc,stato:'nuovo'});
    for(let i=0;i<90;i++){await pausa(1500);const c=await kget(id,null);if(c&&c.stato!=='nuovo'){await sb.from('impostazioni').delete().eq('chiave',id);if(c.stato==='errore')throw new Error(c.messaggio||'Errore sul PC');return c.risultato}}
    await sb.from('impostazioni').delete().eq('chiave',id);throw new Error('Il PC non risponde: è acceso?')}
  throw new Error('api '+u)}
@@ -369,8 +399,10 @@ function badge(s){if(!s)return'';const c={'in coda':'b-coda','in lavorazione':'b
 // ---------- DaVinci ----------
 function drawDV(){
   const p=$('#dv');
-  if(!DV||!DV.ok){p.textContent='DaVinci: '+(DV&&DV.errore?DV.errore:'non letto');p.className='pill err';$('#lcli').innerHTML='<div class="empty">Apri DaVinci e premi "Aggiorna da DaVinci"</div>';return}
-  p.textContent='DaVinci letto '+DV.aggiornato;p.className='pill ok';
+  if(!DV||!DV.ok){p.textContent='DaVinci: '+(DV&&DV.errore?DV.errore:'non letto');p.className='pill err';DV={ok:false,clienti:{}}}
+  else{p.textContent='DaVinci letto '+DV.aggiornato+(DV.avviso?' · solo clienti':'');p.className='pill ok';p.title=DV.avviso||''}
+  (CLI||[]).forEach(c=>{const k=c.cartella||c.nome;if(k&&!DV.clienti[k])DV.clienti[k]={'_senza_giornata':[]}});
+  if(!Object.keys(DV.clienti).length){$('#lcli').innerHTML='<div class="empty">Apri DaVinci e premi "Aggiorna da DaVinci"</div>';return}
   $('#lcli').innerHTML=Object.keys(DV.clienti).map(c=>{const card=cliCard(c);const n=Object.values(DV.clienti[c]).reduce((a,b)=>a+b.length,0);
     return `<div class="it${c===selCli?' on':''}" onclick="selC('${c.replace(/'/g,"\\'")}')"><span>${card?card.nome:c}</span><small>${n}</small></div>`}).join('');
   drawGio();
@@ -422,14 +454,36 @@ async function ripPred(){if(!selCli){toast('Scegli prima il cliente');return}con
 // ---------- coda ----------
 function drawCoda(){bannerLavoro();
   $('#ncoda').textContent=CODA.filter(j=>j.stato==='in coda'||j.stato==='in lavorazione').length;
-  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.clip?`<br><small class="mut">🎞 ${j.clip}</small>`:''}${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td>${j.stato==='esportato'?`<small>${j.preset}</small>`:`<select class="psel" onchange="cambiaPreset(${i},this.value)">${[...new Set([...(PRESET||[]),j.preset])].map(x=>`<option${x===j.preset?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${badge(j.stato)}${j.stato==='in lavorazione'?barra(j):''}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
-   <td style="white-space:nowrap"><button class="sm" onclick="sposta(${i},-1)">▲</button> <button class="sm" onclick="sposta(${i},1)">▼</button> <button class="sm" onclick="rimetti(${i})" title="Rimetti in coda">↺</button> <button class="sm dang" onclick="togli(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="15" class="empty">La coda è vuota</td></tr>'}
+  $('#tcoda').innerHTML=CODA.map((j,i)=>`<tr><td class="mut">${i+1}</td><td>${j.cliente}</td><td>${j.giornata||'—'}</td><td><b>${j.progetto}</b>${j.personalizzato?'<span class="pers" title="Scelte diverse dallo standard del cliente">personalizzato</span>':''}${j.clip?`<br><small class="mut">🎞 ${j.clip}</small>`:''}${j.note?`<br><small class="mut">${j.note}</small>`:''}</td><td>${j.stile}</td><td>${j.complemento}</td><td>${j.camera||'Nessuno'}</td><td>${j.audio||'—'}</td><td>${j.voce||'—'}</td><td>${j.semplici&&j.semplici!=='Nessuno'?j.semplici:'—'}</td><td>${j.nitidezza&&j.nitidezza!=='Nessuna'?(j.nitidezza.includes('regolabile')?'regolabile':'fisso'):'—'}</td><td>${j.copertina&&j.copertina!=='Nessuna copertina'?j.copertina.replace('Copertina ',''):'—'}</td><td>${j.stato==='esportato'?`<small>${j.preset}</small>`:`<select class="psel" onchange="cambiaPreset(${i},this.value)">${[...new Set([...(PRESET||[]),j.preset])].map(x=>`<option${x===j.preset?' selected':''}>${x}</option>`).join('')}</select>`}</td><td>${badge(j.stato)}${j.stato==='in lavorazione'?barra(j):''}${j.messaggio?`<br><small class="mut">${j.messaggio}</small>`:''}</td>
+   <td style="white-space:nowrap">${j.stato==='in lavorazione'?'':`<button class="sm" onclick="modJob(${i})" title="Modifica le scelte di questo video">✎ Modifica</button> `}<button class="sm" onclick="sposta(${i},-1)">▲</button> <button class="sm" onclick="sposta(${i},1)">▼</button> <button class="sm" onclick="rimetti(${i})" title="Rimetti in coda">↺</button> <button class="sm dang" onclick="togli(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="15" class="empty">La coda è vuota</td></tr>'}
 const FASI=['Tagli','Voce e musica','Maschera','Sottotitoli','Effetti camera','Grafiche','Copertina','Export'];
 function barra(j){const f=j.fase||'';const k=Math.max(0,FASI.indexOf(f));const pct=j.pct!=null?j.pct:Math.round(k/FASI.length*100);
   return `<div class="prog"><div class="pbar"><i style="width:${pct}%"></i></div><div class="pfase">${f?`Sta facendo: <b>${f}</b>`:'Avvio…'} · ${pct}%</div><div class="psteps">${FASI.map((x,n)=>`<span class="${n<k?'ok':n===k&&f?'now':''}">${n<k?'✓ ':''}${x}</span>`).join('')}</div></div>`}
 function bannerLavoro(){const j=CODA.find(x=>x.stato==='in lavorazione');const b=$('#lavbanner');if(!b)return;
   if(!j){b.classList.add('hid');return}b.classList.remove('hid');b.innerHTML=`<span class="dot"></span> Claude sta lavorando su <b>${j.cliente} · ${j.progetto}</b> — ${j.fase||'avvio'}${j.pct!=null?' · '+j.pct+'%':''}<div class="pbar"><i style="width:${j.pct||0}%"></i></div>`}
 function cambiaPreset(i,v){CODA[i].preset=v;salvaCoda();toast('Export cambiato: '+v)}
+let MJ=-1;const MCAMPI=['tagli','stile','semplici','audio','voce','nitidezza','copertina','preset','complemento','camera'];
+function ckList(id,list,val){const on=(val||'Nessuno').split(' + ');$('#'+id).innerHTML=list.map(x=>`<label><input type="checkbox" value="${x[0].replace(/"/g,'&quot;')}"${on.includes(x[0])?' checked':''}> ${x[0]}</label>`).join('');
+  $('#'+id).querySelectorAll('input').forEach(c=>c.onchange=()=>{const all=[...$('#'+id).querySelectorAll('input')];if(c.value==='Nessuno'&&c.checked)all.forEach(o=>{if(o!==c)o.checked=false});else if(c.checked)all.forEach(o=>{if(o.value==='Nessuno')o.checked=false});if(!all.some(o=>o.checked))all.find(o=>o.value==='Nessuno').checked=true})}
+const ckStr=id=>[...$('#'+id).querySelectorAll('input:checked')].map(c=>c.value).join(' + ')||'Nessuno';
+function riempiMod(v){opts($('#mTag'),TAG.map(x=>x[0]),v.tagli||'Nessun taglio');opts($('#mStile'),STILI.map(x=>x[0]),v.stile||STILI[0][0]);opts($('#mSem'),SEM.map(x=>x[0]),v.semplici||'Nessuno');
+  opts($('#mAud'),AUD.map(x=>x[0]),v.audio||'Nessuna musica');opts($('#mVoc'),VOC.map(x=>x[0]),v.voce||'Voce originale');opts($('#mNit'),NIT.map(x=>x[0]),v.nitidezza||'Nessuna');
+  opts($('#mCov'),COV.map(x=>x[0]),v.copertina||'Nessuna copertina');opts($('#mPre'),[...new Set([...(PRESET||[]),v.preset].filter(Boolean))],v.preset);
+  ckList('mComp',COMP,v.complemento);ckList('mCam',CAM,v.camera)}
+function modJob(i){MJ=i;const j=CODA[i];const c=cliCard(j.cartella)||CLI.find(x=>x.nome===j.cliente);
+  $('#mjT').textContent='Modifica · '+j.cliente+' · '+j.progetto;$('#mjS').textContent=j.clip?'Clip: '+j.clip:(j.giornata?'Giornata '+j.giornata:'');
+  riempiMod(j);$('#mNote').value=j.note||'';
+  $('#mjF').innerHTML=c?`Font e colori restano quelli del cliente: ${[c.font1,c.font2,c.font3].filter(Boolean).join(' · ')||'—'} <span class="sw" style="background:${c.colore1||'#fff'}"></span><span class="sw" style="background:${c.colore2||'#f5b301'}"></span>${c.colore3?`<span class="sw" style="background:${c.colore3}"></span>`:''}`:'';
+  $('#mj').classList.remove('hid')}
+function chiudiMod(){$('#mj').classList.add('hid');MJ=-1}
+function resetMod(){const j=CODA[MJ];const c=cliCard(j.cartella)||CLI.find(x=>x.nome===j.cliente);if(!c){toast('Scheda cliente non trovata');return}
+  riempiMod({tagli:c.tagli,stile:c.stile,semplici:c.semplici,audio:c.audio,voce:c.voce,nitidezza:c.nitidezza,copertina:c.copertina,preset:c.preset||j.preset,complemento:c.complemento,camera:c.camera});toast('Rimesse le scelte standard: premi Salva')}
+async function salvaMod(){const j=CODA[MJ];if(!j)return;
+  const n={tagli:$('#mTag').value,stile:$('#mStile').value,semplici:$('#mSem').value,audio:$('#mAud').value,voce:$('#mVoc').value,nitidezza:$('#mNit').value,copertina:$('#mCov').value,preset:$('#mPre').value,complemento:ckStr('mComp'),camera:ckStr('mCam')};
+  const c=cliCard(j.cartella)||CLI.find(x=>x.nome===j.cliente)||{};
+  Object.assign(j,n,{note:$('#mNote').value});
+  const nz=(k,v)=>['complemento','camera'].includes(k)?(v||'Nessuno').split(' + ').sort().join('+'):(v||'');j.personalizzato=MCAMPI.some(k=>(c[k]||'')&&nz(k,c[k])!==nz(k,n[k]));
+  const fatto=['fatto','esportato'].includes(j.stato);chiudiMod();await salvaCoda();toast(fatto?'Salvato. Il video era già fatto: premi ↺ per farlo rifare':'Salvato: questo video avrà le sue scelte')}
 async function salvaCoda(){await api('/api/coda',CODA);drawCoda();drawProg&&selGio&&drawProg()}
 function sposta(i,d){const k=i+d;if(k<0||k>=CODA.length)return;[CODA[i],CODA[k]]=[CODA[k],CODA[i]];salvaCoda()}
 function togli(i){CODA.splice(i,1);salvaCoda()}
@@ -452,16 +506,29 @@ function fillForm(c){
   $('#f_c1').value=c.colore1||'#ffffff';$('#f_c2').value=c.colore2||'#f5b301';$('#f_c3').value=c.colore3||'#000000';$('#f_d1').checked=!!c.diff1;$('#f_d2').checked=!!c.diff2;$('#f_d3').checked=!!c.diff3;$('#f_exp').value=c.export||'';$('#f_rip').value=c.riprese||'';$('#f_note').value=c.note||'';
   $('#fcli').classList.remove('hid');$('#fcli').scrollIntoView({behavior:'smooth'})}
 function drawForm(){picker($('#fpTag'),TAG,$('#f_tag'),$('#f_tag').value);picker($('#fpStile'),STILI,$('#f_stile'),$('#f_stile').value);picker($('#fpSem'),SEM,$('#f_sem'),$('#f_sem').value);picker($('#fpComp'),COMP,null,null,'fcomp');picker($('#fpCam'),CAM,null,null,'fcam');picker($('#fpAud'),AUD,$('#f_aud'),$('#f_aud').value);picker($('#fpNit'),NIT,$('#f_nit'),$('#f_nit').value);picker($('#fpVoc'),VOC,$('#f_voc'),$('#f_voc').value);picker($('#fpCov'),COV,$('#f_cov'),$('#f_cov').value)}
+// ---------- scelta cartella (riprese originali / export) ----------
+let CPK=null;
+function cartPick(id){CPK=id;$('#mcart').classList.remove('hid');const v=$('#'+id).value.trim();cartApri(v||'E:\\')}
+function cartChiudi(){$('#mcart').classList.add('hid')}
+function cartSu(){const s=$('#mcPath').dataset.su;if(s)cartApri(s)}
+function cartUsa(){const p=$('#mcPath').dataset.p;if(p&&CPK){$('#'+CPK).value=p}cartChiudi()}
+async function cartApri(p){$('#mcList').innerHTML='<div class="mut">Leggo la cartella…</div>';let d;
+  try{d=await api('/api/sfoglia?p='+encodeURIComponent(p)+'&c=1')}catch(e){$('#mcList').innerHTML='<div class="mut">'+(e.message||e)+'</div>';return}
+  $('#mcDischi').innerHTML=(d.dischi||[]).map(x=>`<button class="sm${(d.p||'').startsWith(x.p)?' pri':''}" data-p="${x.p.replace(/"/g,'&quot;')}" style="margin:0 6px 6px 0">${x.n}</button>`).join('');
+  $('#mcDischi').querySelectorAll('button').forEach(b=>b.onclick=()=>cartApri(b.dataset.p));
+  $('#mcPath').textContent=(d.p||p)+(d.errore?'  ('+d.errore+')':'')+((d.video||[]).length?'  ·  '+d.video.length+' video':'');$('#mcPath').dataset.p=d.p||p;$('#mcPath').dataset.su=d.su||'';
+  const C=d.cartelle||[];$('#mcList').innerHTML=C.map(n=>`<div data-p="${jn(d.p,n).replace(/"/g,'&quot;')}">📁 ${n}</div>`).join('')||'<div class="mut">Nessuna sottocartella: premi "Usa questa cartella"</div>';
+  $('#mcList').querySelectorAll('[data-p]').forEach(x=>x.onclick=()=>cartApri(x.dataset.p))}
 // ---------- font con anteprima (come DaVinci) ----------
 let FONTS=null;const FLOAD={};
 async function fontList(){if(FONTS)return FONTS;try{FONTS=await api('/api/font');if(!Array.isArray(FONTS))FONTS=[]}catch(e){FONTS=[]}return FONTS}
-function fontFam(f){const fam='F_'+f.id;if(!FLOAD[f.id]){FLOAD[f.id]=1;try{const ff=new FontFace(fam,`url(/font/${f.id})`);ff.load().then(x=>document.fonts.add(x)).catch(()=>{})}catch(e){}}return fam}
-async function fontPrev(k){const v=$('#f_font'+k).value.trim(),el=$('#fp_font'+k);if(!v){el.textContent='';return}const L=await fontList();const f=L.find(x=>x.n.toLowerCase()===v.toLowerCase());
+function fontFam(f){const fam='F_'+f.id;if(!FLOAD[f.id]){FLOAD[f.id]=1;try{const ff=new FontFace(fam,`url(${f.u||'/font/'+f.id})`);ff.load().then(x=>document.fonts.add(x)).catch(()=>{})}catch(e){}}return fam}
+async function fontPrev(k){const v=$('#f_font'+k).value.trim(),el=$('#fp_font'+k);if(!v){el.textContent='';return}const L=await fontList();const f=L.find(x=>x.n.toLowerCase()===v.toLowerCase());if(f&&window.FONTFILE&&!f.u){el.textContent='carico il font…';try{f.u=await FONTFILE(f)}catch(e){}}
   el.style.fontFamily=f?`"${fontFam(f)}",system-ui`:'system-ui';el.textContent=f?'Ciao sono Cristian 123':'scegli dalla lista'}
 function fontDD(inp,tutti){const dd=inp.parentNode.querySelector('.fdd'),k=inp.id.slice(-1);fontList().then(L=>{if(!L.length){dd.classList.add('hid');return}
   const q=tutti?[]:inp.value.trim().toLowerCase().split(/\s+/).filter(Boolean);const R=L.filter(f=>q.every(w=>f.n.toLowerCase().includes(w))).slice(0,1000);const cur=inp.value.trim().toLowerCase();
-  dd.innerHTML=R.map(f=>`<div class="fr${f.n.toLowerCase()===cur?' sel':''}" data-n="${f.n.replace(/"/g,'&quot;')}" data-id="${f.id}"><span class="fl">${f.n}</span><span class="fs">AaBbzZ</span></div>`).join('')||'<div class="fe">Nessun font</div>';
-  dd.classList.remove('hid');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const r=e.target;r.querySelector('.fs').style.fontFamily=`"${fontFam({id:r.dataset.id})}",system-ui`;io.unobserve(r)}}),{root:dd});dd.querySelectorAll('.fr').forEach(r=>io.observe(r));
+  dd.innerHTML=R.map(f=>`<div class="fr${f.n.toLowerCase()===cur?' sel':''}" data-n="${f.n.replace(/"/g,'&quot;')}" data-id="${f.id}"><span class="fl">${f.n}</span>${f.img?`<img class="fi" src="${f.img}" loading="lazy" alt="">`:'<span class="fs">AaBbzZ</span>'}</div>`).join('')||'<div class="fe">Nessun font</div>';
+  dd.classList.remove('hid');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const r=e.target;if(r.querySelector('.fs'))r.querySelector('.fs').style.fontFamily=`"${fontFam({id:r.dataset.id})}",system-ui`;io.unobserve(r)}}),{root:dd});dd.querySelectorAll('.fr').forEach(r=>io.observe(r));
   const sl=dd.querySelector('.sel');if(sl&&!q.length)sl.scrollIntoView({block:'center'});dd.querySelectorAll('[data-n]').forEach(r=>r.onmousedown=e=>{e.preventDefault();inp.value=r.dataset.n;dd.classList.add('hid');fontPrev(k)})})}
 document.addEventListener('DOMContentLoaded',()=>document.querySelectorAll('[data-fnt]').forEach(inp=>{inp.onfocus=()=>{inp.select();fontDD(inp,1)};inp.oninput=()=>{fontDD(inp);fontPrev(inp.id.slice(-1))};inp.onkeydown=e=>{const dd=inp.parentNode.querySelector('.fdd');if(dd.classList.contains('hid')&&/Arrow/.test(e.key))fontDD(inp,1);const R=[...dd.querySelectorAll('.fr')];if(!R.length)return;let i=R.findIndex(r=>r.classList.contains('sel'));
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();i=e.key==='ArrowDown'?Math.min(R.length-1,i+1):Math.max(0,i<0?0:i-1);R.forEach(r=>r.classList.remove('sel'));R[i].classList.add('sel');R[i].scrollIntoView({block:'nearest'});inp.value=R[i].dataset.n;fontPrev(inp.id.slice(-1))}
