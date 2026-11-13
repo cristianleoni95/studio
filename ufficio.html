@@ -364,6 +364,51 @@ function faiRobot(colore,scala=1){
  return g}
 function posa(r,seduto){r.userData.gambe.forEach(l=>l.rotation.x=seduto?-1.5:0)}
 
+// ---------- Thor: bull terrier bianco, taglia media, gira per l'ufficio ----------
+const THOR={g:null,el:null,pos:new V3(2,0,-2.2),modo:'cammina',path:[],i:0,timer:0,festa:0,etV:new V3()};
+function faiThor(){
+ const g=new THREE.Group();const bianco=new THREE.MeshStandardMaterial({color:0xfbfaf6,roughness:.55}),rosa=new THREE.MeshStandardMaterial({color:0xe8a9a0,roughness:.7}),nero=new THREE.MeshStandardMaterial({color:0x111111,roughness:.3});
+ const corpo=new THREE.Group();corpo.position.y=.47;g.add(corpo);
+ const tronco=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.46,6,14),bianco);tronco.rotation.x=PI/2;tronco.castShadow=true;corpo.add(tronco);
+ corpo.add(mesh(G.sfera,bianco,0,.02,.26,.23,.24,.24));                       // petto largo
+ corpo.add(mesh(G.sfera,bianco,0,-.01,-.26,.19,.2,.2));                       // posteriore
+ const collo=new THREE.Mesh(new THREE.CapsuleGeometry(.11,.16,4,10),bianco);collo.position.set(0,.2,.36);collo.rotation.x=.75;collo.castShadow=true;corpo.add(collo);
+ const testa=new THREE.Group();testa.position.set(0,.34,.48);corpo.add(testa);
+ const cranio=mesh(G.sfera,bianco,0,0,.06,.135,.15,.19);testa.add(cranio);
+ const muso=mesh(G.sfera,bianco,0,-.045,.21,.095,.105,.2);muso.rotation.x=.38;testa.add(muso);   // il profilo a uovo, che scende verso il naso
+ testa.add(mesh(G.sfera,nero,0,-.115,.375,.04,.032,.035,false));
+ for(const k of [-1,1]){const o=new THREE.Mesh(new THREE.ConeGeometry(.055,.17,4),bianco);o.position.set(k*.085,.17,.0);o.rotation.set(-.12,k*.3,k*-.16);o.castShadow=true;testa.add(o);
+  const oi=new THREE.Mesh(new THREE.ConeGeometry(.032,.11,4),rosa);oi.position.set(k*.085,.16,.022);oi.rotation.copy(o.rotation);testa.add(oi);
+  const e=mesh(G.sfera,nero,k*.075,.035,.2,.02,.014,.02,false);e.rotation.z=k*.5;testa.add(e)}
+ const gambe=[];for(const [x,z] of [[-.12,.26],[.12,.26],[-.11,-.27],[.11,-.27]]){const lg=new THREE.Group();lg.position.set(x,-.1,z);corpo.add(lg);
+  const c=new THREE.Mesh(new THREE.CapsuleGeometry(.05,.24,4,8),bianco);c.position.y=-.16;c.castShadow=true;lg.add(c);lg.add(mesh(G.sfera,bianco,0,-.33,.03,.06,.045,.08));gambe.push(lg)}
+ const coda=new THREE.Group();coda.position.set(0,.1,-.42);corpo.add(coda);const cc=new THREE.Mesh(new THREE.ConeGeometry(.035,.34,6),bianco);cc.position.y=.15;cc.rotation.x=-.5;coda.add(cc);coda.rotation.x=-.9;
+ const collare=new THREE.Mesh(new THREE.TorusGeometry(.125,.025,8,20),new THREE.MeshStandardMaterial({color:0xb3261e,roughness:.5}));collare.position.set(0,.2,.36);collare.rotation.x=.75+PI/2;corpo.add(collare);
+ g.scale.setScalar(1.25);g.position.copy(THOR.pos);scene.add(g);
+ THOR.g=g;THOR.u={corpo,testa,gambe,coda};THOR.blob=aTerra(M.ombra,0,0,1.5,1.9,.02);
+ const el=document.createElement('div');el.className='et';el.style.borderColor='rgba(255,255,255,.5)';el.innerHTML='<b>Thor 🐾</b>';etichette.appendChild(el);THOR.el=el}
+function thorMeta(){ // gira lungo corridoi e file, ogni tanto va dal padrone di turno: divano, palco di Claude, macchinetta
+ const zz=[FRONTE,...[...new Set(posti.filter(p=>p.tipo==='agente'||p.tipo==='libero').map(p=>p.z+2.9))]];
+ const speciali=[[12.3,3.6,'giu'],[0,-3.0,'seduto'],[12.4,9.9,'seduto'],[-12.4,1,'giu']];
+ const r=Math.random();let m;if(r<.3){const q=speciali[(Math.random()*speciali.length)|0];m={x:q[0],z:q[1],poi:q[2],cx:q[0]>0?10.6:-10.6}}
+ else{const cx=CORRIDOI[(Math.random()*CORRIDOI.length)|0];m={x:cx,z:zz[(Math.random()*zz.length)|0],poi:Math.random()<.35?'seduto':'annusa',cx}}
+ const P=THOR.pos,vic=x=>CORRIDOI.reduce((a,c)=>Math.abs(c-x)<Math.abs(a-x)?c:a),vz=z=>zz.reduce((a,c)=>Math.abs(c-z)<Math.abs(a-z)?c:a);
+ const cA=vic(P.x),zA=vz(P.z),path=[[cA,P.z]];if(cA!==m.cx)path.push([cA,zA],[m.cx,zA]);path.push([m.cx,m.z]);if(m.x!==m.cx)path.push([m.x,m.z]);
+ THOR.path=path;THOR.i=0;THOR.poi=m.poi;THOR.modo='cammina'}
+function animaThor(dt,t){const T_=THOR,g=T_.g,u=T_.u;if(!g)return;
+ if(T_.festa>0){T_.festa-=dt;u.coda.rotation.z=Math.sin(t*26)*.7;u.corpo.position.y=.47+Math.abs(Math.sin(t*9))*.12;u.testa.rotation.x=-.3;if(T_.festa<=0){T_.modo='fermo';T_.timer=2}}
+ else if(T_.modo==='cammina'){if(!T_.path.length)thorMeta();const [tx,tz]=T_.path[T_.i],dx=tx-T_.pos.x,dz=tz-T_.pos.z,d=Math.hypot(dx,dz),v=2.1*dt;
+  if(d<=v){T_.pos.x=tx;T_.pos.z=tz;if(++T_.i>=T_.path.length){T_.path=[];T_.modo=T_.poi;T_.timer=T_.poi==='annusa'?caso(1.5,4):T_.poi==='giu'?caso(14,30):caso(5,12)}}
+  else{T_.pos.x+=dx/d*v;T_.pos.z+=dz/d*v;let dr=Math.atan2(dx,dz)-g.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));g.rotation.y+=dr*Math.min(1,dt*8)}
+  const k=t*11;u.gambe[0].rotation.x=Math.sin(k)*.6;u.gambe[3].rotation.x=Math.sin(k)*.6;u.gambe[1].rotation.x=-Math.sin(k)*.6;u.gambe[2].rotation.x=-Math.sin(k)*.6;
+  u.corpo.position.y=.47+Math.abs(Math.sin(k))*.02;u.corpo.rotation.x=0;u.testa.rotation.x=Math.sin(k*.5)*.06;u.coda.rotation.z=Math.sin(t*7)*.35}
+ else{T_.timer-=dt;u.gambe.forEach(l=>l.rotation.x=0);
+  if(T_.modo==='seduto'){u.corpo.rotation.x=-.42;u.corpo.position.y=.4;u.gambe[2].rotation.x=u.gambe[3].rotation.x=1.25;u.gambe[0].rotation.x=u.gambe[1].rotation.x=.42;u.testa.rotation.x=.35+Math.sin(t*.7)*.08;u.testa.rotation.y=Math.sin(t*.4)*.5;u.coda.rotation.z=Math.sin(t*5)*.3}
+  else if(T_.modo==='giu'){u.corpo.rotation.x=0;u.corpo.position.y=.22;u.gambe[0].rotation.x=u.gambe[1].rotation.x=-1.35;u.gambe[2].rotation.x=u.gambe[3].rotation.x=1.35;u.testa.rotation.x=.25+Math.sin(t*.9)*.03;u.testa.rotation.y=0;u.coda.rotation.z=Math.sin(t*1.5)*.12}
+  else{u.corpo.rotation.x=0;u.corpo.position.y=.47;u.testa.rotation.x=.7+Math.sin(t*6)*.06;u.testa.rotation.y=Math.sin(t*2.3)*.35;u.coda.rotation.z=Math.sin(t*9)*.4}
+  if(T_.timer<=0){u.corpo.rotation.x=0;u.testa.rotation.set(0,0,0);T_.modo='cammina'}}
+ g.position.set(T_.pos.x,0,T_.pos.z);T_.blob.position.set(T_.pos.x,.02,T_.pos.z);T_.etV.set(T_.pos.x,1.55,T_.pos.z)}
+
 // ---------- scrivania singola con doppio monitor ----------
 function schermo(){const c=document.createElement('canvas');c.width=384;c.height=232;const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return {c,t,x:c.getContext('2d')}}
 function monitor(sc){const g=new THREE.Group();
@@ -485,6 +530,7 @@ function costruisciFissi(){
  pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15,-10.4,1.3);pianta(-14.9,6.5,1.3);pianta(-14.9,12.5,1.4);
  [[-12.6,-4.5,1],[12.2,-6.8,1],[-12.6,3.5,1],[12.9,6.2,1],[-12.6,11,1],[12.9,12.2,1],[-3.6,6.6,0,8.3],[3.6,6.6,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?i<4:l,h||7.5));
  scene.add(box(M.tappeto,0,.012,-2.4,4.6,.025,2.0,false));
+ faiThor();
 }
 function ombre(){renderer.shadowMap.needsUpdate=true}
 
@@ -687,17 +733,17 @@ function demo(S0){const base=[['tagli','Tagli','Parakeet + CTC','forbici','#ff7b
  const S={agenti:base.map(a=>({id:a[0],nome:a[1],ruolo:a[2],oggetto:a[3],colore:a[4],stato:'riposa',cosa:'In attesa',gpu:true,motivo:'Nei lavori in corso non c\'è niente per me.'})),
   revisore:{id:'revisore',nome:'Revisore',ruolo:'Controlla i video finiti',oggetto:'lente',colore:'#f5b301',stato:'riposa',cosa:'In attesa',motivo:'Aspetto il mio turno: controllo il video quando è finito.'},claude:{id:'claude',nome:'Claude',ruolo:'Capo reparto'},servizi:{davinci:true,comfy:true}};
  const t=Date.now()/1000,ts=Math.round(t);S.ts=ts;S.ora=new Date().toLocaleTimeString('it-IT');
- const nomi=['Tagli','Voce e musica','Tracker','Sottotitoli','Grafiche','Export'],ag=['tagli','voce','tracker','sottotitoli','grafiche','render'],st=[40,30,50,45,70,35];
+ const nomi=['Tagli','Voce e musica','Grafiche','Tracker','Sottotitoli','Export'],ag=['tagli','voce','grafiche','tracker','sottotitoli','render'],st=[40,30,70,50,45,35];
  const D=14,ciclo=D*(nomi.length+1.5),k=t%ciclo,idx=Math.floor(k/D),dentro=k%D;
  const passi=nomi.map((n,i)=>({nome:n,agente:ag[i],stima:st[i]*6,stato:i<idx?'fatto':i===idx?'in_corso':'da_fare',...(i<idx?{secondi:st[i]*6-20+i*7}:{}),...(i===idx?{trascorso:Math.round(dentro/D*st[i]*6)}:{})}));
  const finito=idx>=nomi.length;
- if(idx===2||idx===3){passi[4].stato='in_corso';passi[4].trascorso=Math.round(((idx-2)*D+dentro)/(3*D)*st[4]*6)}else if(idx===4)passi[4].trascorso=Math.round((2*D+dentro)/(3*D)*st[4]*6);
+ if(idx===3&&dentro<D*.7){passi[2].stato='in_corso';delete passi[2].secondi;passi[2].trascorso=Math.round((D+dentro)/(1.7*D)*st[2]*6)}
  const j={id:'c_demo',tipo:'coda',nome:'Marius · video 3',stato:finito?'fatto':'in lavorazione',fase:finito?'Export':nomi[idx],pct:finito?100:Math.round((idx+dentro/D)/nomi.length*100),messaggio:finito?'':'Demo: i passi avanzano da soli ogni '+D+' secondi',passi,fatti:Math.min(idx,nomi.length),
   resta:finito?null:passi.reduce((s,p)=>s+(p.stato==='in_corso'?p.stima-p.trascorso:p.stato==='da_fare'?p.stima:0),0)};
  S.lavori=[j,{id:'c_b',tipo:'coda',nome:'Olistrea · video 2',stato:'in coda',fase:'',passi:nomi.slice(0,4).map((n,i)=>({nome:n,agente:ag[i],stima:st[i]*6,stato:'da_fare'})),fatti:0},{id:'c_c',tipo:'coda',nome:'Rextaura · video 4',stato:'errore',fase:'Tagli',messaggio:'più timeline: scegli quale',passi:[{nome:'Tagli',agente:'tagli',stima:240,stato:'errore'}],fatti:0}];
  S.coda=S.lavori.map(j=>({id:j.id,nome:j.nome,stato:j.stato,fase:j.fase,pct:j.pct,messaggio:j.messaggio,resta:j.resta}));
  if(!finito){const a=S.agenti.find(a=>a.id===ag[idx]),p=passi[idx];Object.assign(a,{stato:'lavora',cosa:'Marius · video 3: '+p.nome,pct:j.pct,dettagli:'Demo: sto facendo il passo «'+p.nome+'».',da:ts-p.trascorso,resta:p.stima-p.trascorso,fonte:'demo',motivo:''});
-  if(idx===2||idx===3){const g=S.agenti.find(a=>a.id==='grafiche'),q=passi[4];Object.assign(g,{stato:'lavora',cosa:'Marius · video 3: Grafiche (render sul processore)',pct:null,dettagli:'Demo: lavoro insieme al tracker perché non uso la scheda video.',da:ts-q.trascorso,resta:q.stima-q.trascorso,fonte:'demo',motivo:''})}
+  if(passi[2].stato==='in_corso'&&idx===3){const g=S.agenti.find(a=>a.id==='grafiche'),q=passi[2];Object.assign(g,{stato:'lavora',cosa:'Marius · video 3: Grafiche (render sul processore)',pct:null,dettagli:'Demo: lavoro insieme al tracker perché non uso la scheda video.',da:ts-q.trascorso,resta:q.stima-q.trascorso,fonte:'demo',motivo:''})}
   S.agenti.forEach(a=>{const mio=ag.indexOf(a.id);if(a.stato==='riposa'&&mio>=0)a.motivo=mio<idx?'Ho finito la mia parte su Marius · video 3 ('+nomi[mio]+').':'Aspetto il mio turno su Marius · video 3: adesso c\'è '+nomi[idx]+'.'})}
  Object.assign(S.claude,{stato:finito?'riposa':'lavora',cosa:finito?'In attesa':'Seguo la coda: '+nomi[Math.min(idx,5)],motivo:'Nessun lavoro attivo: aspetto Cristian.',passi:[{testo:'Leggo la coda',secondi:1.2},{testo:'Comando sul tuo PC',secondi:4}]});
  S.attenzione=[{tipo:'errore',testo:'Rextaura · video 4: più timeline: scegli quale'}];j.musica='Trap';
@@ -813,6 +859,7 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
  const avvisi=A.map(a=>`<div class="avv">⚠ ${esc(a.testo)}</div>`).join('');
  if(p==='registro'){const r=(S.registro||[]).slice().reverse();h+=`<h2>Diario di oggi</h2><div class="ruolo">Tutto quello che succede, con l'ora (il più recente in alto)</div>`+schedaDiario(40)+`<h3>Lavori finiti e quanto ci hanno messo</h3>`+
   (r.length?r.map(x=>riga(`<b>${esc(x.agente)}</b> · ${esc(x.cosa)}`,`${oraDi(x.fine)} · ${tempo(x.secondi)}`,x.esito==='errore'?'err':'')).join(''):'<div class="mut">Oggi nessun lavoro finito, per ora.</div>')}
+ else if(p==='thor'){h+=`<h2>Thor 🐾</h2><div class="ruolo">Bull terrier bianco · il cane dell'ufficio</div><div class="cosa">Gira tra le scrivanie, controlla che tutti lavorino e ogni tanto si sdraia vicino al divano.</div><div class="azioni"><button id="coccola" class="pri">Fagli una carezza</button></div>`}
  else if(p==='attenzione'){h+=`<h2>Da guardare</h2><div class="ruolo">Quello che ferma il lavoro o aspetta te</div>`+(avvisi||'<div class="mut">Niente: va tutto da solo.</div>')}
  else if(p.tipo==='gpu'){const P=S.pc||{},g=P.gpu||{},c=P.cpu||{},r=P.ram||{};const d=(et,v,u)=>`<div class="dato"><small>${et}</small><b>${v??'—'}<small> ${u}</small></b></div>`;
   h+=`<h2>ZOTAC GAMING RTX 3090</h2><div class="ruolo">Dati veri dal PC${P.fonte?' · '+esc(P.fonte):''}${SPENTO?' · <span style="color:var(--err)">PC spento</span>':''}</div>
@@ -841,6 +888,7 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
  const su=sc.scrollTop;sc.innerHTML=h;sc.classList.add('su');sc.scrollTop=su;
  sc.querySelectorAll('canvas.graf').forEach(c=>{const j=(S.lavori||[]).find(j=>j.id===c.dataset.job);if(j)graficoTempi(c.getContext('2d'),j,0,6,680,84,false)});
  $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
+ const cc=$('#coccola');if(cc)cc.onclick=()=>{THOR.festa=2.5};
  const b=$('#apri');if(b)b.onclick=()=>fetch('/api/apri/'+p.id,{method:'POST',headers:{'X-Ufficio':'1'}})}
 function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su')}
 
@@ -888,6 +936,7 @@ function muoviFP(dt){const K=FP.tasti;let f=-FP.joy.y,l=FP.joy.x;
  const b=$('#azFP');let az=null;
  if(FP.seduto)az=['Alzati',()=>{FP.seduto=false;FP.x=13.0}];
  else if(Math.hypot(FP.x-13.8,FP.z-9.9)<2.6)az=['☕ Prendi un caffè',()=>{FP.caffe++;const a=$('#avviso');a.textContent='☕ Caffè n. '+FP.caffe+' di oggi. Buono!';a.style.opacity=1;setTimeout(()=>a.style.opacity=0,3000)}];
+ else if(Math.hypot(FP.x-THOR.pos.x,FP.z-THOR.pos.z)<2.4)az=['🐾 Accarezza Thor',()=>{THOR.festa=2.5}];
  else if(Math.abs(FP.x-13.4)<1.4&&Math.abs(FP.z-3.6)<3.2)az=['Siediti sul divano',()=>{FP.seduto=true;FP.x=14.3;FP.z=Math.max(2.2,Math.min(5,FP.z));FP.yaw=PI/2;FP.pitch=-.05}];
  if(az){if(b.textContent!==az[0])b.textContent=az[0];b.onclick=az[1];b.style.display='block'}else b.style.display='none'}
 
@@ -899,6 +948,7 @@ canvas.addEventListener('pointermove',e=>{
  if(TOUCH||e.buttons)return;mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);canvas.style.cursor=ray.intersectObjects(pickers,false).length?'pointer':'grab'});
 canvas.addEventListener('pointerup',e=>{if(!giu)return;const d=Math.hypot(e.clientX-giu.x,e.clientY-giu.y),dt=performance.now()-giu.t;giu=null;if(d>8||dt>600)return;
  mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mouse,camera);
+ sfera.center.set(THOR.pos.x,.7,THOR.pos.z);sfera.radius=.95;if(THOR.g&&ray.ray.intersectsSphere(sfera)){$('#musica').classList.remove('su');aperta='thor';THOR.festa=2.2;disegnaScheda();if(!FP.on)vola({camPos:new V3(THOR.pos.x-3.2,3,THOR.pos.z+4.6),camTarget:new V3(THOR.pos.x,.8,THOR.pos.z)});return}
  let h=null;for(const p of posti){if(!p.bot||(p.bot.dove==='scrivania'&&p.bot.modo==='fermo'))continue;const r=p.robot.position;sfera.center.set(r.x,r.y+.9,r.z);sfera.radius=1.15;if(ray.ray.intersectsSphere(sfera)){h=p;break}}
  if(!h){const i=ray.intersectObjects(pickers,false)[0];if(i)h=i.object.userData.posto}
  if(h)tocca(h)});
@@ -923,10 +973,12 @@ function giro(ora){raf=requestAnimationFrame(giro);
  let cammina=false;
  for(const p of posti){const L=p.g&&p.g.userData.lampada;if(L&&Math.abs(L.v-L.obb)>.004){L.v+=(L.obb-L.v)*Math.min(1,dt*4);L.pmat.emissive.set(L.rossa?0xff3020:0xffb347);L.pmat.emissiveIntensity=L.v*2.6;L.al.material.opacity=L.v*.75;L.al.material.color.set(L.rossa?0xff5040:0xffc070);L.lt.material.opacity=L.v*.5;L.anello.material.opacity=L.v*(L.rossa?.7:.62);if(L.rossa)L.anello.material.color.set(0xff3020)}
   if(!p.robot)continue;animaRobot(p,dt,t);if(p.bot&&p.bot.modo==='cammina')cammina=true;const pr=p.g.userData.prop;if(pr&&pr.userData.gira)pr.userData.gira.rotation.y=t*((p.dati||{}).stato==='lavora'?4:.6)}
+ animaThor(dt,t);
  if(t-tGioco>.25){tGioco=t;disegnaGioco(t)}
  if(t-tOmbre>(cammina?.1:1.5)){tOmbre=t;ombre()}
  renderer.render(scene,camera);
  const w=innerWidth,h=innerHeight;
+ if(THOR.el){v.copy(THOR.etV).project(camera);const vis=v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.15&&aperta!=='thor';THOR.el.style.display=vis?'':'none';if(vis)THOR.el.style.transform=`translate(-50%,-100%) translate(${((v.x+1)/2*w).toFixed(1)}px,${((1-v.y)/2*h).toFixed(1)}px)`}
  for(const p of posti){v.copy(p.etPos).project(camera);const vis=v.z<1&&v.x>-1.1&&v.x<1.1&&v.y>-1.1&&v.y<1.2&&!(FP.on&&camera.position.distanceTo(p.etPos)>26);
   if(!vis||aperta===p){if(!p.nasc){p.el.style.display='none';p.nasc=true}continue}
   if(p.nasc){p.el.style.display='';p.nasc=false}
