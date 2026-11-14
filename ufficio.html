@@ -47,6 +47,10 @@ button.on{border-color:var(--acc);color:var(--acc)}
 #scheda{position:fixed;z-index:6;right:12px;top:calc(58px + env(safe-area-inset-top));width:min(380px,calc(100vw - 24px));max-height:calc(100vh - 80px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;backdrop-filter:blur(14px);transform:translateX(calc(100% + 24px));transition:transform .35s cubic-bezier(.2,.8,.2,1);user-select:text;-webkit-user-select:text}
 #scheda.su{transform:none}
 #scheda.largo{width:min(560px,calc(100vw - 24px))}
+.vplayer{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block;margin:8px 0}
+#scheda textarea{width:100%;min-height:92px;margin-top:10px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:15px}
+.azioni button{padding:7px 11px;font-size:13.5px}
+#vid{display:none;cursor:pointer;color:#111;background:var(--acc);border-color:var(--acc);font-weight:700}
 .pcbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .pcbar button{padding:6px 10px;font-size:13px}
 .pcpath{font-size:12.5px;color:var(--mut);word-break:break-all;margin-bottom:8px}
@@ -113,6 +117,7 @@ body.fp #joy.touch{display:block}body.fp #mirino{display:block}
 <header>
  <div class="logo">LEONI <b>STUDIO</b> · Ufficio 3D</div>
  <span id="att" class="pill"></span>
+ <span id="vid" class="pill"></span>
  <span id="pc" class="pill">PC: —</span>
  <a id="bApp" class="btn" href="./" style="display:none">← App</a>
  <button id="bMusica">♪ Musica</button>
@@ -547,6 +552,11 @@ function costruisciFissi(){
  const gx=14.3,gz=-2.9;faiGPU(gx,gz,-.95).scale.setScalar(.8);
  nuovoPosto({id:'gpu',tipo:'gpu',etPos:new V3(gx,7.6,gz),pickPos:new V3(gx,3.5,gz),pickSize:new V3(3.4,7,2.6),pickRot:-.95,camPos:new V3(gx-11,5.5,gz+12),camTarget:new V3(gx-1,3.6,gz)});
  libreria(-15.5,-1.2,PI/2);libreria(-15.5,2.6,PI/2);salotto();
+ // TV dei video finiti: schermo verticale sulla parete destra, sopra il divano
+ TVV.tex=tela(540,960,()=>{});TVV.tex.anisotropy=8;
+ const tvc=rbox(.2,4.55,2.72,.06,M.plasticaNera);tvc.position.set(ST.W/2-.12,5.1,3.6);scene.add(tvc);
+ const tvs=new THREE.Mesh(new THREE.PlaneGeometry(2.44,4.34),new THREE.MeshBasicMaterial({map:TVV.tex,toneMapped:false}));tvs.rotation.y=-PI/2;tvs.position.set(ST.W/2-.235,5.1,3.6);scene.add(tvs);
+ nuovoPosto({id:'tv',tipo:'tv',etPos:new V3(ST.W/2-.6,7.75,3.6),pickPos:new V3(ST.W/2-.45,5.1,3.6),pickSize:new V3(1,4.8,3),camPos:new V3(8.4,5.2,4.9),camTarget:new V3(ST.W/2,5.0,6.1)});
  // Il mio PC: la postazione di Cristian. Da qui si scelgono i video sul computer di casa (anche dal tablet).
  const mp=postoScrivania('miopc','miopc',-13.2,0,9.4,0,{colore:'#11f401',libero:true,grande:true,oggetto:'nessuno'});
  const torre=rbox(.55,1.25,1.15,.05,M.plasticaNera);torre.position.set(2.5,.63,.1);mp.g.add(torre);
@@ -724,7 +734,7 @@ function disegnaLavagna(){if(!LAV.tex)return;const c=LAV.tex.image,x=c.getContex
   x.fillText(segnato?'FATTO'+(p.secondi?' · '+tempo(p.secondi):''):fatto?'fatto · lo sta segnando…':ora?'IN CORSO · ~'+tempo(Math.max(0,p.stima-(p.trascorso||0))):salt?'SALTATO!':err?'ERRORE':'~'+tempo(p.stima),W-36,cy+9);x.textAlign='left'});
  const yb=H-140;x.fillStyle='#1a1a1a';x.font=carattere(22,700);x.fillText('TEMPO',30,yb);
  x.textAlign='right';x.fillStyle=j.resta!=null?'#b06000':'#188038';x.font=carattere(26,800);
- x.fillText(taglia(x,j.resta!=null?'restano circa '+tempo(j.resta)+' · fine verso le '+oraDi((S.ts||Date.now()/1000)+j.resta):/fatto|esportato|finito/.test(j.stato)?'TUTTO FATTO ✔':j.stato==='errore'?'fermo: '+(j.messaggio||'errore'):j.stato,W-180),W-30,yb);x.textAlign='left';
+ x.fillText(taglia(x,j.resta!=null?'restano circa '+tempo(j.resta)+' · fine verso le '+oraDi((S.ts||Date.now()/1000)+j.resta):/fatto|esportato|finito/.test(j.stato)?(j.revisione&&j.revisione.esito==='approvato'?'APPROVATO DA CRISTIAN ✔':(S.video||[]).some(v=>v.id===j.id)?'FATTO · DA GUARDARE':'TUTTO FATTO ✔'):j.stato==='errore'?'fermo: '+(j.messaggio||'errore'):j.stato,W-180),W-30,yb);x.textAlign='left';
  graficoTempi(x,j,30,yb+14,W-60,58,true);
  const altri=(S.lavori||[]).filter(k=>k!==j);x.fillStyle='#5f6368';x.font=carattere(20,500);
  if(altri.length)x.fillText(taglia(x,'Altri: '+altri.map(k=>k.nome+' '+k.fatti+'/'+k.passi.length).join('   ·   '),W-60),30,H-28);
@@ -773,6 +783,7 @@ function demo(S0){const base=[['tagli','Tagli','Parakeet + CTC','forbici','#ff7b
   S.agenti.forEach(a=>{const mio=ag.indexOf(a.id);if(a.stato==='riposa'&&mio>=0)a.motivo=mio<idx?'Ho finito la mia parte su Marius · video 3 ('+nomi[mio]+').':'Aspetto il mio turno su Marius · video 3: adesso c\'è '+nomi[idx]+'.'})}
  Object.assign(S.claude,{stato:finito?'riposa':'lavora',cosa:finito?'In attesa':'Seguo la coda: '+nomi[Math.min(idx,5)],motivo:'Nessun lavoro attivo: aspetto Cristian.',passi:[{testo:'Leggo la coda',secondi:1.2},{testo:'Comando sul tuo PC',secondi:4}]});
  S.attenzione=[{tipo:'errore',testo:'Rextaura · video 4: più timeline: scegli quale'}];j.musica='Trap';
+ S.auto={ascolto:finito,pausa:false};S.video=LOCALE?[{id:'c_demo',nome:'Marius · video 1 (demo)',quando:ts-300,url:'',poster:'',mb:.2,file:'demo.mp4',stato:'fatto',coda:true,revisione:DEMOREV,correzioni:0}]:[];
  S.diario=passi.flatMap((p,i)=>p.stato==='da_fare'?[]:[{ts:ts-(idx-i)*D*6-30,chi:'Claude',testo:'Inizio '+p.nome+' (Marius · video 3)'},...(p.stato==='fatto'?[{ts:ts-(idx-i)*D*6+60,chi:'Claude',testo:'Finito '+p.nome}]:[{ts:ts-8,chi:base[ag.indexOf(p.agente)]?S.agenti.find(a=>a.id===p.agente).nome:'Claude',testo:'In DaVinci (Marius › video 3): traccia V2 Scritte, clip da '+(8+idx)+' a '+(9+idx+Math.floor(dentro/3))}])]).sort((a,b)=>a.ts-b.ts);
  const u=finito?6:62+Math.sin(t/5)*30;S.pc={fonte:'demo',gpu:{uso:Math.round(u),temp:71,hotspot:82,vram_temp:88,watt:Math.round(120+u*2.2),limite:350,vram:17.4,vram_tot:24,ventola:Math.round(40+u*.5)},cpu:{uso:34,temp:55,watt:90},ram:{usata:31.2,tot:68.6,pct:45}};
  const chi=S.agenti.find(a=>a.stato==='lavora');S.gpu_turno={chi:chi?[chi.nome]:[],avviso:''};
@@ -811,6 +822,7 @@ function applica(){
   if(p.tipo==='lavagna'){const j=lavoroPrincipale();p.el.className='et';p.el.innerHTML=`<b>Lavagna</b>${j?`<span>${esc(j.nome)} · ${j.fatti}/${j.passi.length}</span>`:''}`;continue}
   if(p.tipo==='davinci'){p.el.className='et';p.el.innerHTML=`<b>Timeline DaVinci</b>`;continue}
   if(p.tipo==='led')continue;
+  if(p.tipo==='tv'){const V=S.video||[],dag=V.filter(daGuardare).length;p.el.className='et';p.el.style.borderColor=dag?'var(--acc)':'';p.el.innerHTML='<b>🎬 Video finiti</b>'+(V.length?`<span>${dag?dag+' da guardare':V.length+' video'}</span>`:'');disegnaTV();continue}
   if(p.tipo==='miopc'){p.el.className='et';p.el.style.borderColor='#11f401';p.el.innerHTML='<b>🖥 Il mio PC</b><span>scegli i video dal computer</span>';disegnaMioPC(p);
    const L=p.g.userData.lampada;L.obb=SPENTO?0:1;L.rossa=false;L.anello.material.color.set('#11f401');continue}
   if(p.tipo==='libero'){p.el.className='et libero';p.el.innerHTML='<b>Posto libero</b>';disegnaSchermi(p);continue}
@@ -831,7 +843,9 @@ function applica(){
  else{const n=[S.claude,S.revisore,...S.agenti].filter(a=>a&&a.stato==='lavora').length;
   pc.textContent=`PC acceso · ${n} al lavoro · GPU ${g.uso??'—'}%`+(S.auto&&S.auto.ascolto?(S.auto.pausa?' · automatico in pausa':' · automatico in ascolto'):'');pc.className='pill ok';
   att.style.display=A.length?'':'none';att.textContent='⚠ '+A.length+(A.length>1?' cose da guardare':' cosa da guardare')}
- if(aperta&&aperta.tipo!=='miopc')disegnaScheda();
+ {const dag=(S.video||[]).filter(daGuardare).length,e=$('#vid');e.style.display=dag&&!SPENTO?'inline-block':'none';e.textContent='🎬 '+dag+(dag>1?' video da guardare':' video da guardare')}
+ if(aperta&&aperta.tipo==='tv'){const f=JSON.stringify((S.video||[]).map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito]));if(f!==VID.firma&&!$('#vnota'))vidDisegna()}
+ else if(aperta&&aperta.tipo!=='miopc')disegnaScheda();
  if(primo){primo=false;$('#carica').style.opacity=0;setTimeout(()=>$('#carica').remove(),600);setTimeout(()=>{$('#avviso').style.opacity=0},9000)}
 }
 
@@ -882,7 +896,7 @@ function riga(a,b,cls=''){return `<div class="riga ${cls}"><span>${a}</span><spa
 function schedaDiario(n){const d=(S.diario||[]).slice(-n).reverse();return d.length?d.map(x=>riga(`<b>${esc(x.chi)}</b> · ${esc(x.testo)}`,oraDi(x.ts),/ERRORE|BLOCCAT|SALTAT/.test(x.testo)?'err':'')).join(''):'<div class="mut">Oggi ancora niente nel diario. Si riempie quando Claude segnala i passi (passo.py) o quando cambiano le tracce in DaVinci.</div>'}
 function schedaLavoro(j){if(!j)return '';
  return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · ~'+tempo(Math.max(0,p.stima-(p.trascorso||0))):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
- `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.resta!=null?'Restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`}
+ `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.resta!=null?'Restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`+azioniLavoro(j)}
 function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<button class="x" id="chiudi">✕</button>';const A=S.attenzione||[];
  const avvisi=A.map(a=>`<div class="avv">⚠ ${esc(a.testo)}</div>`).join('');
  if(p==='registro'){const r=(S.registro||[]).slice().reverse();h+=`<h2>Diario di oggi</h2><div class="ruolo">Tutto quello che succede, con l'ora (il più recente in alto)</div>`+schedaDiario(40)+`<h3>Lavori finiti e quanto ci hanno messo</h3>`+
@@ -894,8 +908,9 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   <div class="dati">${d('Carico GPU',g.uso,'%')}${d('Consumo',g.watt,'W'+(g.limite?' / '+g.limite:''))}${d('Temperatura',g.temp,'°C')}${d('Hot spot',g.hotspot,'°C')}${d('Memoria (temp.)',g.vram_temp,'°C')}${d('VRAM',g.vram,'GB / '+(g.vram_tot??24))}${d('Ventole',g.ventola,'%')}${d('CPU',c.uso,'%')}${d('Temp. CPU',c.temp,'°C')}${d('RAM',r.usata,'GB / '+(r.tot??'—'))}</div>
   <h3>Turno sulla GPU</h3><div class="mut">${esc((S.gpu_turno&&S.gpu_turno.chi||[]).join(', ')||'Nessun lavoro pesante: GPU libera')}</div>
   <div class="mut" style="margin-top:6px">ComfyUI ${S.servizi&&S.servizi.comfy?'acceso':'spento'} · DaVinci ${S.servizi&&S.servizi.davinci?'aperto':'chiuso'}</div>`}
- else if(p.tipo==='lavagna'){h+=`<h2>Lavagna</h2><div class="ruolo">I passi che hai scelto, in ordine. Chi finisce va a fare la X.</div>${avvisi}`+((S.lavori||[]).map(schedaLavoro).join('')||'<div class="mut">Nessun progetto scelto: quando ne metti uno nel Pannello (coda o In diretta) i passi compaiono qui.</div>')}
+ else if(p.tipo==='lavagna'){h+=`<h2>Lavagna</h2><div class="ruolo">I passi che hai scelto, in ordine. Chi finisce va a fare la X.</div>${avvisi}${bloccoAuto()}`+((S.lavori||[]).map(schedaLavoro).join('')||'<div class="mut">Nessun progetto scelto: quando ne metti uno nel Pannello (coda o In diretta) i passi compaiono qui.</div>')}
  else if(p.tipo==='davinci'){const t=TL||{};h+=`<h2>Timeline DaVinci</h2><div class="ruolo">Sola lettura: la stanza non tocca niente in DaVinci</div>`+(t.ok?`<div class="cosa">${esc(t.progetto)} › ${esc(t.timeline||'—')}</div>`+(t.tracce||[]).map(k=>riga(`<b>${esc(k.t)}</b> ${esc(k.nome)}`,k.n+' clip')).join('')+`<div class="mut" style="margin-top:8px">Durata ${tempo((t.durata||0)/(t.fps||25))} · ${t.fps} fps · letta alle ${oraDi(t.letto)}. Si aggiorna ogni 30 secondi quando DaVinci è aperto.</div>`:'<div class="mut">Timeline non ancora letta (DaVinci chiuso?).</div>')}
+ else if(p.tipo==='tv'){vidDisegna();return}
  else if(p.tipo==='miopc'){pcDisegna();return}
  else if(p.tipo==='libero'){h+=`<h2>Posto libero</h2><div class="ruolo">Scrivania pronta per il prossimo agente</div><div class="mut">Per aggiungerne uno: una riga in più in <b>agenti.json</b> (cartella Ufficio).</div>`}
  else{const eLed=p.tipo==='led';const a=(eLed?S.claude:p.dati)||{};const st=SPENTO?'riposa':a.stato||'riposa';
@@ -906,7 +921,7 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   if(st!=='lavora'&&a.motivo)h+=`<div class="perche"><b>Perché è fermo</b>${esc(a.motivo)}</div>`;
   if(a.dettagli)h+=`<div style="margin-top:8px;font-size:13.5px">${esc(a.dettagli)}</div>`;
   if(a.fonte)h+=`<div class="mut" style="margin-top:6px">Fonte: ${esc(a.fonte)}</div>`;
-  if(p.tipo==='claude'||eLed){h+=avvisi;
+  if(p.tipo==='claude'||eLed){h+=avvisi+bloccoAuto();
    h+=(S.lavori||[]).map(schedaLavoro).join('')||'<h3>Lavori</h3><div class="mut">Nessun lavoro.</div>';
    h+='<h3>Cosa sta facendo (diario)</h3>'+schedaDiario(12);
    h+=`<div class="azioni"><a class="btn" href="${LOCALE?'http://127.0.0.1:8787/':'./'}" ${LOCALE?'target="_blank"':''}>Apri la coda (aggiungi / ferma lavori)</a></div>`}
@@ -914,12 +929,83 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
    const r=(S.registro||[]).filter(x=>x.id===p.id).slice(-8).reverse();
    h+='<h3>Storico di oggi</h3>'+(r.length?r.map(x=>riga(esc(x.cosa),`${oraDi(x.fine)} · ${tempo(x.secondi)}`,x.esito==='errore'?'err':'')).join(''):'<div class="mut">Oggi ancora niente.</div>');
    if(a.cartella)h+=`<div class="azioni">${LOCALE?`<button id="apri">Apri cartella risultato</button>`:'<span class="mut">«Apri cartella» funziona dal PC di casa.</span>'}</div>`}}
- sc.classList.remove('largo');sc.onclick=null;const su=sc.scrollTop;sc.innerHTML=h;sc.classList.add('su');sc.scrollTop=su;
+ sc.classList.remove('largo');sc.onclick=azioniScheda;const su=sc.scrollTop;sc.innerHTML=h;sc.classList.add('su');sc.scrollTop=su;
  sc.querySelectorAll('canvas.graf').forEach(c=>{const j=(S.lavori||[]).find(j=>j.id===c.dataset.job);if(j)graficoTempi(c.getContext('2d'),j,0,6,680,84,false)});
  $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
  const cc=$('#coccola');if(cc)cc.onclick=()=>{THOR.festa=2.5};
  const b=$('#apri');if(b)b.onclick=()=>fetch('/api/apri/'+p.id,{method:'POST',headers:{'X-Ufficio':'1'}})}
 function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su')}
+
+// ---------- comandi sulla coda: pausa dell'automatico, togli, sposta ----------
+let DEMOREV=null,confermaTogli=null;
+const daGuardare=v=>!v.revisione&&/fatto|esportato|finito/.test(v.stato);
+function avvisa(t){const a=$('#avviso');a.textContent=t;a.style.opacity=1;clearTimeout(avvisa.t);avvisa.t=setTimeout(()=>a.style.opacity=0,4500)}
+const mandaPC=(via,tipo,o,giri)=>DEMO?Promise.resolve({ok:true,demo:true}):LOCALE?fetch(via,{method:'POST',headers:{'Content-Type':'application/json','X-Ufficio':'1'},body:JSON.stringify(o)}).then(r=>r.json()):comandoPC({tipo,...o},giri||40);
+const codaAzione=o=>mandaPC('/api/pc/azione','coda_azione',o);
+const mandaRevisione=o=>mandaPC('/api/pc/revisione','coda_revisione',o);
+function bloccoAuto(){const a=S.auto||{},nc=(S.coda||[]).filter(j=>j.stato==='in coda').length,lav=(S.coda||[]).some(j=>/in lavorazione/.test(j.stato));
+ return `<div class="perche" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)"><b>Claude automatico</b>${a.pausa?'In PAUSA: finito il video in corso non ne inizia altri.':a.ascolto?'In ascolto: parte da solo appena metti un video in coda.':lav?'Sta montando.':'Non è in ascolto: riapri la sessione «Claude automatico» nell\'app Claude.'}${nc?' · '+nc+' in coda':''}
+ <div class="azioni" style="margin-top:8px"><button data-az="${a.pausa?'riprendi':'pausa'}">${a.pausa?'▶ Riprendi':'⏸ Metti in pausa'}</button></div></div>`}
+function azioniLavoro(j){const id=j.id.slice(2),coda=j.tipo==='coda',v=(S.video||[]).find(x=>x.id===j.id),att=/in lavorazione|in corso/.test(j.stato),rev=j.revisione||{};
+ let h='<div class="azioni" style="margin-top:8px;align-items:center">';
+ if(v)h+=`<button class="pri" data-az="guarda" data-id="${esc(j.id)}">▶ Guarda il video</button>`;
+ if(rev.esito==='approvato')h+='<span class="chip lavora">Approvato ✔</span>';
+ if(rev.esito==='da_correggere')h+='<span class="chip errore">Da correggere</span>';
+ if(coda&&!att)h+=`<button data-az="su" data-id="${esc(id)}" title="Falla prima">▲</button><button data-az="giu" data-id="${esc(id)}" title="Falla dopo">▼</button><button data-az="togli" data-id="${esc(id)}"${confermaTogli===id?' class="pri"':''}>${confermaTogli===id?'Sicuro? Tocca ancora':'✕ Togli dalla coda'}</button>`;
+ return h+'</div>'+(rev.esito==='da_correggere'?`<div class="perche"><b>Correzione chiesta</b>${esc(rev.nota||'')}</div>`:'')}
+async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)return;const az=t.dataset.az,id=t.dataset.id;
+ if(az==='guarda'){apriVideo(id);return}
+ if(az==='togli'&&confermaTogli!==id){confermaTogli=id;setTimeout(()=>{if(confermaTogli===id){confermaTogli=null;if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda()}},5000);disegnaScheda();return}
+ t.disabled=true;t.textContent='…';let r;try{r=await codaAzione({azione:az,id})}catch(e){r={ok:false,errore:e.message||String(e)}}
+ confermaTogli=null;
+ if(!r||!r.ok)avvisa((r&&r.errore)||'Non riuscito');
+ else{if(az==='pausa'||az==='riprendi'){S.auto=S.auto||{};S.auto.pausa=az==='pausa'}
+  avvisa(az==='pausa'?'Automatico in pausa: finito il video in corso non ne inizia altri':az==='riprendi'?'Automatico ripreso':az==='togli'?'Tolto dalla coda':'Ordine della coda cambiato')}
+ if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda();setTimeout(aggiorna,1700)}
+
+// ---------- video finiti: guarda, approva o chiedi correzioni ----------
+const VID={id:null,nota:false,firma:''},TVV={tex:null,img:null,ok:false,chi:''};
+const srcVideo=v=>LOCALE?'/video/'+v.id+'.mp4?t='+(v.quando||0):v.url,posterVideo=v=>LOCALE?'/video/'+v.id+'.jpg?t='+(v.quando||0):v.poster;
+function apriVideo(id){$('#musica').classList.remove('su');const V=S.video||[];VID.id=id&&V.some(v=>v.id===id)?id:(V.find(daGuardare)||V[0]||{}).id||null;VID.nota=false;
+ const tv=posti.find(p=>p.tipo==='tv');aperta=tv;vidDisegna();if(!FP.on)vola(tv);$('#avviso').style.opacity=0}
+function disegnaTV(){if(!TVV.tex)return;const V=S.video||[],v=V.find(daGuardare)||V[0];const c=TVV.tex.image,x=c.getContext('2d'),W=c.width,H=c.height;
+ const chi=v?v.id+'|'+v.quando:'';if(v&&TVV.chi!==chi){TVV.chi=chi;TVV.ok=false;const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{TVV.img=im;TVV.ok=true;disegnaTV()};im.onerror=()=>{TVV.ok=false};im.src=posterVideo(v)}
+ x.fillStyle='#0a0d14';x.fillRect(0,0,W,H);
+ if(SPENTO||!v){x.fillStyle='#3a4658';x.font=carattere(40,800);x.textAlign='center';x.fillText('VIDEO FINITI',W/2,H/2-30);x.font=carattere(26,500);x.fillText(SPENTO?'PC spento':'Ancora nessuno',W/2,H/2+20);x.textAlign='left';TVV.tex.needsUpdate=true;return}
+ if(TVV.ok&&TVV.img){try{const im=TVV.img,k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,(W-w)/2,(H-h)/2,w,h)}catch(e){}}
+ const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(0,0,0,.72)');g.addColorStop(.28,'rgba(0,0,0,0)');g.addColorStop(.62,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.86)');x.fillStyle=g;x.fillRect(0,0,W,H);
+ const rev=v.revisione||{},att=/in lavorazione|in corso|in coda/.test(v.stato);
+ const st=rev.esito==='approvato'?['APPROVATO ✔','#3fb950']:rev.esito==='da_correggere'||att?['IN CORREZIONE','#ff9f43']:['DA GUARDARE','#f5b301'];
+ x.fillStyle=st[1];x.fillRect(0,0,W,84);x.fillStyle='#111';x.font=carattere(44,800);x.textAlign='center';x.fillText(st[0],W/2,58);
+ x.fillStyle='rgba(255,255,255,.92)';x.beginPath();x.arc(W/2,H/2,74,0,7);x.fill();x.fillStyle='#111';x.beginPath();x.moveTo(W/2-24,H/2-40);x.lineTo(W/2+44,H/2);x.lineTo(W/2-24,H/2+40);x.fill();
+ x.fillStyle='#fff';x.font=carattere(38,800);righe(x,v.nome,W-50,2).forEach((r,i)=>x.fillText(r,W/2,H-150+i*44));
+ x.fillStyle='#c9d1d9';x.font=carattere(26,500);x.fillText(V.length>1?'+ altri '+(V.length-1):'tocca per guardare',W/2,H-40);x.textAlign='left';TVV.tex.needsUpdate=true}
+function vidDisegna(){const sc=$('#scheda');const V=S.video||[];const v=V.find(x=>x.id===VID.id)||V.find(daGuardare)||V[0];if(v)VID.id=v.id;
+ VID.firma=JSON.stringify(V.map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito]));
+ let h='<button class="x" id="chiudi">✕</button><h2>🎬 Video finiti</h2><div class="ruolo">Guarda il video e decidi: «Approvo» oppure «Da correggere» con una nota per Claude.</div>';
+ if(!v)h+='<div class="mut">Ancora nessun video da guardare. Compare qui da solo quando Claude chiude un lavoro: per preparare la copia leggera ci vuole circa un minuto.</div>';
+ else{const rev=v.revisione||{},att=/in lavorazione|in corso/.test(v.stato),inCoda=v.stato==='in coda';
+  h+=`<video id="vplay" class="vplayer" controls playsinline preload="metadata" poster="${esc(posterVideo(v))}" src="${esc(srcVideo(v))}"></video>
+   <div class="cosa"><b>${esc(v.nome)}</b></div><div class="mut">${v.file?esc(v.file)+' · ':''}pronto alle ${oraDi(v.quando)}${v.mb?' · copia leggera '+v.mb+' MB':''}${v.correzioni?' · correzioni chieste: '+v.correzioni:''}</div>`;
+  if(rev.esito==='approvato')h+=`<div class="pcesito">✔ Approvato${rev.quando?' ('+esc(rev.quando)+')':''}</div>`;
+  if(rev.esito==='da_correggere'||att||inCoda)h+=`<div class="perche"><b>${att?'Claude ci sta lavorando':'Correzione in coda'}</b>${esc(rev.nota||'')}</div>`;
+  if(v.coda&&!att&&!inCoda)h+=VID.nota?`<textarea id="vnota" placeholder="Cosa va cambiato? Es: scritte più basse nel secondo pezzo · togli la grafica a 0:20 · musica più bassa"></textarea><div class="azioni"><button class="pri" data-v="manda">Manda la correzione a Claude</button><button data-v="annulla">Annulla</button></div>`
+     :`<div class="azioni">${rev.esito==='approvato'?'':'<button class="pri" data-v="approva">✔ Approvo</button>'}<button data-v="correggi">✎ Da correggere</button></div>`;
+  else if(!v.coda)h+='<div class="mut" style="margin-top:8px">Lavoro fatto in diretta: per le correzioni scrivi a Claude in chat.</div>';
+  if(V.length>1)h+='<h3>Altri video</h3>'+V.filter(x=>x.id!==v.id).map(x=>`<div class="riga" data-v="scegli" data-id="${esc(x.id)}" style="cursor:pointer"><span>▶ ${esc(x.nome)}</span><span>${x.revisione&&x.revisione.esito==='approvato'?'approvato':x.revisione&&x.revisione.esito==='da_correggere'?'da correggere':daGuardare(x)?'da guardare':esc(x.stato)}</span></div>`).join('')}
+ const vecchia=$('#vnota')?$('#vnota').value:'';sc.innerHTML=h;sc.classList.add('su','largo');if($('#vnota')){$('#vnota').value=vecchia;$('#vnota').focus()}
+ $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
+ sc.onclick=async ev=>{const t=ev.target.closest('[data-v]');if(!t)return;const a=t.dataset.v;
+  if(a==='scegli'){VID.id=t.dataset.id;VID.nota=false;vidDisegna()}
+  else if(a==='correggi'){VID.nota=true;vidDisegna()}
+  else if(a==='annulla'){VID.nota=false;vidDisegna()}
+  else if(a==='approva'||a==='manda'){const nota=a==='manda'?($('#vnota').value||'').trim():'';if(a==='manda'&&!nota){avvisa('Scrivi cosa va corretto');return}
+   t.disabled=true;t.textContent='…';let r;try{r=await mandaRevisione({id:VID.id.slice(2),esito:a==='approva'?'approvato':'da_correggere',nota})}catch(e){r={ok:false,errore:e.message||String(e)}}
+   if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
+   avvisa(a==='approva'?'Approvato ✔':'Correzione mandata: Claude automatico la prende dalla coda');VID.nota=false;
+   const nuovo={esito:a==='approva'?'approvato':'da_correggere',nota,quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
+   const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.revisione=nuovo;if(a==='manda')vv.stato='in coda'}vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}}}
+$('#vid').onclick=()=>apriVideo();
 
 // ---------- Il mio PC: sfoglia il computer di casa e metti in coda ----------
 const PC={dati:null,sel:new Set(),carico:false,errore:'',esito:'',cliente:null,prova:null,io:null};
@@ -1016,7 +1102,7 @@ function muoviFP(dt){const K=FP.tasti;let f=-FP.joy.y,l=FP.joy.x;
  const passo=(f||l)&&!FP.seduto?Math.sin(performance.now()/95)*.035:0;
  camera.position.set(FP.x,FP.y+passo,FP.z);camera.rotation.set(FP.pitch,FP.yaw,0,'YXZ');
  const b=$('#azFP');let az=null;
- if(FP.seduto)az=['Alzati',()=>{FP.seduto=false;FP.x=13.0}];
+ if(FP.seduto)az=(S.video||[]).length?['🎬 Guarda i video',()=>apriVideo()]:['Alzati',()=>{FP.seduto=false;FP.x=13.0}];
  else if(Math.hypot(FP.x-13.8,FP.z-9.9)<2.6)az=['☕ Prendi un caffè',()=>{FP.caffe++;const a=$('#avviso');a.textContent='☕ Caffè n. '+FP.caffe+' di oggi. Buono!';a.style.opacity=1;setTimeout(()=>a.style.opacity=0,3000)}];
  else if(Math.hypot(FP.x+13.2,FP.z-11.6)<2.6)az=['🖥 Apri il mio PC',()=>tocca(posti.find(p=>p.tipo==='miopc'))];
  else if(Math.hypot(FP.x-THOR.pos.x,FP.z-THOR.pos.z)<2.4)az=['🐾 Accarezza Thor',()=>{THOR.festa=2.5}];
