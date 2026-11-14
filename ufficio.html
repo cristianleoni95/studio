@@ -703,13 +703,14 @@ function disegnaLED(){if(!LED.tex)return;const c=LED.tex.image,x=c.getContext('2
  LED.tex.needsUpdate=true;if(LED.luce)LED.luce.color.set(rosso?0xff5040:0x66b8ff)}
 
 // ---- grafico dei tempi di un lavoro: una barra, un pezzo per passo (verde fatto, giallo in corso, grigio da fare)
-const NONSEGNATI=new Set();   // passi finiti che il robot deve ancora andare a segnare sulla lavagna
+const NONSEGNATI=new Set();
+const restaPasso=p=>{const r=p.stima-(p.trascorso||0);return r>20?'~'+tempo(r):'più del previsto ('+tempo(p.trascorso||0)+')'};   // passi finiti che il robot deve ancora andare a segnare sulla lavagna
 function graficoTempi(x,j,X,Y,W,H,chiaro){const P=j.passi||[];const dur=p=>Math.max(20,p.stato==='fatto'?(p.secondi||p.stima):p.stato==='in_corso'?Math.max(p.stima,(p.trascorso||0)+30):p.stima);
  const tot=P.reduce((s,p)=>s+dur(p),0)||1;let px=X;
  P.forEach(p=>{const w=dur(p)/tot*W;const f=p.stato==='fatto'&&!NONSEGNATI.has(j.id+'|'+p.nome);
   x.fillStyle=f?'#34a853':p.stato==='in_corso'?(chiaro?'#fde9a8':'#5a4a12'):p.stato==='errore'||p.stato==='saltato'?'#d93025':(chiaro?'#d9dce1':'#2a3340');x.fillRect(px+1,Y,w-2,H);
   if(p.stato==='in_corso'){x.fillStyle='#f5b301';x.fillRect(px+1,Y,(w-2)*Math.min(1,(p.trascorso||0)/dur(p)),H)}
-  x.fillStyle=f||p.stato==='errore'||p.stato==='saltato'?'#fff':chiaro?'#333':'#cbd5e1';x.save();x.beginPath();x.rect(px+2,Y,w-4,H);x.clip();x.font=carattere(Math.min(17,H*.3),700);x.fillText(p.nome,px+6,Y+H*.42);x.font=carattere(Math.min(14,H*.26),500);x.fillText(p.stato==='saltato'?'SALTATO':p.stato==='fatto'?(p.secondi?tempo(p.secondi):'fatto'):p.stato==='in_corso'?'~'+tempo(Math.max(0,p.stima-(p.trascorso||0))):'~'+tempo(p.stima),px+6,Y+H*.82);x.restore();px+=w})}
+  x.fillStyle=f||p.stato==='errore'||p.stato==='saltato'?'#fff':chiaro?'#333':'#cbd5e1';x.save();x.beginPath();x.rect(px+2,Y,w-4,H);x.clip();x.font=carattere(Math.min(17,H*.3),700);x.fillText(p.nome,px+6,Y+H*.42);x.font=carattere(Math.min(14,H*.26),500);x.fillText(p.stato==='saltato'?'SALTATO':p.stato==='fatto'?(p.secondi?tempo(p.secondi):'fatto'):p.stato==='in_corso'?restaPasso(p):'~'+tempo(p.stima),px+6,Y+H*.82);x.restore();px+=w})}
 function lavoroPrincipale(){const L=S.lavori||[];return L.find(j=>/in lavorazione|in corso/.test(j.stato))||L.find(j=>j.stato==='errore')||L.find(j=>j.stato==='in coda')||L[L.length-1]}
 function disegnaLavagna(){if(!LAV.tex)return;const c=LAV.tex.image,x=c.getContext('2d'),W=c.width,H=c.height;
  x.fillStyle='#f7f7f3';x.fillRect(0,0,W,H);x.fillStyle='rgba(0,0,0,.03)';for(let i=0;i<40;i++)x.fillRect((i*137)%W,(i*71)%H,90,3);
@@ -731,7 +732,7 @@ function disegnaLavagna(){if(!LAV.tex)return;const c=LAV.tex.image,x=c.getContex
   x.fillStyle='#1a56c4';x.font=carattere(Math.min(24,rh*.4),600);x.fillText(nomi[p.agente]||'Claude',500,cy+9);
   x.textAlign='right';x.font=carattere(Math.min(24,rh*.4),700);
   x.fillStyle=segnato?'#188038':ora?'#b06000':err?'#d93025':'#8a8f98';
-  x.fillText(segnato?'FATTO'+(p.secondi?' · '+tempo(p.secondi):''):fatto?'fatto · lo sta segnando…':ora?'IN CORSO · ~'+tempo(Math.max(0,p.stima-(p.trascorso||0))):salt?'SALTATO!':err?'ERRORE':'~'+tempo(p.stima),W-36,cy+9);x.textAlign='left'});
+  x.fillText(segnato?'FATTO'+(p.secondi?' · '+tempo(p.secondi):''):fatto?'fatto · lo sta segnando…':ora?'IN CORSO · '+restaPasso(p):salt?'SALTATO!':err?'ERRORE':'~'+tempo(p.stima),W-36,cy+9);x.textAlign='left'});
  const yb=H-140;x.fillStyle='#1a1a1a';x.font=carattere(22,700);x.fillText('TEMPO',30,yb);
  x.textAlign='right';x.fillStyle=j.resta!=null?'#b06000':'#188038';x.font=carattere(26,800);
  x.fillText(taglia(x,j.resta!=null?'restano circa '+tempo(j.resta)+' · fine verso le '+oraDi((S.ts||Date.now()/1000)+j.resta):/fatto|esportato|finito/.test(j.stato)?(j.revisione&&j.revisione.esito==='approvato'?'APPROVATO DA CRISTIAN ✔':(S.video||[]).some(v=>v.id===j.id)?'FATTO · DA GUARDARE':'TUTTO FATTO ✔'):j.stato==='errore'?'fermo: '+(j.messaggio||'errore'):j.stato,W-180),W-30,yb);x.textAlign='left';
@@ -858,7 +859,7 @@ function aggiornaTempi(){if(document.hidden||SPENTO)return;const ora=(S.ts||0)+(
   const fr=tr!=null&&re!=null?tr/(tr+re):a.pct!=null?a.pct/100:null;
   bar.classList.toggle('indet',fr==null);if(fr!=null)bar.firstChild.style.width=(Math.max(.03,Math.min(1,fr))*100).toFixed(1)+'%';else bar.firstChild.style.width='';
   p.el.querySelector('.t1').textContent=tr!=null?'⏱ '+mmss(tr):'⏱ in corso';
-  p.el.querySelector('.t2').textContent=re!=null?(re<5?'quasi finito':'restano ~'+(re<90?Math.round(re)+' s':Math.round(re/60)+' min')):a.pct!=null?Math.round(a.pct)+'%':''}}
+  p.el.querySelector('.t2').textContent=re!=null?(re<5?(tr>90?'più del previsto':'quasi finito'):'restano ~'+(re<90?Math.round(re)+' s':Math.round(re/60)+' min')):a.pct!=null?Math.round(a.pct)+'%':''}}
 setInterval(aggiornaTempi,1000);
 
 // ---------- musica di sottofondo ----------
@@ -895,7 +896,7 @@ let aperta=null;
 function riga(a,b,cls=''){return `<div class="riga ${cls}"><span>${a}</span><span>${b}</span></div>`}
 function schedaDiario(n){const d=(S.diario||[]).slice(-n).reverse();return d.length?d.map(x=>riga(`<b>${esc(x.chi)}</b> · ${esc(x.testo)}`,oraDi(x.ts),/ERRORE|BLOCCAT|SALTAT/.test(x.testo)?'err':'')).join(''):'<div class="mut">Oggi ancora niente nel diario. Si riempie quando Claude segnala i passi (passo.py) o quando cambiano le tracce in DaVinci.</div>'}
 function schedaLavoro(j){if(!j)return '';
- return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · ~'+tempo(Math.max(0,p.stima-(p.trascorso||0))):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
+ return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · '+restaPasso(p):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
  `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.resta!=null?'Restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`+azioniLavoro(j)}
 function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<button class="x" id="chiudi">✕</button>';const A=S.attenzione||[];
  const avvisi=A.map(a=>`<div class="avv">⚠ ${esc(a.testo)}</div>`).join('');
