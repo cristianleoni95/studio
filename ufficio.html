@@ -50,6 +50,23 @@ button.on{border-color:var(--acc);color:var(--acc)}
 .vplayer{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block;margin:8px 0}
 #scheda textarea{width:100%;min-height:92px;margin-top:10px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:15px}
 .azioni button{padding:7px 11px;font-size:13.5px}
+.vwrap{position:relative}
+.vcanvas{position:absolute;display:none;touch-action:none;cursor:crosshair;border-radius:8px;box-shadow:0 0 0 2px #ff3b30,0 0 18px rgba(255,59,48,.5)}
+.vwrap.dis .vcanvas{display:block}
+.vbar{position:relative;height:20px;margin:-2px 0 8px;border-radius:10px;background:rgba(255,255,255,.09);overflow:hidden;cursor:pointer;touch-action:none}
+.vseg{position:absolute;top:3px;bottom:3px;min-width:7px;background:#f5b301;border-radius:4px}.vseg.bz{background:#58a6ff}
+.vtesta{position:absolute;top:0;bottom:0;width:2px;background:#fff;pointer-events:none}
+.nota{margin-top:8px;padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:13.5px}
+.nota.bz{border-color:rgba(88,166,255,.55)}
+.nota audio{width:100%;height:36px;margin-top:6px;display:block}
+.nota img{height:84px;border-radius:6px;background:#10141b;margin-top:6px;border:1px solid var(--line);display:block}
+.nota .via{float:right;padding:2px 8px;font-size:12px}
+.tchip{display:inline-block;padding:2px 9px;border-radius:999px;background:rgba(245,179,1,.18);border:1px solid rgba(245,179,1,.5);font-size:12.5px;font-weight:700;cursor:pointer;margin-right:6px;font-variant-numeric:tabular-nums}
+.ntempo{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.penne{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 8px}
+.col{width:32px;height:32px;border-radius:50%;padding:0;border:3px solid transparent}.col.on{border-color:#fff}
+button.rec{background:#c62828;color:#fff;border-color:#ff8a80;animation:batte 1s infinite}
+button.stop{border-color:rgba(248,81,73,.6);color:#ff8a80}
 #vid{display:none;cursor:pointer;color:#111;background:var(--acc);border-color:var(--acc);font-weight:700}
 .pcbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0}
 .pcbar button{padding:6px 10px;font-size:13px}
@@ -254,13 +271,9 @@ scene.add(new THREE.HemisphereLight(0xffeedd,0x2c2a3a,.42));
 const sole=new THREE.DirectionalLight(0xffd9ad,1.25);sole.position.set(7,24,12);sole.castShadow=true;
 sole.shadow.mapSize.set(TOUCH?1024:2048,TOUCH?1024:2048);Object.assign(sole.shadow.camera,{left:-21,right:21,top:24,bottom:-24,near:1,far:75});sole.shadow.bias=-.0004;sole.shadow.normalBias=.03;sole.shadow.radius=5;
 scene.add(sole,sole.target);
-function lampada(x,z,luce,alt=7.5){const g=new THREE.Group();g.position.set(x,0,z);
- g.add(cil(M.plasticaNera,0,(ST.H+3+alt)/2,0,.02,ST.H+3-alt,false));
- const cap=new THREE.Mesh(new THREE.ConeGeometry(.55,.42,24,1,true),M.lampada);cap.position.y=alt;g.add(cap);
- const b=new THREE.Mesh(G.sfera,M.bulbo);b.scale.setScalar(.2);b.position.y=alt-.18;g.add(b);
- const al=new THREE.Sprite(new THREE.SpriteMaterial({map:T.alone,color:0xffd9a0,transparent:true,opacity:.5,depthWrite:false,blending:THREE.AdditiveBlending}));al.scale.setScalar(3.4);al.position.y=alt-.25;g.add(al);
- if(luce){const p=new THREE.PointLight(0xffc27a,95,19,1.8);p.position.y=alt-.5;g.add(p)}
- aTerra(M.pozza,x,z,11,11,.02);scene.add(g)}
+function lampada(x,z,luce,alt=7.5){ // 14/11: niente lampade appese al soffitto (Cristian); resta la luce calda dall'alto
+ if(luce){const p=new THREE.PointLight(0xffc27a,95,19,1.8);p.position.set(x,alt-.5,z);scene.add(p)}
+ aTerra(M.pozza,x,z,11,11,.02)}
 
 // ---------- arredo ----------
 function pianta(x,z,s=1,parent=scene,y=0){const g=new THREE.Group();g.position.set(x,y,z);g.scale.setScalar(s);
@@ -282,6 +295,10 @@ const SPOT={
  caffe:[{x:13.5,z:9.3,ry:PI/2,cx:10.6},{x:13.5,z:10.6,ry:PI/2,cx:10.6}],
  divano:[{x:14.3,z:2.2,ry:-PI/2,cx:10.6},{x:14.3,z:3.6,ry:-PI/2,cx:10.6},{x:14.3,z:5.0,ry:-PI/2,cx:10.6}],
  gioco_:[{x:13.6,z:12.6,ry:PI/2,cx:10.6}],
+ led:[{x:-2.4,z:-2.9,ry:PI,cx:-3.6,ez:-2.2},{x:0,z:-3.2,ry:PI,cx:3.6,ez:-2.2},{x:2.4,z:-2.9,ry:PI,cx:3.6,ez:-2.2}],          // guardano la coda sul LED wall
+ piante:[{x:13.9,z:7.3,ry:PI/2,cx:10.6},{x:-13.7,z:12.7,ry:-PI/2,cx:-10.6}],                                                // annaffiano le piante
+ ginnastica:[{x:12.3,z:.4,ry:-PI/2,cx:10.6},{x:11.9,z:13.7,ry:-PI/2,cx:10.6}],                                              // due piegamenti
+ biliardino:[{x:-14.8,z:5.6,ry:PI/2,cx:-10.6,ez:7.5,via:[[-14.8,7.5]]},{x:-12.4,z:5.6,ry:-PI/2,cx:-10.6}],                  // calcio balilla
  libreria:[{x:-13.7,z:-1.2,ry:-PI/2,cx:-10.6},{x:-13.7,z:2.6,ry:-PI/2,cx:-10.6}],
  lavagna:[{x:10.6,z:-9.5,ry:PI,cx:10.6},{x:11.8,z:-9.5,ry:PI,cx:10.6},{x:13.0,z:-9.5,ry:PI,cx:10.6}],
 };
@@ -431,7 +448,7 @@ function animaThor(dt,t){const T_=THOR,g=T_.g,u=T_.u;if(!g)return;
   if(T_.modo==='seduto'){u.corpo.rotation.x=-.42;u.corpo.position.y=.4;u.gambe[2].rotation.x=u.gambe[3].rotation.x=1.25;u.gambe[0].rotation.x=u.gambe[1].rotation.x=.42;u.testa.rotation.x=.35+Math.sin(t*.7)*.08;u.testa.rotation.y=Math.sin(t*.4)*.5;u.coda.rotation.z=Math.sin(t*5)*.3}
   else if(T_.modo==='giu'){u.corpo.rotation.x=0;u.corpo.position.y=.22;u.gambe[0].rotation.x=u.gambe[1].rotation.x=-1.35;u.gambe[2].rotation.x=u.gambe[3].rotation.x=1.35;u.testa.rotation.x=.25+Math.sin(t*.9)*.03;u.testa.rotation.y=0;u.coda.rotation.z=Math.sin(t*1.5)*.12}
   else{u.corpo.rotation.x=0;u.corpo.position.y=.47;u.testa.rotation.x=.7+Math.sin(t*6)*.06;u.testa.rotation.y=Math.sin(t*2.3)*.35;u.coda.rotation.z=Math.sin(t*9)*.4}
-  if(T_.timer<=0){u.corpo.rotation.x=0;u.testa.rotation.set(0,0,0);T_.modo='cammina'}}
+  if(T_.timer<=0){u.corpo.rotation.x=0;u.testa.rotation.set(0,0,0);T_.modo='cammina';T_.amico=null}}
  g.position.set(T_.pos.x,0,T_.pos.z);T_.blob.position.set(T_.pos.x,.02,T_.pos.z);T_.etV.set(T_.pos.x,1.55,T_.pos.z)}
 
 // ---------- scrivania singola con doppio monitor ----------
@@ -563,7 +580,19 @@ function costruisciFissi(){
  mp.g.add(box(new THREE.MeshBasicMaterial({color:0x11f401}),2.5,.63,.685,.06,1.0,.02,false),box(new THREE.MeshBasicMaterial({color:0x11f401}),2.215,.63,.1,.02,1.0,.9,false));
  const targa=tela(256,64,(x,w,h)=>{x.fillStyle='#111';x.fillRect(0,0,w,h);x.fillStyle='#11f401';x.font='800 34px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('CRISTIAN',w/2,h/2+2)});
  const tg=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:targa,toneMapped:false}));tg.scale.set(.8,.2,1);tg.position.set(1.35,1.17,.6);tg.rotation.x=-.25;mp.g.add(tg);
- pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15,-10.4,1.3);pianta(-14.9,6.5,1.3);pianta(-14.9,12.5,1.4);
+ pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15,-10.4,1.3);pianta(-14.9,12.5,1.4);
+ {const cb=new THREE.Group();cb.position.set(-13.6,0,5.6);   // calcio balilla
+  const cassa=rbox(1.25,.4,2.3,.05,M.legnoScuro);cassa.position.y=1.0;cb.add(cassa);cb.add(box(new THREE.MeshStandardMaterial({color:0x2f8f4e,roughness:.8}),0,1.205,0,1.05,.02,2.1,false));
+  for(const sx of [-1,1])for(const sz of [-1,1])cb.add(box(M.metalloScuro,sx*.5,.4,sz*1.0,.09,.8,.09));
+  for(let i=0;i<4;i++){const z=-.75+i*.5,st=cil(M.metallo,0,1.34,z,.018,2.0,false);st.rotation.z=PI/2;cb.add(st);
+   for(let k=-1;k<=1;k++)cb.add(box(new THREE.MeshStandardMaterial({color:i%2?0xd93025:0x1a73e8,roughness:.5}),k*.3,1.28,z,.07,.17,.05,false));
+   const m=cil(M.plasticaNera,(i%2?1:-1)*1.0,1.34,z,.045,.16,false);m.rotation.z=PI/2;cb.add(m)}
+  scene.add(cb);aTerra(M.ombra,-13.6,5.6,2.6,3.4)}
+ // lavagna dei TEMPI sul muro sinistro, vicino allo schermo della timeline
+ TMP.tex=tela(1024,720,()=>{});TMP.tex.anisotropy=8;
+ {const c=rbox(.2,4.0,5.6,.06,M.metallo);c.position.set(-ST.W/2+.12,5.3,-7.2);scene.add(c);
+  const q=new THREE.Mesh(new THREE.PlaneGeometry(5.36,3.77),new THREE.MeshBasicMaterial({map:TMP.tex,toneMapped:false}));q.rotation.y=PI/2;q.position.set(-ST.W/2+.235,5.3,-7.2);scene.add(q)}
+ nuovoPosto({id:'tempi',tipo:'tempi',etPos:new V3(-ST.W/2+.6,7.65,-7.2),pickPos:new V3(-ST.W/2+.45,5.3,-7.2),pickSize:new V3(1,4.2,5.8),camPos:new V3(-8.2,5.4,-8.4),camTarget:new V3(-ST.W/2,5.2,-9.4)});
  [[-12.6,-4.5,1],[12.2,-6.8,1],[-12.6,3.5,1],[12.9,6.2,1],[-12.6,11,1],[12.9,12.2,1],[-3.6,6.6,0,8.3],[3.6,6.6,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?i<4:l,h||7.5));
  scene.add(box(M.tappeto,0,.012,-2.4,4.6,.025,2.0,false));
  faiThor();
@@ -579,25 +608,36 @@ function percorso(p,dest){ // dest: {x,z,cx} oppure 'scrivania'
  const vicino=x=>CORRIDOI.reduce((a,c)=>Math.abs(c-x)<Math.abs(a-x)?c:a);
  let cxA,zA;
  if(daScr){const s=fine.x>=p.x?1:-1;cxA=corr(p.x,p.x+s);zA=p.z+2.9;pts.push([p.x+1.3*s,p.z+1.05],[p.x+1.3*s,zA],[cxA,zA])}
- else{cxA=b.spot?b.spot.cx:vicino(r.x);zA=r.z;pts.push([cxA,zA])}
+ else{const sp=b.spot;if(sp){(sp.via||[]).slice().reverse().forEach(q=>pts.push(q));cxA=sp.cx;zA=sp.ez??r.z}else{cxA=vicino(r.x);zA=r.z}pts.push([cxA,zA])}
  if(aScr){const s=r.x>=p.x?1:-1;const cxB=corr(p.x,p.x+s),zB=p.z+2.9;
   if(cxB!==cxA){pts.push([cxA,FRONTE],[cxB,FRONTE])}
   pts.push([cxB,zB],[p.x+1.3*s,zB],[p.x+1.3*s,p.z+1.05],[fine.x,fine.z])}
  else{const cxB=dest.cx;if(cxB!==cxA){const zc=daScr?zA:FRONTE;if(!daScr)pts.push([cxA,zc]);pts.push([cxB,zc])}
-  pts.push([cxB,dest.z],[dest.x,dest.z])}
+  pts.push([cxB,dest.ez??dest.z]);(dest.via||[]).forEach(q=>pts.push(q));pts.push([dest.x,dest.z])}
  return pts}
-function vai(p,dove,spot,svelto){const b=p.bot;
+function vai(p,dove,spot,svelto){const b=p.bot;if(THOR.amico===p&&dove!=='thor')THOR.amico=null;
  b.path=percorso(p,dove==='scrivania'?'scrivania':spot);b.i=0;if(b.spot&&b.spot!==spot)b.spot.occ=null;b.spot=dove==='scrivania'?null:spot;if(spot)spot.occ=p;
- b.modo='cammina';b.meta=dove;b.svelto=!!svelto;const u=p.robot.userData;u.tazza.visible=u.libro.visible=false;posa(p.robot,false);p.robot.position.y=.5*u.scala;p.blob.visible=true}
+ b.modo='cammina';b.meta=dove;b.svelto=!!svelto;const u=p.robot.userData;u.tazza.visible=u.libro.visible=false;u.braccia.forEach(br=>br.gom.rotation.z=0);posa(p.robot,false);p.robot.position.y=.5*u.scala;p.blob.visible=true}
 function libero(tipo){return (SPOT[tipo]||[]).find(s=>!s.occ)}
 function segna(b){if(!b.segni.length)return;b.segni.forEach(k=>NONSEGNATI.delete(k));b.segni=[];disegnaLavagna()}
-function scegliSvago(p){const scelte=['caffe','divano','divano','gioco_','libreria','scrivania'].sort(()=>Math.random()-.5);
- for(const t of scelte){if(t===p.bot.dove)continue;if(t==='scrivania')return vai(p,'scrivania');const s=libero(t);if(s)return vai(p,t,s)}
- p.bot.timer=caso(8,20)}
+// cosa fanno quando non hanno lavoro: piu' scelte, il divano e' solo una delle tante
+const SVAGHI=[['caffe',2],['divano',1],['gioco_',2],['libreria',1],['led',2],['piante',2],['ginnastica',2],['biliardino',3],['thor',3],['scrivania',2]];
+function scegliSvago(p){const b=p.bot,sacco=[];for(const [t,w] of SVAGHI)if(t!==b.dove)for(let i=0;i<w;i++)sacco.push(t);
+ for(let k=0;k<10;k++){const t=sacco[(Math.random()*sacco.length)|0];
+  if(t==='scrivania')return vai(p,'scrivania');
+  if(t==='thor'){if(THOR.g&&!THOR.amico&&(THOR.modo==='seduto'||THOR.modo==='giu')){const cx=CORRIDOI.reduce((a,c)=>Math.abs(c-THOR.pos.x)<Math.abs(a-THOR.pos.x)?c:a),lato=THOR.pos.x>=cx?-1:1;
+    THOR.amico=p;THOR.timer=Math.max(THOR.timer,32);return vai(p,'thor',{x:THOR.pos.x+lato*1.05,z:THOR.pos.z,ry:lato<0?PI/2:-PI/2,cx,dyn:true})}continue}
+  const s=libero(t);if(s)return vai(p,t,s)}
+ b.timer=caso(6,14)}
 function arrivato(p){const b=p.bot,r=p.robot,u=r.userData;b.modo='fermo';b.dove=b.meta;b.path=null;
  if(b.dove==='scrivania'){r.position.copy(p.seduta);r.rotation.y=p.sedutaRy;posa(r,true);p.blob.visible=false;b.timer=caso(10,30)}
  else{const s=b.spot;r.rotation.y=s.ry;
-  if(b.dove==='divano'){r.position.set(s.x+.25,.62,s.z);posa(r,true);u.libro.visible=true;b.timer=caso(25,60)}
+  if(b.dove==='divano'){r.position.set(s.x+.25,.62,s.z);posa(r,true);u.libro.visible=true;b.timer=caso(14,28)}
+  else if(b.dove==='led'){b.timer=caso(10,20)}
+  else if(b.dove==='piante'){u.tazza.visible=true;b.timer=caso(8,14)}
+  else if(b.dove==='ginnastica'){b.timer=caso(12,20)}
+  else if(b.dove==='biliardino'){b.timer=caso(18,34)}
+  else if(b.dove==='thor'){if(Math.hypot(THOR.pos.x-s.x,THOR.pos.z-s.z)<2.3){THOR.festa=2.5;b.timer=caso(8,14)}else b.timer=1.5}
   else if(b.dove==='caffe'){u.tazza.visible=true;b.timer=caso(14,28)}
   else if(b.dove==='gioco_'){b.timer=caso(18,40)}
   else if(b.dove==='libreria'){u.libro.visible=true;b.timer=caso(14,30)}
@@ -619,11 +659,16 @@ function animaRobot(p,dt,t){const r=p.robot,u=r.userData,a=p.dati||{},f=u.fase,b
    const k=t*(b.svelto?13:9)+f;r.position.y=.5*u.scala+Math.abs(Math.sin(k))*.05;u.gambe[0].rotation.x=Math.sin(k)*.75;u.gambe[1].rotation.x=-Math.sin(k)*.75;
    u.braccia.forEach((br,i)=>{br.sp.rotation.x=(i?1:-1)*Math.sin(k)*.6;br.gom.rotation.x=-.35});u.testa.rotation.set(0,0,0);
    p.blob.position.set(r.position.x,.02,r.position.z);p.etPos.set(r.position.x,p.etAlt+.75,r.position.z);return}
-  if(b.dove!=='scrivania'){p.blob.position.set(r.position.x,.02,r.position.z);p.etPos.set(r.position.x,p.etAlt+(b.dove==='divano'?.6:.75),r.position.z);
+  if(b.dove!=='scrivania'){p.blob.position.set(r.position.x,.02,r.position.z);if(b.dove!=='divano')r.position.y=.5*u.scala+(MUS.on&&!MUS.audio.paused?Math.abs(Math.sin(t*4.2+f))*.04:0);p.etPos.set(r.position.x,p.etAlt+(b.dove==='divano'?.6:.75),r.position.z);
    if(b.dove==='divano'){u.testa.rotation.set(.35,Math.sin(t*.3+f)*.1,0);u.braccia.forEach((br,i)=>{br.sp.rotation.x=-.75;br.gom.rotation.x=-1.0+(i?Math.sin(t*.7+f)*.04:0)})}
    else if(b.dove==='caffe'){const s=Math.max(0,Math.sin(t*.9+f));u.testa.rotation.set(-.1*s,Math.sin(t*.5+f)*.3,0);u.braccia[1].sp.rotation.x=-.5-s*.75;u.braccia[1].gom.rotation.x=-1.1-s*.6;u.braccia[0].sp.rotation.x=0;u.braccia[0].gom.rotation.x=-.2}
    else if(b.dove==='gioco_'){u.testa.rotation.set(.05,Math.sin(t*2+f)*.08,0);u.braccia.forEach((br,i)=>{br.sp.rotation.x=-.8+Math.sin(t*9+i*2)*.08;br.gom.rotation.x=-.9+Math.sin(t*14+i*3)*.15});r.position.y=.5*u.scala+Math.abs(Math.sin(t*5+f))*.02}
    else if(b.dove==='libreria'){u.testa.rotation.set(.3,0,0);u.braccia.forEach(br=>{br.sp.rotation.x=-.7;br.gom.rotation.x=-1.0})}
+   else if(b.dove==='led'){const pt=Math.sin(t*.5+f)>.55;u.testa.rotation.set(-.28,Math.sin(t*.4+f)*.25,0);u.braccia[1].sp.rotation.x=pt?-1.9:-.1;u.braccia[1].gom.rotation.x=pt?-.2:-.3;u.braccia[0].sp.rotation.x=-.05;u.braccia[0].gom.rotation.x=-.3}
+   else if(b.dove==='piante'){u.testa.rotation.set(.45,0,0);u.braccia[1].sp.rotation.x=-1.05+Math.sin(t*1.4+f)*.08;u.braccia[1].gom.rotation.x=-.55;u.braccia[1].gom.rotation.z=.9;u.braccia[0].sp.rotation.x=0;u.braccia[0].gom.rotation.x=-.2}
+   else if(b.dove==='ginnastica'){const k=Math.sin(t*2.2+f),giu=Math.max(0,-k);u.testa.rotation.set(-.1,0,0);u.braccia.forEach(br=>{br.sp.rotation.x=-1.6-k*1.2;br.gom.rotation.x=-.15});r.position.y=.5*u.scala-giu*.16;u.gambe.forEach(l=>l.rotation.x=-giu*.5)}
+   else if(b.dove==='biliardino'){u.testa.rotation.set(.35,Math.sin(t*3+f)*.15,0);u.braccia.forEach((br,i)=>{br.sp.rotation.x=-.95+Math.sin(t*11+i*1.7+f)*.12;br.gom.rotation.x=-.75+Math.sin(t*17+i*2.3)*.2})}
+   else if(b.dove==='thor'){u.testa.rotation.set(.55,0,0);u.braccia[1].sp.rotation.x=-.95+Math.sin(t*5)*.15;u.braccia[1].gom.rotation.x=-.25;u.braccia[0].sp.rotation.x=-.2;u.braccia[0].gom.rotation.x=-.3;if(THOR.festa<=0&&Math.random()<.012)THOR.festa=1.6}
    else if(b.dove==='lavagna'){u.testa.rotation.set(-.3,0,0);u.braccia[1].sp.rotation.x=-2.5+Math.sin(t*12)*.15;u.braccia[1].gom.rotation.x=-.3;u.braccia[0].sp.rotation.x=0;u.braccia[0].gom.rotation.x=-.2}
    return}
   p.etPos.set(p.seduta.x,p.etAlt+.85,p.seduta.z)}
@@ -733,9 +778,9 @@ function disegnaLavagna(){if(!LAV.tex)return;const c=LAV.tex.image,x=c.getContex
   x.textAlign='right';x.font=carattere(Math.min(24,rh*.4),700);
   x.fillStyle=segnato?'#188038':ora?'#b06000':err?'#d93025':'#8a8f98';
   x.fillText(segnato?'FATTO'+(p.secondi?' · '+tempo(p.secondi):''):fatto?'fatto · lo sta segnando…':ora?'IN CORSO · '+restaPasso(p):salt?'SALTATO!':err?'ERRORE':'~'+tempo(p.stima),W-36,cy+9);x.textAlign='left'});
- const yb=H-140;x.fillStyle='#1a1a1a';x.font=carattere(22,700);x.fillText('TEMPO',30,yb);
+ const yb=H-140;x.fillStyle='#1a1a1a';x.font=carattere(22,700);x.fillText('TEMPO'+(j.inizio?' · iniziato alle '+oraDi(j.inizio):''),30,yb);
  x.textAlign='right';x.fillStyle=j.resta!=null?'#b06000':'#188038';x.font=carattere(26,800);
- x.fillText(taglia(x,j.resta!=null?'restano circa '+tempo(j.resta)+' · fine verso le '+oraDi((S.ts||Date.now()/1000)+j.resta):/fatto|esportato|finito/.test(j.stato)?(j.revisione&&j.revisione.esito==='approvato'?'APPROVATO DA CRISTIAN ✔':(S.video||[]).some(v=>v.id===j.id)?'FATTO · DA GUARDARE':'TUTTO FATTO ✔'):j.stato==='errore'?'fermo: '+(j.messaggio||'errore'):j.stato,W-180),W-30,yb);x.textAlign='left';
+ x.fillText(taglia(x,(j.fine&&/fatto|esportato|finito/.test(j.stato)?'finito alle '+oraDi(j.fine)+' · ':'')+(j.resta!=null?'restano circa '+tempo(j.resta)+' · fine verso le '+oraDi((S.ts||Date.now()/1000)+j.resta):/fatto|esportato|finito/.test(j.stato)?(j.revisione&&j.revisione.esito==='approvato'?'APPROVATO DA CRISTIAN ✔':(S.video||[]).some(v=>v.id===j.id)?'FATTO · DA GUARDARE':'TUTTO FATTO ✔'):j.stato==='errore'?'fermo: '+(j.messaggio||'errore'):j.stato),W-440),W-30,yb);x.textAlign='left';
  graficoTempi(x,j,30,yb+14,W-60,58,true);
  const altri=(S.lavori||[]).filter(k=>k!==j);x.fillStyle='#5f6368';x.font=carattere(20,500);
  if(altri.length)x.fillText(taglia(x,'Altri: '+altri.map(k=>k.nome+' '+k.fatti+'/'+k.passi.length).join('   ·   '),W-60),30,H-28);
@@ -784,6 +829,7 @@ function demo(S0){const base=[['tagli','Tagli','Parakeet + CTC','forbici','#ff7b
   S.agenti.forEach(a=>{const mio=ag.indexOf(a.id);if(a.stato==='riposa'&&mio>=0)a.motivo=mio<idx?'Ho finito la mia parte su Marius · video 3 ('+nomi[mio]+').':'Aspetto il mio turno su Marius · video 3: adesso c\'è '+nomi[idx]+'.'})}
  Object.assign(S.claude,{stato:finito?'riposa':'lavora',cosa:finito?'In attesa':'Seguo la coda: '+nomi[Math.min(idx,5)],motivo:'Nessun lavoro attivo: aspetto Cristian.',passi:[{testo:'Leggo la coda',secondi:1.2},{testo:'Comando sul tuo PC',secondi:4}]});
  S.attenzione=[{tipo:'errore',testo:'Rextaura · video 4: più timeline: scegli quale'}];j.musica='Trap';
+ S.tempi=[...(finito?[]:[{id:'c_demo',nome:'Marius · video 3',inizio:ts-Math.round(k*6),fine:null,in_corso:true,giri:1,secondi:Math.round(k*6),resta:j.resta,passi:passi.filter(p=>p.secondi||p.trascorso).map(p=>[p.nome,p.secondi||p.trascorso])}]),{id:'c_v2',nome:'Marius · video 2',inizio:ts-9000,fine:ts-6100,in_corso:false,giri:1,secondi:2900,video_s:63,passi:[['Tagli',409],['Voce',126],['Musica',48],['Effetti camera',106],['Complementi',1105],['Tracker',235],['Sottotitoli',469],['Revisore',402]]},{id:'c_v1',nome:'Olistrea · video 1',inizio:ts-16000,fine:ts-14100,in_corso:false,giri:2,secondi:1900,video_s:48,passi:[['Tagli',300],['Sottotitoli',420],['Correzioni',260]]}];
  S.auto={ascolto:finito,pausa:false};S.video=LOCALE?[{id:'c_demo',nome:'Marius · video 1 (demo)',quando:ts-300,url:'',poster:'',mb:.2,file:'demo.mp4',stato:'fatto',coda:true,revisione:DEMOREV,correzioni:0}]:[];
  S.diario=passi.flatMap((p,i)=>p.stato==='da_fare'?[]:[{ts:ts-(idx-i)*D*6-30,chi:'Claude',testo:'Inizio '+p.nome+' (Marius · video 3)'},...(p.stato==='fatto'?[{ts:ts-(idx-i)*D*6+60,chi:'Claude',testo:'Finito '+p.nome}]:[{ts:ts-8,chi:base[ag.indexOf(p.agente)]?S.agenti.find(a=>a.id===p.agente).nome:'Claude',testo:'In DaVinci (Marius › video 3): traccia V2 Scritte, clip da '+(8+idx)+' a '+(9+idx+Math.floor(dentro/3))}])]).sort((a,b)=>a.ts-b.ts);
  const u=finito?6:62+Math.sin(t/5)*30;S.pc={fonte:'demo',gpu:{uso:Math.round(u),temp:71,hotspot:82,vram_temp:88,watt:Math.round(120+u*2.2),limite:350,vram:17.4,vram_tot:24,ventola:Math.round(40+u*.5)},cpu:{uso:34,temp:55,watt:90},ram:{usata:31.2,tot:68.6,pct:45}};
@@ -823,6 +869,7 @@ function applica(){
   if(p.tipo==='lavagna'){const j=lavoroPrincipale();p.el.className='et';p.el.innerHTML=`<b>Lavagna</b>${j?`<span>${esc(j.nome)} · ${j.fatti}/${j.passi.length}</span>`:''}`;continue}
   if(p.tipo==='davinci'){p.el.className='et';p.el.innerHTML=`<b>Timeline DaVinci</b>`;continue}
   if(p.tipo==='led')continue;
+  if(p.tipo==='tempi'){p.el.className='et';p.el.innerHTML='<b>⏱ Tempi dei lavori</b>';disegnaTempi();continue}
   if(p.tipo==='tv'){const V=S.video||[],dag=V.filter(daGuardare).length;p.el.className='et';p.el.style.borderColor=dag?'var(--acc)':'';p.el.innerHTML='<b>🎬 Video finiti</b>'+(V.length?`<span>${dag?dag+' da guardare':V.length+' video'}</span>`:'');disegnaTV();continue}
   if(p.tipo==='miopc'){p.el.className='et';p.el.style.borderColor='#11f401';p.el.innerHTML='<b>🖥 Il mio PC</b><span>scegli i video dal computer</span>';disegnaMioPC(p);
    const L=p.g.userData.lampada;L.obb=SPENTO?0:1;L.rossa=false;L.anello.material.color.set('#11f401');continue}
@@ -845,7 +892,7 @@ function applica(){
   pc.textContent=`PC acceso · ${n} al lavoro · GPU ${g.uso??'—'}%`+(S.auto&&S.auto.ascolto?(S.auto.pausa?' · automatico in pausa':' · automatico in ascolto'):'');pc.className='pill ok';
   att.style.display=A.length?'':'none';att.textContent='⚠ '+A.length+(A.length>1?' cose da guardare':' cosa da guardare')}
  {const dag=(S.video||[]).filter(daGuardare).length,e=$('#vid');e.style.display=dag&&!SPENTO?'inline-block':'none';e.textContent='🎬 '+dag+(dag>1?' video da guardare':' video da guardare')}
- if(aperta&&aperta.tipo==='tv'){const f=JSON.stringify((S.video||[]).map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito]));if(f!==VID.firma&&!$('#vnota'))vidDisegna()}
+ if(aperta&&aperta.tipo==='tv'){if(firmaVideo()!==VID.firma&&!VID.nota&&!VID.exp)vidDisegna()}
  else if(aperta&&aperta.tipo!=='miopc')disegnaScheda();
  if(primo){primo=false;$('#carica').style.opacity=0;setTimeout(()=>$('#carica').remove(),600);setTimeout(()=>{$('#avviso').style.opacity=0},9000)}
 }
@@ -897,7 +944,7 @@ function riga(a,b,cls=''){return `<div class="riga ${cls}"><span>${a}</span><spa
 function schedaDiario(n){const d=(S.diario||[]).slice(-n).reverse();return d.length?d.map(x=>riga(`<b>${esc(x.chi)}</b> · ${esc(x.testo)}`,oraDi(x.ts),/ERRORE|BLOCCAT|SALTAT/.test(x.testo)?'err':'')).join(''):'<div class="mut">Oggi ancora niente nel diario. Si riempie quando Claude segnala i passi (passo.py) o quando cambiano le tracce in DaVinci.</div>'}
 function schedaLavoro(j){if(!j)return '';
  return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · '+restaPasso(p):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
- `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.resta!=null?'Restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`+azioniLavoro(j)}
+ `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.inizio?'Iniziato alle <b>'+oraDi(j.inizio)+'</b> · ':''}${j.resta!=null?'restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):j.fine?'finito alle <b>'+oraDi(j.fine)+'</b>':esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`+azioniLavoro(j)}
 function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<button class="x" id="chiudi">✕</button>';const A=S.attenzione||[];
  const avvisi=A.map(a=>`<div class="avv">⚠ ${esc(a.testo)}</div>`).join('');
  if(p==='registro'){const r=(S.registro||[]).slice().reverse();h+=`<h2>Diario di oggi</h2><div class="ruolo">Tutto quello che succede, con l'ora (il più recente in alto)</div>`+schedaDiario(40)+`<h3>Lavori finiti e quanto ci hanno messo</h3>`+
@@ -911,6 +958,9 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   <div class="mut" style="margin-top:6px">ComfyUI ${S.servizi&&S.servizi.comfy?'acceso':'spento'} · DaVinci ${S.servizi&&S.servizi.davinci?'aperto':'chiuso'}</div>`}
  else if(p.tipo==='lavagna'){h+=`<h2>Lavagna</h2><div class="ruolo">I passi che hai scelto, in ordine. Chi finisce va a fare la X.</div>${avvisi}${bloccoAuto()}`+((S.lavori||[]).map(schedaLavoro).join('')||'<div class="mut">Nessun progetto scelto: quando ne metti uno nel Pannello (coda o In diretta) i passi compaiono qui.</div>')}
  else if(p.tipo==='davinci'){const t=TL||{};h+=`<h2>Timeline DaVinci</h2><div class="ruolo">Sola lettura: la stanza non tocca niente in DaVinci</div>`+(t.ok?`<div class="cosa">${esc(t.progetto)} › ${esc(t.timeline||'—')}</div>`+(t.tracce||[]).map(k=>riga(`<b>${esc(k.t)}</b> ${esc(k.nome)}`,k.n+' clip')).join('')+`<div class="mut" style="margin-top:8px">Durata ${tempo((t.durata||0)/(t.fps||25))} · ${t.fps} fps · letta alle ${oraDi(t.letto)}. Si aggiorna ogni 30 secondi quando DaVinci è aperto.</div>`:'<div class="mut">Timeline non ancora letta (DaVinci chiuso?).</div>')}
+ else if(p.tipo==='tempi'){const T_=S.tempi||[];h+=`<h2>⏱ Tempi dei lavori</h2><div class="ruolo">Ora di inizio, ora di fine e quanto ci ha messo ogni video, passo per passo</div>`+
+  (T_.length?T_.map(j=>`<h3>${esc(j.nome)}${j.giri>1?' · '+j.giri+' giri':''}</h3>`+riga('Inizio',oraDi(j.inizio))+riga('Fine',j.in_corso?'in corso'+(j.resta!=null?' · restano ~'+tempo(j.resta):''):oraDi(j.fine),j.in_corso?'ora':'')+riga('<b>In tutto</b>','<b>'+tempo(j.secondi)+'</b>'+(j.video_s?' · video di '+mmss(j.video_s):''))+
+   (j.passi||[]).slice().sort((a,b)=>(b[1]||0)-(a[1]||0)).map(q=>riga('&nbsp;&nbsp;'+esc(q[0]),tempo(q[1]))).join('')).join(''):'<div class="mut">Ancora nessun lavoro registrato. Da adesso ogni video montato lascia qui inizio, fine e tempi.</div>')}
  else if(p.tipo==='tv'){vidDisegna();return}
  else if(p.tipo==='miopc'){pcDisegna();return}
  else if(p.tipo==='libero'){h+=`<h2>Posto libero</h2><div class="ruolo">Scrivania pronta per il prossimo agente</div><div class="mut">Per aggiungerne uno: una riga in più in <b>agenti.json</b> (cartella Ufficio).</div>`}
@@ -922,6 +972,7 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   if(st!=='lavora'&&a.motivo)h+=`<div class="perche"><b>Perché è fermo</b>${esc(a.motivo)}</div>`;
   if(a.dettagli)h+=`<div style="margin-top:8px;font-size:13.5px">${esc(a.dettagli)}</div>`;
   if(a.fonte)h+=`<div class="mut" style="margin-top:6px">Fonte: ${esc(a.fonte)}</div>`;
+  if(!SPENTO&&(st==='lavora'||st==='errore')){const ka=(eLed||p.tipo==='claude')?'claude':p.id;h+=`<div class="azioni"><button class="stop" data-az="annulla" data-ag="${esc(ka)}">${confermaAnn===ka?'Sicuro? Tocca ancora':'⛔ Annulla quello che sta facendo'}</button></div>`}
   if(p.tipo==='claude'||eLed){h+=avvisi+bloccoAuto();
    h+=(S.lavori||[]).map(schedaLavoro).join('')||'<h3>Lavori</h3><div class="mut">Nessun lavoro.</div>';
    h+='<h3>Cosa sta facendo (diario)</h3>'+schedaDiario(12);
@@ -935,15 +986,34 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
  $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
  const cc=$('#coccola');if(cc)cc.onclick=()=>{THOR.festa=2.5};
  const b=$('#apri');if(b)b.onclick=()=>fetch('/api/apri/'+p.id,{method:'POST',headers:{'X-Ufficio':'1'}})}
-function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su')}
+function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su');const vp=$('#vplay');if(vp)vp.pause()}
+
+// ---------- lavagna dei tempi: per ogni video ora di inizio, ora di fine, quanto ci ha messo ----------
+const TMP={tex:null};
+function disegnaTempi(){if(!TMP.tex)return;const c=TMP.tex.image,x=c.getContext('2d'),W=c.width,H=c.height,T_=S.tempi||[];
+ x.fillStyle='#f7f7f3';x.fillRect(0,0,W,H);x.fillStyle='#1a1a1a';x.font=carattere(44,800);x.fillText('TEMPI DEI LAVORI',30,58);
+ x.strokeStyle='#1a1a1a';x.lineWidth=3;x.beginPath();x.moveTo(30,76);x.lineTo(W-30,76);x.stroke();
+ const col=[30,560,700,840];x.fillStyle='#5f6368';x.font=carattere(22,700);['VIDEO','INIZIO','FINE','IN TUTTO'].forEach((t,i)=>x.fillText(t,col[i],112));
+ if(SPENTO||!T_.length){x.fillStyle='#8a8f98';x.font=carattere(28,500);x.fillText(SPENTO?'PC spento':'Ancora nessun lavoro registrato',30,180);TMP.tex.needsUpdate=true;return}
+ const rh=Math.min(66,(H-190)/Math.min(9,T_.length));
+ T_.slice(0,9).forEach((j,i)=>{const y=128+i*rh,cy=y+rh/2+9;if(j.in_corso){x.fillStyle='#fff3bf';x.fillRect(22,y+3,W-44,rh-6)}
+  x.fillStyle='#1a1a1a';x.font=carattere(Math.min(30,rh*.46),700);x.fillText(taglia(x,j.nome,col[1]-col[0]-20),col[0],cy);
+  x.font=carattere(Math.min(30,rh*.46),600);x.fillStyle='#1a56c4';x.fillText(oraDi(j.inizio),col[1],cy);
+  x.fillStyle=j.in_corso?'#b06000':'#1a56c4';x.fillText(j.in_corso?'in corso':oraDi(j.fine),col[2],cy);
+  x.fillStyle=j.in_corso?'#b06000':'#188038';x.font=carattere(Math.min(32,rh*.5),800);x.fillText(tempo(j.secondi),col[3],cy)});
+ const fatti=T_.filter(j=>!j.in_corso);if(fatti.length){const m=fatti.reduce((a,j)=>a+j.secondi,0)/fatti.length;x.fillStyle='#5f6368';x.font=carattere(22,600);
+  x.fillText('Media: '+tempo(m)+' a video (ultimi '+fatti.length+')'+(fatti[0].passi&&fatti[0].passi.length?' · passo più lungo dell\'ultimo: '+fatti[0].passi.slice().sort((a,b)=>(b[1]||0)-(a[1]||0))[0][0]:''),30,H-26)}
+ TMP.tex.needsUpdate=true}
 
 // ---------- comandi sulla coda: pausa dell'automatico, togli, sposta ----------
-let DEMOREV=null,confermaTogli=null;
+let DEMOREV=null,confermaTogli=null,confermaAnn=null;
 const daGuardare=v=>!v.revisione&&/fatto|esportato|finito/.test(v.stato);
 function avvisa(t){const a=$('#avviso');a.textContent=t;a.style.opacity=1;clearTimeout(avvisa.t);avvisa.t=setTimeout(()=>a.style.opacity=0,4500)}
 const mandaPC=(via,tipo,o,giri)=>DEMO?Promise.resolve({ok:true,demo:true}):LOCALE?fetch(via,{method:'POST',headers:{'Content-Type':'application/json','X-Ufficio':'1'},body:JSON.stringify(o)}).then(r=>r.json()):comandoPC({tipo,...o},giri||40);
 const codaAzione=o=>mandaPC('/api/pc/azione','coda_azione',o);
-const mandaRevisione=o=>mandaPC('/api/pc/revisione','coda_revisione',o);
+const mandaRevisione=o=>mandaPC('/api/pc/revisione','coda_revisione',o,60);
+const mandaEsporta=o=>mandaPC('/api/pc/esporta','coda_esporta',o,60);
+const mandaAnnulla=o=>mandaPC('/api/pc/annulla','annulla',o,40);
 function bloccoAuto(){const a=S.auto||{},nc=(S.coda||[]).filter(j=>j.stato==='in coda').length,lav=(S.coda||[]).some(j=>/in lavorazione/.test(j.stato));
  return `<div class="perche" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)"><b>Claude automatico</b>${a.pausa?'In PAUSA: finito il video in corso non ne inizia altri.':a.ascolto?'In ascolto: parte da solo appena metti un video in coda.':lav?'Sta montando.':'Non è in ascolto: riapri la sessione «Claude automatico» nell\'app Claude.'}${nc?' · '+nc+' in coda':''}
  <div class="azioni" style="margin-top:8px"><button data-az="${a.pausa?'riprendi':'pausa'}">${a.pausa?'▶ Riprendi':'⏸ Metti in pausa'}</button></div></div>`}
@@ -952,10 +1022,16 @@ function azioniLavoro(j){const id=j.id.slice(2),coda=j.tipo==='coda',v=(S.video|
  if(v)h+=`<button class="pri" data-az="guarda" data-id="${esc(j.id)}">▶ Guarda il video</button>`;
  if(rev.esito==='approvato')h+='<span class="chip lavora">Approvato ✔</span>';
  if(rev.esito==='da_correggere')h+='<span class="chip errore">Da correggere</span>';
+ if(att||j.stato==='errore')h+=`<button class="stop" data-az="annulla" data-lav="${esc(j.id)}">${confermaAnn===j.id?'Sicuro? Tocca ancora':'⛔ Annulla lavoro'}</button>`;
  if(coda&&!att)h+=`<button data-az="su" data-id="${esc(id)}" title="Falla prima">▲</button><button data-az="giu" data-id="${esc(id)}" title="Falla dopo">▼</button><button data-az="togli" data-id="${esc(id)}"${confermaTogli===id?' class="pri"':''}>${confermaTogli===id?'Sicuro? Tocca ancora':'✕ Togli dalla coda'}</button>`;
  return h+'</div>'+(rev.esito==='da_correggere'?`<div class="perche"><b>Correzione chiesta</b>${esc(rev.nota||'')}</div>`:'')}
 async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)return;const az=t.dataset.az,id=t.dataset.id;
  if(az==='guarda'){apriVideo(id);return}
+ if(az==='annulla'){const k=t.dataset.ag||t.dataset.lav,ridis=()=>{if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda()};
+  if(confermaAnn!==k){confermaAnn=k;setTimeout(()=>{if(confermaAnn===k){confermaAnn=null;ridis()}},5000);ridis();return}
+  t.disabled=true;t.textContent='…';let r;try{r=await mandaAnnulla({agente:t.dataset.ag||'',lavoro:t.dataset.lav||''})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  confermaAnn=null;avvisa(!r||!r.ok?((r&&r.errore)||'Non riuscito'):'Annullato'+(r.lavoro?': '+r.lavoro:'')+(r.chiusi&&r.chiusi.length?' · chiusi '+r.chiusi.length+' programmi':'')+(r.render?' · render fermato':''));
+  await aggiorna();ridis();setTimeout(aggiorna,1500);return}
  if(az==='togli'&&confermaTogli!==id){confermaTogli=id;setTimeout(()=>{if(confermaTogli===id){confermaTogli=null;if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda()}},5000);disegnaScheda();return}
  t.disabled=true;t.textContent='…';let r;try{r=await codaAzione({azione:az,id})}catch(e){r={ok:false,errore:e.message||String(e)}}
  confermaTogli=null;
@@ -964,10 +1040,14 @@ async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)ret
   avvisa(az==='pausa'?'Automatico in pausa: finito il video in corso non ne inizia altri':az==='riprendi'?'Automatico ripreso':az==='togli'?'Tolto dalla coda':'Ordine della coda cambiato')}
  if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda();setTimeout(aggiorna,1700)}
 
-// ---------- video finiti: guarda, approva o chiedi correzioni ----------
-const VID={id:null,nota:false,firma:''},TVV={tex:null,img:null,ok:false,chi:''};
+// ---------- video finiti: guarda, approva, note con tempi / voce / penna, esporta ----------
+const nuovaBozza=()=>({t0:null,t1:null,testo:'',audio:null,audioUrl:'',durAudio:0,disegno:'',tDis:null});
+const VID={id:null,nota:false,firma:'',note:[],b:nuovaBozza(),exp:null,rec:null,dis:null,pcol:'#ff3b30',k:''},TVV={tex:null,img:null,ok:false,chi:''};
 const srcVideo=v=>LOCALE?'/video/'+v.id+'.mp4?t='+(v.quando||0):v.url,posterVideo=v=>LOCALE?'/video/'+v.id+'.jpg?t='+(v.quando||0):v.poster;
-function apriVideo(id){$('#musica').classList.remove('su');const V=S.video||[];VID.id=id&&V.some(v=>v.id===id)?id:(V.find(daGuardare)||V[0]||{}).id||null;VID.nota=false;
+const firmaVideo=()=>JSON.stringify((S.video||[]).map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito,v.esporta&&(v.esporta.fatto||v.esporta.chiesto)]));
+const tempoNota=n=>n.t0==null?'tutto il video':n.t1!=null&&n.t1-n.t0>=.4?mmss(n.t0)+' → '+mmss(n.t1):mmss(n.t0);
+function noteSvuota(){VID.note.forEach(n=>{if(n.audioUrl)URL.revokeObjectURL(n.audioUrl)});if(VID.b.audioUrl)URL.revokeObjectURL(VID.b.audioUrl);VID.note=[];VID.b=nuovaBozza();VID.exp=null;if(VID.rec)try{VID.rec.mr.stop()}catch(e){}pennaChiudi()}
+function apriVideo(id){$('#musica').classList.remove('su');const V=S.video||[];const nid=id&&V.some(v=>v.id===id)?id:(V.find(daGuardare)||V[0]||{}).id||null;if(nid!==VID.id)noteSvuota();VID.id=nid;VID.nota=false;VID.exp=null;
  const tv=posti.find(p=>p.tipo==='tv');aperta=tv;vidDisegna();if(!FP.on)vola(tv);$('#avviso').style.opacity=0}
 function disegnaTV(){if(!TVV.tex)return;const V=S.video||[],v=V.find(daGuardare)||V[0];const c=TVV.tex.image,x=c.getContext('2d'),W=c.width,H=c.height;
  const chi=v?v.id+'|'+v.quando:'';if(v&&TVV.chi!==chi){TVV.chi=chi;TVV.ok=false;const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{TVV.img=im;TVV.ok=true;disegnaTV()};im.onerror=()=>{TVV.ok=false};im.src=posterVideo(v)}
@@ -975,37 +1055,155 @@ function disegnaTV(){if(!TVV.tex)return;const V=S.video||[],v=V.find(daGuardare)
  if(SPENTO||!v){x.fillStyle='#3a4658';x.font=carattere(40,800);x.textAlign='center';x.fillText('VIDEO FINITI',W/2,H/2-30);x.font=carattere(26,500);x.fillText(SPENTO?'PC spento':'Ancora nessuno',W/2,H/2+20);x.textAlign='left';TVV.tex.needsUpdate=true;return}
  if(TVV.ok&&TVV.img){try{const im=TVV.img,k=Math.max(W/im.width,H/im.height),w=im.width*k,h=im.height*k;x.drawImage(im,(W-w)/2,(H-h)/2,w,h)}catch(e){}}
  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'rgba(0,0,0,.72)');g.addColorStop(.28,'rgba(0,0,0,0)');g.addColorStop(.62,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.86)');x.fillStyle=g;x.fillRect(0,0,W,H);
- const rev=v.revisione||{},att=/in lavorazione|in corso|in coda/.test(v.stato);
- const st=rev.esito==='approvato'?['APPROVATO ✔','#3fb950']:rev.esito==='da_correggere'||att?['IN CORREZIONE','#ff9f43']:['DA GUARDARE','#f5b301'];
+ const rev=v.revisione||{},att=/in lavorazione|in corso|in coda/.test(v.stato),ex=v.esporta||null;
+ const st=ex&&ex.fatto?['ESPORTATO ✔','#3fb950']:ex&&att?['EXPORT IN CORSO','#58a6ff']:rev.esito==='approvato'?['APPROVATO ✔','#3fb950']:rev.esito==='da_correggere'||att?['IN CORREZIONE','#ff9f43']:['DA GUARDARE','#f5b301'];
  x.fillStyle=st[1];x.fillRect(0,0,W,84);x.fillStyle='#111';x.font=carattere(44,800);x.textAlign='center';x.fillText(st[0],W/2,58);
  x.fillStyle='rgba(255,255,255,.92)';x.beginPath();x.arc(W/2,H/2,74,0,7);x.fill();x.fillStyle='#111';x.beginPath();x.moveTo(W/2-24,H/2-40);x.lineTo(W/2+44,H/2);x.lineTo(W/2-24,H/2+40);x.fill();
  x.fillStyle='#fff';x.font=carattere(38,800);righe(x,v.nome,W-50,2).forEach((r,i)=>x.fillText(r,W/2,H-150+i*44));
  x.fillStyle='#c9d1d9';x.font=carattere(26,500);x.fillText(V.length>1?'+ altri '+(V.length-1):'tocca per guardare',W/2,H-40);x.textAlign='left';TVV.tex.needsUpdate=true}
-function vidDisegna(){const sc=$('#scheda');const V=S.video||[];const v=V.find(x=>x.id===VID.id)||V.find(daGuardare)||V[0];if(v)VID.id=v.id;
- VID.firma=JSON.stringify(V.map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito]));
- let h='<button class="x" id="chiudi">✕</button><h2>🎬 Video finiti</h2><div class="ruolo">Guarda il video e decidi: «Approvo» oppure «Da correggere» con una nota per Claude.</div>';
- if(!v)h+='<div class="mut">Ancora nessun video da guardare. Compare qui da solo quando Claude chiude un lavoro: per preparare la copia leggera ci vuole circa un minuto.</div>';
- else{const rev=v.revisione||{},att=/in lavorazione|in corso/.test(v.stato),inCoda=v.stato==='in coda';
-  h+=`<video id="vplay" class="vplayer" controls playsinline preload="metadata" poster="${esc(posterVideo(v))}" src="${esc(srcVideo(v))}"></video>
-   <div class="cosa"><b>${esc(v.nome)}</b></div><div class="mut">${v.file?esc(v.file)+' · ':''}pronto alle ${oraDi(v.quando)}${v.mb?' · copia leggera '+v.mb+' MB':''}${v.correzioni?' · correzioni chieste: '+v.correzioni:''}</div>`;
-  if(rev.esito==='approvato')h+=`<div class="pcesito">✔ Approvato${rev.quando?' ('+esc(rev.quando)+')':''}</div>`;
-  if(rev.esito==='da_correggere'||att||inCoda)h+=`<div class="perche"><b>${att?'Claude ci sta lavorando':'Correzione in coda'}</b>${esc(rev.nota||'')}</div>`;
-  if(v.coda&&!att&&!inCoda)h+=VID.nota?`<textarea id="vnota" placeholder="Cosa va cambiato? Es: scritte più basse nel secondo pezzo · togli la grafica a 0:20 · musica più bassa"></textarea><div class="azioni"><button class="pri" data-v="manda">Manda la correzione a Claude</button><button data-v="annulla">Annulla</button></div>`
-     :`<div class="azioni">${rev.esito==='approvato'?'':'<button class="pri" data-v="approva">✔ Approvo</button>'}<button data-v="correggi">✎ Da correggere</button></div>`;
-  else if(!v.coda)h+='<div class="mut" style="margin-top:8px">Lavoro fatto in diretta: per le correzioni scrivi a Claude in chat.</div>';
-  if(V.length>1)h+='<h3>Altri video</h3>'+V.filter(x=>x.id!==v.id).map(x=>`<div class="riga" data-v="scegli" data-id="${esc(x.id)}" style="cursor:pointer"><span>▶ ${esc(x.nome)}</span><span>${x.revisione&&x.revisione.esito==='approvato'?'approvato':x.revisione&&x.revisione.esito==='da_correggere'?'da correggere':daGuardare(x)?'da guardare':esc(x.stato)}</span></div>`).join('')}
- const vecchia=$('#vnota')?$('#vnota').value:'';sc.innerHTML=h;sc.classList.add('su','largo');if($('#vnota')){$('#vnota').value=vecchia;$('#vnota').focus()}
- $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
- sc.onclick=async ev=>{const t=ev.target.closest('[data-v]');if(!t)return;const a=t.dataset.v;
-  if(a==='scegli'){VID.id=t.dataset.id;VID.nota=false;vidDisegna()}
-  else if(a==='correggi'){VID.nota=true;vidDisegna()}
-  else if(a==='annulla'){VID.nota=false;vidDisegna()}
-  else if(a==='approva'||a==='manda'){const nota=a==='manda'?($('#vnota').value||'').trim():'';if(a==='manda'&&!nota){avvisa('Scrivi cosa va corretto');return}
-   t.disabled=true;t.textContent='…';let r;try{r=await mandaRevisione({id:VID.id.slice(2),esito:a==='approva'?'approvato':'da_correggere',nota})}catch(e){r={ok:false,errore:e.message||String(e)}}
-   if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
-   avvisa(a==='approva'?'Approvato ✔':'Correzione mandata: Claude automatico la prende dalla coda');VID.nota=false;
-   const nuovo={esito:a==='approva'?'approvato':'da_correggere',nota,quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
-   const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.revisione=nuovo;if(a==='manda')vv.stato='in coda'}vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}}}
+function expHtml(){const e=VID.exp;if(e.carico)return '<div class="pcesito">Controllo sul PC la cartella e il formato della ripresa…</div>';
+ if(e.errore)return `<div class="pcesito err">${esc(e.errore)}</div><div class="azioni"><button data-v="expno">Chiudi</button></div>`;
+ const i=e.info,auto=i.codec==='H265'?'H.265':'H.264';
+ return `<div class="pcesito"><b>Export</b> · preset «Social Massima Qualità»<br>Cartella: <b>${esc(i.cartella)}</b>${e.nuova?' (nuova: la creo io)':''}<br>Nome: ${esc(i.nome)}.mp4
+  <div style="margin-top:8px">Formato: <select id="vcodec"><option value="auto">Come la ripresa: ${auto}${i.ripresa?' (girato in '+esc(String(i.ripresa).toUpperCase())+')':''}</option><option value="H264">H.264</option><option value="H265">H.265</option></select></div>
+  <div class="azioni" style="margin-top:10px"><button class="pri" data-v="expok">⬆ Esporta adesso</button><button data-v="expno">Annulla</button></div>
+  <div class="mut" style="margin-top:6px">Lo fa Claude automatico da DaVinci: quando ha finito qui compare il file.</div></div>`}
+function vidSotto(v,V){const rev=v.revisione||{},att=/in lavorazione|in corso/.test(v.stato),inCoda=v.stato==='in coda',ex=v.esporta||null,libero=v.coda&&!att&&!inCoda;
+ let h=`<div class="cosa"><b>${esc(v.nome)}</b></div><div class="mut">${v.file?esc(v.file)+' · ':''}pronto alle ${oraDi(v.quando)}${v.mb?' · copia leggera '+v.mb+' MB':''}${v.correzioni?' · correzioni chieste: '+v.correzioni:''}</div>`;
+ if(ex&&ex.fatto)h+=`<div class="pcesito">✔ Esportato (${esc(ex.fatto)})<br><b>${esc(ex.file||ex.cartella||'')}</b></div>`;
+ else if(rev.esito==='approvato')h+=`<div class="pcesito">✔ Approvato${rev.quando?' ('+esc(rev.quando)+')':''}</div>`;
+ if(ex&&!ex.fatto&&(att||inCoda))h+=`<div class="perche"><b>${att?'Claude sta esportando':'Export in coda'}</b>${ex.codec==='H265'?'H.265':'H.264'} · preset «Social Massima Qualità» · in ${esc(ex.cartella||'F:')}</div>`;
+ else if(rev.esito==='da_correggere'||att||inCoda)h+=`<div class="perche"><b>${att?'Claude ci sta lavorando':'Correzione in coda'}</b>${esc(rev.nota||'')}</div>`;
+ if(libero&&VID.exp)h+=expHtml();
+ else if(libero&&VID.nota)h+='<div id="vnote"></div>';
+ else if(libero)h+=`<div class="azioni">${rev.esito==='approvato'?'':'<button class="pri" data-v="approva">✔ Approvo</button>'}<button data-v="correggi">✎ Da correggere</button><button data-v="esporta">⬆ Esporta${ex&&ex.fatto?' di nuovo':''}</button></div>`;
+ else if(!v.coda)h+='<div class="mut" style="margin-top:8px">Lavoro fatto in diretta: per le correzioni scrivi a Claude in chat.</div>';
+ if(V.length>1&&!VID.nota&&!VID.exp)h+='<h3>Altri video</h3>'+V.filter(x=>x.id!==v.id).map(x=>`<div class="riga" data-v="scegli" data-id="${esc(x.id)}" style="cursor:pointer"><span>▶ ${esc(x.nome)}</span><span>${x.esporta&&x.esporta.fatto?'esportato':x.revisione&&x.revisione.esito==='approvato'?'approvato':x.revisione&&x.revisione.esito==='da_correggere'?'da correggere':daGuardare(x)?'da guardare':esc(x.stato)}</span></div>`).join('');
+ return h}
+function vidDisegna(){const sc=$('#scheda');const V=S.video||[];const v=V.find(x=>x.id===VID.id)||V.find(daGuardare)||V[0];if(v&&v.id!==VID.id){noteSvuota();VID.nota=false}if(v)VID.id=v.id;
+ VID.firma=firmaVideo();const k=v?v.id+'|'+(v.quando||0):'';
+ if(!v||VID.k!==k||!$('#vplay')||!$('#vsotto')){VID.k=k;   // il lettore si rifa' solo se cambia il video: aggiungere una nota non lo fa ripartire
+  let h='<button class="x" id="chiudi">✕</button><h2>🎬 Video finiti</h2><div class="ruolo">Guarda il video, poi: «Approvo», «Da correggere» (note sul punto esatto, a voce o con la penna) oppure «Esporta».</div>';
+  if(!v)h+='<div class="mut">Ancora nessun video da guardare. Compare qui da solo quando Claude chiude un lavoro: per preparare la copia leggera ci vuole circa un minuto.</div>';
+  else h+=`<div class="vwrap" id="vwrap"><video id="vplay" class="vplayer" controls playsinline preload="metadata" poster="${esc(posterVideo(v))}" src="${esc(srcVideo(v))}"></video><canvas id="vcanvas" class="vcanvas"></canvas></div><div id="vpenne"></div><div class="vbar" id="vbar" style="display:none"></div><div id="vsotto"></div>`;
+  sc.innerHTML=h;VID.dis=null;
+  $('#chiudi').onclick=()=>{if(VID.rec)try{VID.rec.mr.stop()}catch(e){}pennaChiudi();chiudiScheda();if(!FP.on)vola(null)};
+  const vp=$('#vplay');if(vp){vp.addEventListener('loadedmetadata',barDisegna);vp.addEventListener('timeupdate',barTesta);vp.addEventListener('seeked',barTesta)}
+  const bar=$('#vbar');if(bar)bar.onpointerdown=e=>{const q=$('#vplay');if(!q||!isFinite(q.duration))return;const r=bar.getBoundingClientRect();q.currentTime=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*q.duration}}
+ sc.classList.add('su','largo');
+ if(v){$('#vsotto').innerHTML=vidSotto(v,V);if(VID.nota&&$('#vnote'))noteDisegna();else barDisegna()}
+ sc.onclick=vidClic}
+async function vidClic(ev){const t=ev.target.closest('[data-v],[data-n]');if(!t)return;const a=t.dataset.v,n=t.dataset.n;
+ if(n){noteClic(n,t);return}
+ if(a==='scegli'){noteSvuota();VID.id=t.dataset.id;VID.nota=false;vidDisegna()}
+ else if(a==='correggi'){VID.nota=true;VID.exp=null;vidDisegna()}
+ else if(a==='annulla'){VID.nota=false;if(VID.rec)try{VID.rec.mr.stop()}catch(e){}pennaChiudi();vidDisegna()}
+ else if(a==='esporta'){VID.exp={carico:true};VID.nota=false;vidDisegna();let r;try{r=await mandaEsporta({id:VID.id.slice(2),prova:true})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  if(!VID.exp)return;if(r&&r.demo)r={ok:true,esporta:{preset:'Social Massima Qualita',codec:'H264',cartella:'F:\\marius',nome:'Marius - video 1 (demo)',ripresa:'h264'}};
+  VID.exp=r&&r.ok?{info:r.esporta,nuova:r.cartella_nuova}:{errore:(r&&r.errore)||'Il PC non risponde'};vidDisegna()}
+ else if(a==='expno'){VID.exp=null;vidDisegna()}
+ else if(a==='expok'){const codec=($('#vcodec')||{}).value||'auto',prima=VID.exp.info;t.disabled=true;t.textContent='…';let r;try{r=await mandaEsporta({id:VID.id.slice(2),codec})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
+  const info=r.esporta||Object.assign({},prima,{codec:codec==='auto'?prima.codec:codec,chiesto:'adesso'});VID.exp=null;
+  const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.esporta=info;vv.stato='in coda';if(!vv.revisione||vv.revisione.esito!=='approvato')vv.revisione={esito:'approvato',quando:new Date().toLocaleString('it-IT').slice(0,17)}}
+  avvisa('Export in coda: lo fa Claude automatico');vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}
+ else if(a==='approva'){t.disabled=true;t.textContent='…';let r;try{r=await mandaRevisione({id:VID.id.slice(2),esito:'approvato',nota:''})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
+  avvisa('Approvato ✔');const nuovo={esito:'approvato',nota:'',quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
+  const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv)vv.revisione=nuovo;vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}
+ else if(a==='manda')noteManda(t)}
+
+// note sul video: tempi (da qui / a qui), testo, voce, disegno
+function noteDisegna(){const box=$('#vnote');if(!box)return;const b=VID.b,rec=!!VID.rec,n0=VID.note.length;
+ let h='<h3>Note per Claude</h3><div class="mut">Ferma il video nel punto giusto, tocca «Da qui» (e «A qui» se è un pezzo), poi scrivi, parla o disegna. Puoi mettere più note.</div>';
+ h+=VID.note.map((n,i)=>`<div class="nota"><button class="via" data-n="via" data-i="${i}">✕</button><span class="tchip" data-n="vai" data-i="${i}">${tempoNota(n)}</span>${esc(n.testo)}${n.audio?' 🎤 '+mmss(n.durAudio):''}${n.disegno?' ✏️':''}${n.audioUrl?`<audio controls src="${n.audioUrl}"></audio>`:''}${n.disegno?`<img src="${n.disegno}" alt="disegno">`:''}</div>`).join('');
+ h+=`<div class="nota bz"><div class="ntempo"><button data-n="da">⏱ Da qui</button><button data-n="a">⏱ A qui</button>${b.t0!=null?`<span class="tchip" data-n="vaib">${tempoNota(b)}</span><button data-n="notempo">✕ tempo</button>`:'<span class="mut">nota su tutto il video</span>'}</div>
+  <textarea id="ntesto" placeholder="Cosa cambiare qui? Es: togli questa grafica · scritta più in basso · musica più bassa"></textarea>
+  ${b.audioUrl?`<audio controls src="${b.audioUrl}"></audio>`:''}${b.disegno?`<img src="${b.disegno}" alt="disegno">`:''}
+  <div class="azioni" style="margin-top:8px"><button data-n="rec" class="${rec?'rec':''}">${rec?'⏹ Stop':b.audio?'🎤 Rifai il vocale':'🎤 Nota vocale'}</button><button data-n="penna">${b.disegno?'✏️ Rifai il disegno':'✏️ Disegna sul video'}</button><button data-n="aggiungi">＋ Aggiungi nota</button></div></div>
+  <div class="azioni"><button class="pri" data-v="manda">Manda a Claude${n0?' ('+n0+(n0>1?' note':' nota')+')':''}</button><button data-v="annulla">Annulla</button></div>`;
+ box.innerHTML=h;const ta=$('#ntesto');ta.value=b.testo;ta.oninput=()=>{VID.b.testo=ta.value};barDisegna()}
+function noteAggiungi(){const b=VID.b;if(!b.testo.trim()&&!b.audio&&!b.disegno)return false;VID.note.push(b);VID.note.sort((x,y)=>(x.t0==null?-1:x.t0)-(y.t0==null?-1:y.t0));VID.b=nuovaBozza();return true}
+function noteClic(n,t){const b=VID.b,vp=$('#vplay'),ora=vp?vp.currentTime:0;
+ if(n==='da'){b.t0=ora;if(b.t1!=null&&b.t1<=b.t0)b.t1=null;noteDisegna()}
+ else if(n==='a'){if(b.t0==null)b.t0=0;if(ora<b.t0){b.t1=b.t0;b.t0=ora}else b.t1=ora;noteDisegna()}
+ else if(n==='notempo'){b.t0=b.t1=null;noteDisegna()}
+ else if(n==='vaib'){if(vp&&b.t0!=null)vp.currentTime=b.t0}
+ else if(n==='vai'){const x=VID.note[+t.dataset.i];if(vp&&x&&x.t0!=null)vp.currentTime=x.t0}
+ else if(n==='via'){const x=VID.note.splice(+t.dataset.i,1)[0];if(x&&x.audioUrl)URL.revokeObjectURL(x.audioUrl);noteDisegna()}
+ else if(n==='aggiungi'){if(!noteAggiungi())avvisa('Scrivi, registra o disegna prima di aggiungere la nota');noteDisegna()}
+ else if(n==='rec')recToggle();
+ else if(n==='penna')pennaApri();
+ else if(n==='pcol'){VID.pcol=t.dataset.c;if(VID.dis)VID.dis.colore=VID.pcol;pennaBarra()}
+ else if(n==='pundo'){if(VID.dis){VID.dis.tratti.pop();pennaRidisegna()}}
+ else if(n==='ppul'){if(VID.dis){VID.dis.tratti=[];pennaRidisegna()}}
+ else if(n==='pok')pennaFatto();
+ else if(n==='pno')pennaChiudi()}
+function barDisegna(){const bar=$('#vbar'),vp=$('#vplay');if(!bar||!vp)return;const d=isFinite(vp.duration)?vp.duration:0;
+ if(!d||!VID.nota){bar.style.display='none';return}bar.style.display='';
+ const seg=(n,c)=>n.t0==null?'':`<i class="vseg ${c}" style="left:${(n.t0/d*100).toFixed(2)}%;width:${(Math.max(0,(n.t1!=null?n.t1:n.t0)-n.t0)/d*100).toFixed(2)}%"></i>`;
+ bar.innerHTML=VID.note.map(n=>seg(n,'')).join('')+seg(VID.b,'bz')+'<i class="vtesta" id="vtesta"></i>';barTesta()}
+function barTesta(){const t=$('#vtesta'),vp=$('#vplay');if(t&&vp&&isFinite(vp.duration)&&vp.duration)t.style.left=(vp.currentTime/vp.duration*100).toFixed(2)+'%'}
+
+// nota vocale: registra dal microfono (il testo lo tira fuori Claude sul PC con Whisper)
+async function recToggle(){
+ if(VID.rec){try{VID.rec.mr.stop()}catch(e){}return}
+ if(!navigator.mediaDevices||!window.MediaRecorder){avvisa('Qui il microfono non è disponibile: scrivi la nota');return}
+ let st;try{st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}catch(e){avvisa('Microfono non autorizzato: dai il permesso al browser e riprova');return}
+ const tipi=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'],mime=tipi.find(x=>MediaRecorder.isTypeSupported(x))||'';
+ let mr;try{mr=new MediaRecorder(st,Object.assign({audioBitsPerSecond:32000},mime?{mimeType:mime}:{}))}catch(e){st.getTracks().forEach(x=>x.stop());avvisa('Registrazione non riuscita su questo dispositivo');return}
+ const pezzi=[],vp=$('#vplay'),b=VID.b,musica=MUS.on&&!MUS.audio.paused;if(vp)vp.pause();if(musica)MUS.audio.pause();
+ const R=VID.rec={mr,t:Date.now(),iv:setInterval(()=>{const q=document.querySelector('[data-n="rec"]'),s=(Date.now()-R.t)/1000;if(q)q.textContent='⏹ Stop '+mmss(s);if(s>180)try{mr.stop()}catch(e){}},500)};
+ mr.ondataavailable=e=>{if(e.data&&e.data.size)pezzi.push(e.data)};
+ mr.onstop=()=>{clearInterval(R.iv);st.getTracks().forEach(x=>x.stop());const dur=(Date.now()-R.t)/1000;VID.rec=null;if(musica)MUS.audio.play().catch(()=>{});
+  const blob=new Blob(pezzi,{type:mr.mimeType||mime||'audio/webm'});
+  if(blob.size<600||dur<.6){avvisa('Registrazione troppo corta: riprova');noteDisegna();return}
+  if(b.audioUrl)URL.revokeObjectURL(b.audioUrl);b.audio=blob;b.audioUrl=URL.createObjectURL(blob);b.durAudio=dur;
+  if(b.t0==null&&vp&&vp.currentTime>.3)b.t0=vp.currentTime;   // la nota vocale vale per il punto in cui il video è fermo (si toglie con «✕ tempo»)
+  noteDisegna()};
+ mr.start(1000);noteDisegna()}
+
+// disegno con la penna (o col dito) sopra il fotogramma fermo
+const PENNE=['#ff3b30','#ffd60a','#ffffff','#3da5ff'];
+function pennaApri(){const vp=$('#vplay'),c=$('#vcanvas'),w=$('#vwrap');if(!vp||!c)return;vp.pause();
+ const W=vp.videoWidth||540,H=vp.videoHeight||960,bw=vp.clientWidth,bh=vp.clientHeight,k=Math.min(bw/W,bh/H),cw=W*k,ch=H*k;
+ c.width=W;c.height=H;c.style.width=cw+'px';c.style.height=ch+'px';c.style.left=(vp.offsetLeft+(bw-cw)/2)+'px';c.style.top=(vp.offsetTop+(bh-ch)/2)+'px';
+ VID.dis={tratti:[],colore:VID.pcol,cur:null,pid:null,t:vp.currentTime};w.classList.add('dis');vp.controls=false;
+ const pt=e=>{const r=c.getBoundingClientRect();return [(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H,e.pointerType==='pen'&&e.pressure?e.pressure:.5]};
+ c.onpointerdown=e=>{const D=VID.dis;if(!D||D.cur)return;e.preventDefault();try{c.setPointerCapture(e.pointerId)}catch(_){}D.pid=e.pointerId;D.cur={c:D.colore,l:[pt(e)]};D.tratti.push(D.cur);pennaSegmento(D.cur,0)};
+ c.onpointermove=e=>{const D=VID.dis;if(!D||!D.cur||e.pointerId!==D.pid)return;e.preventDefault();const ev=e.getCoalescedEvents?e.getCoalescedEvents():[];for(const q of (ev.length?ev:[e])){D.cur.l.push(pt(q));pennaSegmento(D.cur,D.cur.l.length-1)}};
+ c.onpointerup=c.onpointercancel=e=>{const D=VID.dis;if(D&&e.pointerId===D.pid)D.cur=null};
+ pennaRidisegna();pennaBarra();w.scrollIntoView({block:'nearest'})}
+function pennaSegmento(tr,i){const c=$('#vcanvas'),x=c.getContext('2d'),l=tr.l,a=l[Math.max(0,i-1)],b=l[i],base=Math.max(4,c.width/110);
+ x.strokeStyle=tr.c;x.lineCap='round';x.lineJoin='round';x.lineWidth=base*(.55+b[2]*.9);x.shadowColor='rgba(0,0,0,.6)';x.shadowBlur=base*.6;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0]+.01,b[1]+.01);x.stroke()}
+function pennaRidisegna(){const c=$('#vcanvas');if(!c||!VID.dis)return;c.getContext('2d').clearRect(0,0,c.width,c.height);VID.dis.tratti.forEach(tr=>tr.l.forEach((_,i)=>pennaSegmento(tr,i)))}
+function pennaBarra(){const el=$('#vpenne');if(!el)return;const D=VID.dis;
+ el.innerHTML=D?`<div class="penne">${PENNE.map(c=>`<button class="col${D.colore===c?' on':''}" data-n="pcol" data-c="${c}" style="background:${c}"></button>`).join('')}<button data-n="pundo">↶ Togli l'ultimo</button><button data-n="ppul">Pulisci</button><button class="pri" data-n="pok">✔ Fatto</button><button data-n="pno">✕</button></div><div class="mut" style="margin:-2px 0 8px">Disegna sul video con la penna o col dito (fotogramma a ${mmss(D.t)}).</div>`:''}
+function pennaChiudi(){const w=$('#vwrap'),vp=$('#vplay');if(w)w.classList.remove('dis');if(vp)vp.controls=true;VID.dis=null;pennaBarra()}
+function pennaFatto(){const D=VID.dis,c=$('#vcanvas');if(!D||!D.tratti.length){pennaChiudi();return}
+ const b=VID.b;b.disegno=c.toDataURL('image/png');b.tDis=D.t;if(b.t0==null)b.t0=D.t;pennaChiudi();noteDisegna()}
+
+// invio: prima voce e disegni (uno alla volta), poi la correzione con tutte le note
+const b64Di=blob=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>no(new Error('File non leggibile'));r.readAsDataURL(blob)});
+const estDi=m=>/mp4|aac|m4a/.test(m||'')?'m4a':/ogg/.test(m||'')?'ogg':'webm';
+async function mandaMedia(o){if(DEMO)return {ok:true,rif:'demo'};
+ if(LOCALE)return fetch('/api/pc/nota_media',{method:'POST',headers:{'Content-Type':'application/json','X-Ufficio':'1'},body:JSON.stringify(o)}).then(r=>r.json());
+ if(!sb)throw new Error('Per usare il PC da qui devi entrare con il login di Leoni Studio.');
+ const chiave='leoni_nota_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+ const {error}=await sb.from('impostazioni').upsert({chiave,valore:o.b64,aggiornato_il:new Date().toISOString()});if(error)throw error;
+ try{return await comandoPC({tipo:'nota_media',chiave,job:o.job,tipo_media:o.tipo,est:o.est,t:o.t},60)}catch(e){try{await sb.from('impostazioni').delete().eq('chiave',chiave)}catch(_){}throw e}}
+async function noteManda(t){if(VID.rec){avvisa('Ferma prima la registrazione');return}noteAggiungi();
+ if(!VID.note.length){avvisa('Scrivi, registra o disegna cosa va corretto');noteDisegna();return}
+ t.disabled=true;const job=VID.id,out=[];
+ try{for(let i=0;i<VID.note.length;i++){const n=VID.note[i];t.textContent='Invio '+(i+1)+' di '+VID.note.length+'…';const x={t0:n.t0,t1:n.t1,testo:n.testo.trim()};
+   if(n.audio){const m=await mandaMedia({job,tipo:'voce',est:estDi(n.audio.type),b64:await b64Di(n.audio),t:n.t0});if(!m||!m.ok)throw new Error((m&&m.errore)||'La nota vocale non è arrivata al PC');x.audio=m.rif}
+   if(n.disegno){const m=await mandaMedia({job,tipo:'disegno',est:'png',b64:n.disegno,t:n.tDis});if(!m||!m.ok)throw new Error((m&&m.errore)||'Il disegno non è arrivato al PC');x.disegno=m.rif}
+   out.push(x)}
+  const nota=VID.note.map(n=>tempoNota(n)+': '+(n.testo.trim()||(n.audio?'':'vedi il disegno'))+(n.audio?' [nota vocale]':'')+(n.disegno?' [disegno]':'')).join(' · ').slice(0,1500);
+  const r=await mandaRevisione({id:VID.id.slice(2),esito:'da_correggere',nota,note:out});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');
+  avvisa('Correzioni mandate: Claude automatico le prende dalla coda');const nuovo={esito:'da_correggere',nota,quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
+  const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.revisione=nuovo;vv.stato='in coda'}noteSvuota();VID.nota=false;vidDisegna();disegnaTV();setTimeout(aggiorna,1700)
+ }catch(e){avvisa(e.message||String(e));t.disabled=false;noteDisegna()}}
 $('#vid').onclick=()=>apriVideo();
 
 // ---------- Il mio PC: sfoglia il computer di casa e metti in coda ----------
@@ -1079,7 +1277,7 @@ let OST=[];
 function ostacoli(){OST=[];const r=(x,z,w,d)=>OST.push([x-w/2,z-d/2,x+w/2,z+d/2]);
  for(const p of posti)if(p.tipo==='agente'||p.tipo==='libero')r(p.x,p.z+.45,3.5,3.1);
  r(-11.2,-5.4,4.2,3.8);r(14.3,-2.9,3.4,3.4);r(ST.W/2-.95,3.6,1.9,5.6);r(ST.W/2-.75,9.9,1.5,2.9);r(ST.W/2-.8,12.6,1.5,1.6);r(-15.5,-1.2,1.3,3.4);r(-15.5,2.6,1.3,3.4);
- r(0,PALCO.z-.4,4.3,3.2);r(-13.2,9.85,4.4,3.2)}
+ r(0,PALCO.z-.4,4.3,3.2);r(-13.2,9.85,4.4,3.2);r(-13.6,5.6,1.7,2.7)}
 function altezzaPavimento(x,z){let h=0;const zz=z-ST.ZDIETRO;for(const [w,d] of PALCO.gradini){if(Math.abs(x)<w/2+.2&&zz<d+.2)h+=.35}return h}
 function entraFP(){FP.on=true;document.body.classList.add('fp');$('#joy').classList.toggle('touch',TOUCH);$('#bEntra').textContent='Esci';$('#bEntra').classList.add('on');controls.enabled=false;volo=null;chiudiScheda();
  FP.x=3.6;FP.z=ST.ZDAVANTI-1.6;FP.yaw=0;FP.pitch=-.05;FP.seduto=false;camera.fov=62;camera.updateProjectionMatrix();
@@ -1130,7 +1328,7 @@ addEventListener('resize',()=>{misura();if(!FP.on&&(!aperta||typeof aperta==='st
 const orologio=new THREE.Clock();let raf=0,ultimo=0,tOmbre=0,tGioco=0;const v=new V3();
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function giro(ora){raf=requestAnimationFrame(giro);
- if(TOUCH&&ora-ultimo<31)return;ultimo=ora;
+ if(ora-ultimo<((TOUCH||FP.on||volo||document.hasFocus())?31:80))return;ultimo=ora;   // 30 al secondo; 12 se la finestra non e' in primo piano
  const dt=Math.min(.1,orologio.getDelta()),t=orologio.elapsedTime;
  if(FP.on)muoviFP(dt);
  else if(volo){volo.t+=dt/volo.dur;const k=ease(Math.min(1,volo.t));camera.position.lerpVectors(volo.p0,volo.p1,k);camera.position.y+=Math.sin(PI*k)*Math.min(4,volo.p0.distanceTo(volo.p1)*.12);controls.target.lerpVectors(volo.t0,volo.t1,k);camera.lookAt(controls.target);
