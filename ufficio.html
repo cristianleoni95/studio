@@ -369,6 +369,7 @@ function oggetto(tipo,colore){const g=new THREE.Group();const mc=new THREE.MeshS
   const m=cil(M.legnoScuro,.2,.3,0,.02,.5);m.rotation.z=-.5;g.add(m);const p=mesh(G.sfera,mc,.34,.53,0,.045,.09,.045);p.rotation.z=-.5;g.add(p)}
  else if(tipo==='bacchetta'){const m=cil(M.plasticaNera,0,.28,0,.02,.5);m.rotation.z=.4;g.add(m);const s=new THREE.Mesh(new THREE.OctahedronGeometry(.13),new THREE.MeshBasicMaterial({color:colore}));s.position.set(-.12,.58,0);g.add(s);g.userData.gira=s}
  else if(tipo==='cinepresa'){const c=rbox(.46,.3,.22,.04,M.plasticaNera);c.position.y=.24;g.add(c);for(const s of [-1,1]){const r=cil(mc,s*.13,.5,0,.13,.07);r.rotation.x=PI/2;g.add(r)}const l=cil(M.metallo,.32,.24,0,.08,.2);l.rotation.z=PI/2;g.add(l)}
+ else if(tipo==='macchina fotografica'){const c=rbox(.4,.26,.18,.04,M.plasticaNera);c.position.y=.26;g.add(c);const imp=rbox(.12,.1,.08,.02,M.plasticaNera);imp.position.set(-.08,.43,0);g.add(imp);const o=cil(M.metallo,0,.26,.13,.1,.16);o.rotation.x=PI/2;g.add(o);const v=cil(M.vetro,0,.26,.215,.075,.02,false);v.rotation.x=PI/2;g.add(v);const a=tor(.1,.018);a.position.set(0,.26,.13);g.add(a);g.add(box(mc,.14,.42,0,.06,.03,.06))}
  else if(tipo==='lente'){const a=tor(.2,.03);a.position.y=.42;g.add(a);const v=cil(M.vetro,0,.42,0,.19,.02,false);v.rotation.x=PI/2;g.add(v);const m=cil(M.legnoScuro,.2,.14,0,.03,.3);m.rotation.z=.75;g.add(m)}
  else{const a=tor(.12,.035);a.position.y=.5;g.add(a,box(mc,0,.22,0,.06,.4,.04))}
  return g}
@@ -546,8 +547,8 @@ let nAgentiFatti=-1;
 function costruisciPostazioni(S){
  for(const p of posti.filter(p=>p.tipo==='agente'||p.tipo==='libero'))togliPosto(p);
  for(const k in SPOT)SPOT[k].forEach(s=>s.occ=null);
- const ag=S.agenti||[];const n=Math.max(9,Math.ceil((ag.length+1)/3)*3);
- ST.ZDAVANTI=Math.max(14.5,RIGA0+(n/3-1)*PASSO+5.5);faiStanza();
+ const ag=S.agenti||[];const n=Math.max(1,ag.length); // solo le scrivanie degli agenti, niente posti vuoti (Cristian 15/11)
+ ST.ZDAVANTI=Math.max(14.5,RIGA0+(Math.ceil(n/3)-1)*PASSO+5.5);faiStanza();
  for(let i=0;i<n;i++){const a=ag[i];const x=COL[i%3],z=RIGA0+Math.floor(i/3)*PASSO;
   if(a)postoScrivania(a.id,'agente',x,0,z,0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto});
   else postoScrivania('libero'+i,'libero',x,0,z,0,{colore:'#8b949e',libero:true})}
@@ -980,11 +981,13 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   else{const j=(S.lavori||[]).find(j=>j.passi.some(q=>q.agente===p.id)&&/in lavorazione|in corso/.test(j.stato));if(j)h+=schedaLavoro(j);
    const r=(S.registro||[]).filter(x=>x.id===p.id).slice(-8).reverse();
    h+='<h3>Storico di oggi</h3>'+(r.length?r.map(x=>riga(esc(x.cosa),`${oraDi(x.fine)} · ${tempo(x.secondi)}`,x.esito==='errore'?'err':'')).join(''):'<div class="mut">Oggi ancora niente.</div>');
+   if(p.id==='color_foto')h+=`<h3>Foto: color</h3><div class="mut">Lavora sul progetto aperto in DaVinci, solo sulle foto col cuore (Buona). "Fai la color" prepara la timeline <b>Color foto</b>: la controlli nella pagina Color e poi confermi l'export.</div><div class="azioni">${LOCALE?`<button data-foto="prepara">🎨 Fai la color (poi controllo io)</button><button data-foto="esporta">✅ Ho controllato: esporta</button><button data-foto="tutto">⚡ Color + esporta subito</button>`:'<span class="mut">I bottoni foto funzionano dal PC di casa.</span>'}</div>`;
    if(a.cartella)h+=`<div class="azioni">${LOCALE?`<button id="apri">Apri cartella risultato</button>`:'<span class="mut">«Apri cartella» funziona dal PC di casa.</span>'}</div>`}}
  sc.classList.remove('largo');sc.onclick=azioniScheda;const su=sc.scrollTop;sc.innerHTML=h;sc.classList.add('su');sc.scrollTop=su;
  sc.querySelectorAll('canvas.graf').forEach(c=>{const j=(S.lavori||[]).find(j=>j.id===c.dataset.job);if(j)graficoTempi(c.getContext('2d'),j,0,6,680,84,false)});
  $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
  const cc=$('#coccola');if(cc)cc.onclick=()=>{THOR.festa=2.5};
+ sc.querySelectorAll('[data-foto]').forEach(x=>x.onclick=async e=>{e.stopPropagation();if(x.dataset.foto!=='prepara'&&!confirm(x.dataset.foto==='esporta'?'Esporto tutte le foto della timeline Color foto?':'Faccio color ed export senza controllo?'))return;x.disabled=true;x.textContent='Avvio…';try{const r=await (await fetch('/api/foto/avvia',{method:'POST',headers:{'X-Ufficio':'1','Content-Type':'application/json'},body:JSON.stringify({modo:x.dataset.foto})})).json();x.textContent=r.ok?'Partito ✓':'Errore: '+(r.errore||'')}catch(err){x.textContent='Errore: il server non risponde'}});
  const b=$('#apri');if(b)b.onclick=()=>fetch('/api/apri/'+p.id,{method:'POST',headers:{'X-Ufficio':'1'}})}
 function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su');const vp=$('#vplay');if(vp)vp.pause()}
 
