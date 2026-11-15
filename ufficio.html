@@ -44,7 +44,7 @@ button.on{border-color:var(--acc);color:var(--acc)}
 .et.errore{border-color:var(--err);background:rgba(70,14,14,.88)}.et.errore span{color:#ffb4ae}
 .et.libero{opacity:.55}
 @keyframes batte{50%{opacity:.35}}
-#scheda{position:fixed;z-index:6;right:12px;top:calc(58px + env(safe-area-inset-top));width:min(380px,calc(100vw - 24px));max-height:calc(100vh - 80px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;backdrop-filter:blur(14px);transform:translateX(calc(100% + 24px));transition:transform .35s cubic-bezier(.2,.8,.2,1);user-select:text;-webkit-user-select:text}
+#scheda{position:fixed;z-index:6;right:12px;top:calc(58px + env(safe-area-inset-top));width:min(380px,calc(100vw - 24px));max-height:calc(100vh - 80px);max-height:calc(100dvh - 80px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;backdrop-filter:blur(14px);transform:translateX(calc(100% + 24px));transition:transform .35s cubic-bezier(.2,.8,.2,1);user-select:text;-webkit-user-select:text}
 #scheda.su{transform:none}
 #scheda.largo{width:min(560px,calc(100vw - 24px))}
 .vplayer{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block;margin:8px 0}
@@ -119,7 +119,7 @@ canvas.graf{width:100%;height:auto;border-radius:10px;background:rgba(255,255,25
 #mirino{position:fixed;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:rgba(255,255,255,.7);z-index:3;display:none;pointer-events:none}
 body.fp #joy.touch{display:block}body.fp #mirino{display:block}
 @media (max-width:640px){
- #scheda{right:0;left:0;top:auto;bottom:0;width:100%;max-height:52vh;border-radius:18px 18px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom));transform:translateY(105%)}
+ #scheda{right:0;left:0;top:auto;bottom:0;width:100%;max-height:52vh;max-height:60dvh;border-radius:18px 18px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom));transform:translateY(105%)}
  .et{font-size:11px;padding:3px 7px}.et span{display:none}.et.errore span{display:block;max-width:120px}.et.lavora{min-width:120px;padding:5px 8px 6px}.et.lavora .tm{display:flex;font-size:10.5px}.et.lavora .tm span{display:inline}
  .logo{font-size:13px;flex-basis:100%}
  #scheda.largo{max-height:82vh}
