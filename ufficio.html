@@ -125,6 +125,15 @@ body.fp #joy.touch{display:block}body.fp #mirino{display:block}
  #scheda.largo{max-height:82vh}
  button,a.btn{padding:7px 10px;font-size:13px}
 }
+.vx{background:transparent;border:1px solid #3a4658;color:#c9d1d9;border-radius:50%;width:26px;height:26px;padding:0;font-size:13px;line-height:24px;cursor:pointer;flex:none}.vx:hover{border-color:#ff9f43;color:#ff9f43}
+.stcl{display:flex;gap:6px;margin-top:10px}.stcl select,.stcl input{flex:1;min-width:0;background:#0a0e13;color:#e6edf3;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+.stmsg{margin-top:10px;max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
+.stm{padding:9px 11px;border-radius:12px;font-size:14px;line-height:1.45;max-width:92%;word-wrap:break-word}.stm i{display:block;font-style:normal;font-size:11px;opacity:.55;margin-top:4px}
+.stm.tu{align-self:flex-end;background:rgba(88,166,255,.16);border:1px solid rgba(88,166,255,.35)}.stm.cl{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.stm.sal{align-self:center;background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.4);font-size:13px}.stm.inf{align-self:center;background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.35);font-size:13px}
+.stm code{background:rgba(255,255,255,.08);padding:0 4px;border-radius:4px}.sta{font-size:12px;opacity:.75;margin-top:4px}
+.stbox{margin-top:10px}.stbox textarea{width:100%;box-sizing:border-box;min-height:74px;background:#0a0e13;color:#e6edf3;border:1px solid var(--line);border-radius:10px;padding:9px;font:inherit;resize:vertical}
+.stdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#7ee787;margin-right:6px;animation:stp 1s infinite alternate}@keyframes stp{from{opacity:.25}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -964,6 +973,7 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
    (j.passi||[]).slice().sort((a,b)=>(b[1]||0)-(a[1]||0)).map(q=>riga('&nbsp;&nbsp;'+esc(q[0]),tempo(q[1]))).join('')).join(''):'<div class="mut">Ancora nessun lavoro registrato. Da adesso ogni video montato lascia qui inizio, fine e tempi.</div>')}
  else if(p.tipo==='tv'){vidDisegna();return}
  else if(p.tipo==='miopc'){pcDisegna();return}
+ else if(p.tipo==='agente'&&p.id==='studio_clienti'){studioDisegna();return}
  else if(p.tipo==='libero'){h+=`<h2>Posto libero</h2><div class="ruolo">Scrivania pronta per il prossimo agente</div><div class="mut">Per aggiungerne uno: una riga in più in <b>agenti.json</b> (cartella Ufficio).</div>`}
  else{const eLed=p.tipo==='led';const a=(eLed?S.claude:p.dati)||{};const st=SPENTO?'riposa':a.stato||'riposa';
   h+=`<h2>${esc(a.nome||p.id)}</h2><div class="ruolo">${esc(a.ruolo||'')}</div><span class="chip ${st}">${st==='lavora'?'Al lavoro':st==='errore'?'Errore':'Fermo'}</span>${a.gpu?' <span class="chip">usa la 3090</span>':''}
@@ -1017,9 +1027,12 @@ const codaAzione=o=>mandaPC('/api/pc/azione','coda_azione',o);
 const mandaRevisione=o=>mandaPC('/api/pc/revisione','coda_revisione',o,60);
 const mandaEsporta=o=>mandaPC('/api/pc/esporta','coda_esporta',o,60);
 const mandaAnnulla=o=>mandaPC('/api/pc/annulla','annulla',o,40);
-function bloccoAuto(){const a=S.auto||{},nc=(S.coda||[]).filter(j=>j.stato==='in coda').length,lav=(S.coda||[]).some(j=>/in lavorazione/.test(j.stato));
- return `<div class="perche" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)"><b>Claude automatico</b>${a.pausa?'In PAUSA: finito il video in corso non ne inizia altri.':a.ascolto?'In ascolto: parte da solo appena metti un video in coda.':lav?'Sta montando.':'Non è in ascolto: riapri la sessione «Claude automatico» nell\'app Claude.'}${nc?' · '+nc+' in coda':''}
- <div class="azioni" style="margin-top:8px"><button data-az="${a.pausa?'riprendi':'pausa'}">${a.pausa?'▶ Riprendi':'⏸ Metti in pausa'}</button></div></div>`}
+function bloccoAuto(){const cr=(S.studio||{}).coda_run||{},a=S.auto||{},nc=(S.coda||[]).filter(j=>j.stato==='in coda').length,lav=(S.coda||[]).some(j=>/in lavorazione/.test(j.stato));
+ return `<div class="perche" style="border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05)"><b>Claude automatico</b>${a.pausa?'In PAUSA: finito il video in corso non ne inizia altri.':a.ascolto?'In ascolto: parte da solo appena metti un video in coda.':lav?'Sta montando.':'Non è in ascolto: premi «▶ Esegui la coda» e parte Claude Code sul PC.'}${nc?' · '+nc+' in coda':''}${runCoda()}
+ <div class="azioni" style="margin-top:8px"><button class="pri" data-az="esegui"${nc&&!lav&&cr.stato!=='lavora'?'':' disabled'}>▶ Esegui la coda</button><button data-az="${a.pausa?'riprendi':'pausa'}">${a.pausa?'▶ Riprendi':'⏸ Metti in pausa'}</button></div></div>`}
+function runCoda(){const r=(S.studio||{}).coda_run||{};if(!r.stato)return '';
+ return r.stato==='lavora'?`<div style="margin-top:6px">⚙ Claude Code sta eseguendo la coda${r.inizio?' da '+tempo(S.ts-r.inizio):''}${r.cosa?': <b>'+esc(r.cosa)+'</b>':''}</div>`:
+  r.fine&&S.ts-r.fine<6*3600?`<div class="mut" style="margin-top:6px">Ultima «Esegui la coda»: ${r.stato==='errore'?'errore '+esc(r.errore||''):'finita'} alle ${oraDi(r.fine)}${r.risposta?' · '+esc(String(r.risposta).slice(0,220)):''}</div>`:''}
 function azioniLavoro(j){const id=j.id.slice(2),coda=j.tipo==='coda',v=(S.video||[]).find(x=>x.id===j.id),att=/in lavorazione|in corso/.test(j.stato),rev=j.revisione||{};
  let h='<div class="azioni" style="margin-top:8px;align-items:center">';
  if(v)h+=`<button class="pri" data-az="guarda" data-id="${esc(j.id)}">▶ Guarda il video</button>`;
@@ -1030,6 +1043,8 @@ function azioniLavoro(j){const id=j.id.slice(2),coda=j.tipo==='coda',v=(S.video|
  return h+'</div>'+(rev.esito==='da_correggere'?`<div class="perche"><b>Correzione chiesta</b>${esc(rev.nota||'')}</div>`:'')}
 async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)return;const az=t.dataset.az,id=t.dataset.id;
  if(az==='guarda'){apriVideo(id);return}
+ if(az==='esegui'){t.disabled=true;t.textContent='Avvio…';let r;try{r=await codaAzione({azione:'esegui'})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  avvisa(!r||!r.ok?((r&&r.errore)||'Non riuscito'):r.messaggio||'Parte Claude Code: segue la coda fino alla fine');setTimeout(aggiorna,1500);return}
  if(az==='annulla'){const k=t.dataset.ag||t.dataset.lav,ridis=()=>{if(aperta&&aperta.tipo!=='tv'&&aperta.tipo!=='miopc')disegnaScheda()};
   if(confermaAnn!==k){confermaAnn=k;setTimeout(()=>{if(confermaAnn===k){confermaAnn=null;ridis()}},5000);ridis();return}
   t.disabled=true;t.textContent='…';let r;try{r=await mandaAnnulla({agente:t.dataset.ag||'',lavoro:t.dataset.lav||''})}catch(e){r={ok:false,errore:e.message||String(e)}}
@@ -1047,6 +1062,7 @@ async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)ret
 const nuovaBozza=()=>({t0:null,t1:null,testo:'',audio:null,audioUrl:'',durAudio:0,disegno:'',tDis:null});
 const VID={id:null,nota:false,firma:'',note:[],b:nuovaBozza(),exp:null,rec:null,dis:null,pcol:'#ff3b30',k:''},TVV={tex:null,img:null,ok:false,chi:''};
 const srcVideo=v=>LOCALE?'/video/'+v.id+'.mp4?t='+(v.quando||0):v.url,posterVideo=v=>LOCALE?'/video/'+v.id+'.jpg?t='+(v.quando||0):v.poster;
+const idPC=id=>String(id||'').startsWith('d_')?id:String(id||'').slice(2);
 const firmaVideo=()=>JSON.stringify((S.video||[]).map(v=>[v.id,v.quando,v.stato,v.revisione&&v.revisione.esito,v.esporta&&(v.esporta.fatto||v.esporta.chiesto)]));
 const tempoNota=n=>n.t0==null?'tutto il video':n.t1!=null&&n.t1-n.t0>=.4?mmss(n.t0)+' → '+mmss(n.t1):mmss(n.t0);
 function noteSvuota(){VID.note.forEach(n=>{if(n.audioUrl)URL.revokeObjectURL(n.audioUrl)});if(VID.b.audioUrl)URL.revokeObjectURL(VID.b.audioUrl);VID.note=[];VID.b=nuovaBozza();VID.exp=null;if(VID.rec)try{VID.rec.mr.stop()}catch(e){}pennaChiudi()}
@@ -1071,8 +1087,8 @@ function expHtml(){const e=VID.exp;if(e.carico)return '<div class="pcesito">Cont
   <div style="margin-top:8px">Formato: <select id="vcodec"><option value="auto">Come la ripresa: ${auto}${i.ripresa?' (girato in '+esc(String(i.ripresa).toUpperCase())+')':''}</option><option value="H264">H.264</option><option value="H265">H.265</option></select></div>
   <div class="azioni" style="margin-top:10px"><button class="pri" data-v="expok">⬆ Esporta adesso</button><button data-v="expno">Annulla</button></div>
   <div class="mut" style="margin-top:6px">Lo fa Claude automatico da DaVinci: quando ha finito qui compare il file.</div></div>`}
-function vidSotto(v,V){const rev=v.revisione||{},att=/in lavorazione|in corso/.test(v.stato),inCoda=v.stato==='in coda',ex=v.esporta||null,libero=v.coda&&!att&&!inCoda;
- let h=`<div class="cosa"><b>${esc(v.nome)}</b></div><div class="mut">${v.file?esc(v.file)+' · ':''}pronto alle ${oraDi(v.quando)}${v.mb?' · copia leggera '+v.mb+' MB':''}${v.correzioni?' · correzioni chieste: '+v.correzioni:''}</div>`;
+function vidSotto(v,V){const rev=v.revisione||{},att=/in lavorazione|in corso/.test(v.stato),inCoda=v.stato==='in coda',ex=v.esporta||null,libero=!att&&!inCoda;
+ let h=(VID.conf?`<div class="pcesito" style="border-color:#ff9f43">Tolgo <b>${esc(VID.conf.nome)}</b> dalla lista?<div class="mut">Lo nascondo solo da qui: video, progetto DaVinci ed export restano sul PC.</div><div class="azioni" style="margin-top:8px"><button class="pri" data-v="nascondiok">Sì, toglilo</button><button data-v="nascondino">No</button></div></div>`:'')+`<div class="cosa" style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>${esc(v.nome)}</b><button class="vx" data-v="nascondi" data-id="${esc(v.id)}" data-nome="${esc(v.nome)}" title="Togli dalla lista">✕</button></div><div class="mut">${v.file?esc(v.file)+' · ':''}pronto alle ${oraDi(v.quando)}${v.mb?' · copia leggera '+v.mb+' MB':''}${v.correzioni?' · correzioni chieste: '+v.correzioni:''}</div>`;
  if(ex&&ex.fatto)h+=`<div class="pcesito">✔ Esportato (${esc(ex.fatto)})<br><b>${esc(ex.file||ex.cartella||'')}</b></div>`;
  else if(rev.esito==='approvato')h+=`<div class="pcesito">✔ Approvato${rev.quando?' ('+esc(rev.quando)+')':''}</div>`;
  if(ex&&!ex.fatto&&(att||inCoda))h+=`<div class="perche"><b>${att?'Claude sta esportando':'Export in coda'}</b>${ex.codec==='H265'?'H.265':'H.264'} · preset «Social Massima Qualità» · in ${esc(ex.cartella||'F:')}</div>`;
@@ -1080,8 +1096,8 @@ function vidSotto(v,V){const rev=v.revisione||{},att=/in lavorazione|in corso/.t
  if(libero&&VID.exp)h+=expHtml();
  else if(libero&&VID.nota)h+='<div id="vnote"></div>';
  else if(libero)h+=`<div class="azioni">${rev.esito==='approvato'?'':'<button class="pri" data-v="approva">✔ Approvo</button>'}<button data-v="correggi">✎ Da correggere</button><button data-v="esporta">⬆ Esporta${ex&&ex.fatto?' di nuovo':''}</button></div>`;
- else if(!v.coda)h+='<div class="mut" style="margin-top:8px">Lavoro fatto in diretta: per le correzioni scrivi a Claude in chat.</div>';
- if(V.length>1&&!VID.nota&&!VID.exp)h+='<h3>Altri video</h3>'+V.filter(x=>x.id!==v.id).map(x=>`<div class="riga" data-v="scegli" data-id="${esc(x.id)}" style="cursor:pointer"><span>▶ ${esc(x.nome)}</span><span>${x.esporta&&x.esporta.fatto?'esportato':x.revisione&&x.revisione.esito==='approvato'?'approvato':x.revisione&&x.revisione.esito==='da_correggere'?'da correggere':daGuardare(x)?'da guardare':esc(x.stato)}</span></div>`).join('');
+ if(!v.coda&&libero&&!VID.nota&&!VID.exp)h+='<div class="mut" style="margin-top:6px">Lavoro fatto in diretta: correzioni ed export vanno in coda e Claude li fa sulla stessa timeline.</div>';
+ if(V.length>1&&!VID.nota&&!VID.exp)h+='<h3>Altri video</h3>'+V.filter(x=>x.id!==v.id).map(x=>`<div class="riga" data-v="scegli" data-id="${esc(x.id)}" style="cursor:pointer"><span>▶ ${esc(x.nome)}</span><span style="display:flex;gap:8px;align-items:center"><span>${x.esporta&&x.esporta.fatto?'esportato':x.revisione&&x.revisione.esito==='approvato'?'approvato':x.revisione&&x.revisione.esito==='da_correggere'?'da correggere':daGuardare(x)?'da guardare':esc(x.stato)}</span><button class="vx" data-v="nascondi" data-id="${esc(x.id)}" data-nome="${esc(x.nome)}" title="Togli dalla lista">✕</button></span></div>`).join('');
  return h}
 function vidDisegna(){const sc=$('#scheda');const V=S.video||[];const v=V.find(x=>x.id===VID.id)||V.find(daGuardare)||V[0];if(v&&v.id!==VID.id){noteSvuota();VID.nota=false}if(v)VID.id=v.id;
  VID.firma=firmaVideo();const k=v?v.id+'|'+(v.quando||0):'';
@@ -1101,16 +1117,21 @@ async function vidClic(ev){const t=ev.target.closest('[data-v],[data-n]');if(!t)
  if(a==='scegli'){noteSvuota();VID.id=t.dataset.id;VID.nota=false;vidDisegna()}
  else if(a==='correggi'){VID.nota=true;VID.exp=null;vidDisegna()}
  else if(a==='annulla'){VID.nota=false;if(VID.rec)try{VID.rec.mr.stop()}catch(e){}pennaChiudi();vidDisegna()}
- else if(a==='esporta'){VID.exp={carico:true};VID.nota=false;vidDisegna();let r;try{r=await mandaEsporta({id:VID.id.slice(2),prova:true})}catch(e){r={ok:false,errore:e.message||String(e)}}
+ else if(a==='esporta'){VID.exp={carico:true};VID.nota=false;vidDisegna();let r;try{r=await mandaEsporta({id:idPC(VID.id),prova:true})}catch(e){r={ok:false,errore:e.message||String(e)}}
   if(!VID.exp)return;if(r&&r.demo)r={ok:true,esporta:{preset:'Social Massima Qualita',codec:'H264',cartella:'F:\\marius',nome:'Marius - video 1 (demo)',ripresa:'h264'}};
   VID.exp=r&&r.ok?{info:r.esporta,nuova:r.cartella_nuova}:{errore:(r&&r.errore)||'Il PC non risponde'};vidDisegna()}
  else if(a==='expno'){VID.exp=null;vidDisegna()}
- else if(a==='expok'){const codec=($('#vcodec')||{}).value||'auto',prima=VID.exp.info;t.disabled=true;t.textContent='…';let r;try{r=await mandaEsporta({id:VID.id.slice(2),codec})}catch(e){r={ok:false,errore:e.message||String(e)}}
+ else if(a==='nascondi'){ev.stopPropagation();VID.conf={id:t.dataset.id,nome:t.dataset.nome};vidDisegna();const sc=$('#vsotto');if(sc)sc.scrollIntoView({block:'nearest'})}
+ else if(a==='nascondino'){VID.conf=null;vidDisegna()}
+ else if(a==='nascondiok'){const c=VID.conf;if(!c)return;t.disabled=true;t.textContent='…';let r;try{r=await codaAzione({azione:'nascondi',id:c.id})}catch(e){r={ok:false,errore:e.message||String(e)}}
+  VID.conf=null;if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
+  S.video=(S.video||[]).filter(x=>x.id!==c.id);if(VID.id===c.id){noteSvuota();VID.id=null;VID.nota=false}avvisa('Tolto dalla lista: i file restano sul PC');vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}
+ else if(a==='expok'){const codec=($('#vcodec')||{}).value||'auto',prima=VID.exp.info;t.disabled=true;t.textContent='…';let r;try{r=await mandaEsporta({id:idPC(VID.id),codec})}catch(e){r={ok:false,errore:e.message||String(e)}}
   if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
   const info=r.esporta||Object.assign({},prima,{codec:codec==='auto'?prima.codec:codec,chiesto:'adesso'});VID.exp=null;
   const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.esporta=info;vv.stato='in coda';if(!vv.revisione||vv.revisione.esito!=='approvato')vv.revisione={esito:'approvato',quando:new Date().toLocaleString('it-IT').slice(0,17)}}
   avvisa('Export in coda: lo fa Claude automatico');vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}
- else if(a==='approva'){t.disabled=true;t.textContent='…';let r;try{r=await mandaRevisione({id:VID.id.slice(2),esito:'approvato',nota:''})}catch(e){r={ok:false,errore:e.message||String(e)}}
+ else if(a==='approva'){t.disabled=true;t.textContent='…';let r;try{r=await mandaRevisione({id:idPC(VID.id),esito:'approvato',nota:''})}catch(e){r={ok:false,errore:e.message||String(e)}}
   if(!r||!r.ok){avvisa((r&&r.errore)||'Non riuscito');vidDisegna();return}
   avvisa('Approvato ✔');const nuovo={esito:'approvato',nota:'',quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
   const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv)vv.revisione=nuovo;vidDisegna();disegnaTV();setTimeout(aggiorna,1700)}
@@ -1203,11 +1224,88 @@ async function noteManda(t){if(VID.rec){avvisa('Ferma prima la registrazione');r
    if(n.disegno){const m=await mandaMedia({job,tipo:'disegno',est:'png',b64:n.disegno,t:n.tDis});if(!m||!m.ok)throw new Error((m&&m.errore)||'Il disegno non è arrivato al PC');x.disegno=m.rif}
    out.push(x)}
   const nota=VID.note.map(n=>tempoNota(n)+': '+(n.testo.trim()||(n.audio?'':'vedi il disegno'))+(n.audio?' [nota vocale]':'')+(n.disegno?' [disegno]':'')).join(' · ').slice(0,1500);
-  const r=await mandaRevisione({id:VID.id.slice(2),esito:'da_correggere',nota,note:out});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');
+  const r=await mandaRevisione({id:idPC(VID.id),esito:'da_correggere',nota,note:out});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');
   avvisa('Correzioni mandate: Claude automatico le prende dalla coda');const nuovo={esito:'da_correggere',nota,quando:new Date().toLocaleString('it-IT').slice(0,17)};if(DEMO)DEMOREV=nuovo;
   const vv=(S.video||[]).find(x=>x.id===VID.id);if(vv){vv.revisione=nuovo;vv.stato='in coda'}noteSvuota();VID.nota=false;vidDisegna();disegnaTV();setTimeout(aggiorna,1700)
  }catch(e){avvisa(e.message||String(e));t.disabled=false;noteDisegna()}}
 $('#vid').onclick=()=>apriVideo();
+
+// ---------- Studio clienti (18/11): chat con Claude Code sul PC, una conversazione per cliente ----------
+const STU={cliente:null,nuovo:false,bozza:'',allegati:[],invio:false,ascolta:null,k:'',firma:''};
+try{STU.cliente=localStorage.getItem('studio_cliente')||null}catch(_){}
+const studioD=()=>S.studio||{};
+const mandaStudio=o=>DEMO?Promise.resolve({ok:true,demo:true}):LOCALE?fetch('/api/pc/studio',{method:'POST',headers:{'Content-Type':'application/json','X-Ufficio':'1'},body:JSON.stringify(o)}).then(r=>r.json()):comandoPC({tipo:'studio',...o},40);
+async function studioFile(cliente,file){const b64=await b64Di(file);
+ if(LOCALE)return fetch('/api/pc/studio_file',{method:'POST',headers:{'Content-Type':'application/json','X-Ufficio':'1'},body:JSON.stringify({cliente,nome:file.name,b64})}).then(r=>r.json());
+ if(!sb)throw new Error('Per usare il PC da qui devi entrare con il login di Leoni Studio.');
+ if(file.size>15*1024*1024)throw new Error('Dal tablet al massimo 15 MB per file: '+file.name);
+ const chiave='leoni_studio_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+ const {error}=await sb.from('impostazioni').upsert({chiave,valore:b64,aggiornato_il:new Date().toISOString()});if(error)throw error;
+ try{return await comandoPC({tipo:'studio_file',chiave,cliente,nome:file.name},60)}catch(e){try{await sb.from('impostazioni').delete().eq('chiave',chiave)}catch(_){}throw e}}
+function mdSemplice(t){return esc(t||'').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>')}
+function studioMsgHtml(){const d=studioD(),c=(d.conv||{})[STU.cliente]||null;
+ if(!STU.cliente)return '<div class="mut">Scegli un cliente qui sopra, oppure «＋ Nuovo cliente».</div>';
+ const M=(c&&c.messaggi)||[];let h=(c&&c.memoria?'<div class="stm sal">💾 Sto salvando cosa ho imparato nella chat di prima…</div>':'')+(c&&c.lunga?'<div class="stm inf" style="border-color:#ff9f43;background:rgba(255,159,67,.12)">Chat lunga: conviene aprirne una nuova (🆕 Nuova chat). Ogni messaggio rilegge tutta la chat e costa di più.</div>':'')+(M.length?'':'<div class="mut">Conversazione nuova con '+esc(STU.cliente)+'. Scrivi cosa vuoi fare: Claude Code lavora sul PC (DaVinci, Pannello, StudioAI, file su E e F). Una chat nuova legge solo la ricetta e lo STATO del cliente.</div>');
+ h+=M.map(m=>m.chi==='tu'?`<div class="stm tu">${mdSemplice(m.testo)}${(m.allegati||[]).length?`<div class="sta">📎 ${m.allegati.map(esc).join(' · ')}</div>`:''}<i>${oraDi(m.ts)}</i></div>`:
+  m.chi==='salvato'?`<div class="stm sal">${esc(m.testo)}</div>`:m.chi==='info'?`<div class="stm inf">${esc(m.testo)}</div>`:`<div class="stm cl">${mdSemplice(m.testo)}<i>Claude · ${oraDi(m.ts)}</i></div>`).join('');
+ if(c&&c.lavora)h+=`<div class="stm cl lav"><span class="stdot"></span> Claude sta lavorando… <b>${esc(c.cosa||'')}</b></div>`;
+ return h}
+function studioDisegna(){const sc=$('#scheda'),d=studioD(),cl=d.clienti||[],c=(d.conv||{})[STU.cliente]||null,lav=!!(c&&c.lavora);
+ if(STU.cliente&&!cl.includes(STU.cliente)&&!STU.nuovo&&!(d.conv||{})[STU.cliente])cl.push(STU.cliente);
+ const EL=(c&&c.elenco)||[],k='studio|'+STU.cliente+'|'+STU.nuovo+'|'+cl.join(',')+'|'+(c&&c.chat)+'|'+EL.map(x=>x.id+x.n).join(',');
+ if(STU.k!==k||!$('#stmsg')){STU.k=k;STU.firma='';
+  let h=`<button class="x" id="chiudi">✕</button><h2>💬 Studio clienti</h2><div class="ruolo">Scrivi o detta a Claude come in chat: lavora sul PC (Claude Code, Opus). Una conversazione per cliente, si riprende quando vuoi.</div>
+  <div class="stcl"><select id="stsel"><option value="">— scegli il cliente —</option>${cl.map(n=>`<option${n===STU.cliente?' selected':''}>${esc(n)}</option>`).join('')}<option value="__nuovo"${STU.nuovo?' selected':''}>＋ Nuovo cliente</option></select>
+  ${STU.nuovo?'<input id="stnuovo" placeholder="Nome del cliente nuovo"><button data-st="crea">OK</button>':''}</div>
+  ${STU.cliente&&!STU.nuovo&&EL.length?`<div class="stcl"><select id="stchat" title="Riapri una chat vecchia">${EL.map(x=>`<option value="${esc(x.id)}"${x.id===(c&&c.chat)?' selected':''}>${x.id===(c&&c.chat)?'● ':''}${esc(x.titolo)} · ${x.ts?new Date(x.ts*1000).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+' '+oraDi(x.ts):''} (${x.n})</option>`).join('')}</select><button data-st="nuovachat" title="Per un lavoro nuovo: prima salvo cosa ho imparato, poi apro una chat corta che legge solo ricetta e STATO.md">🆕 Nuova chat</button></div>`:''}
+  <div id="stmsg" class="stmsg"></div>
+  <div class="stbox"><textarea id="sttesto" placeholder="Scrivi qui… es: per questo cliente sottotitoli gialli in basso, musica chill"></textarea>
+  <div id="stall" class="mut"></div>
+  <div class="azioni" style="margin-top:6px"><button data-st="detta" id="stdetta">🎤 Detta</button><button data-st="allega">📎 Allega</button><input type="file" id="stfile" multiple style="display:none" accept="image/*,video/*,audio/*,.pdf,.txt,.md,.json,.drt,.comp,.zip">
+  <button class="pri" data-st="invia" id="stinvia">Invia</button><button data-st="salva" title="Claude scrive la ricetta del cliente e lo mette nel Pannello">💾 Salva cliente</button></div></div>`;
+  sc.innerHTML=h;sc.classList.add('su','largo');sc.onclick=studioClic;
+  $('#chiudi').onclick=()=>{studioStopDetta();chiudiScheda();if(!FP.on)vola(null)};
+  const ta=$('#sttesto');ta.value=STU.bozza;ta.oninput=()=>{STU.bozza=ta.value};
+  ta.onkeydown=e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();studioInvia('msg')}};
+  $('#stsel').onchange=e=>{const v=e.target.value;if(v==='__nuovo'){STU.nuovo=true}else{STU.nuovo=false;STU.cliente=v||null;try{localStorage.setItem('studio_cliente',v)}catch(_){}}studioDisegna()};
+  const chs=$('#stchat');if(chs)chs.onchange=async e=>{const ch=e.target.value;try{const r=await mandaStudio({cliente:STU.cliente,azione:'apri',chat:ch});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');const d=studioD();if(d.conv&&d.conv[STU.cliente])d.conv[STU.cliente].chat=ch;avvisa('Chat riaperta: Claude riparte da lì');setTimeout(aggiorna,800)}catch(err){avvisa(err.message||String(err))}};
+  $('#stfile').onchange=e=>{for(const f of e.target.files)STU.allegati.push(f);e.target.value='';studioAll()};
+  const ni=$('#stnuovo');if(ni){ni.focus();ni.onkeydown=e=>{if(e.key==='Enter')studioClic({target:$('[data-st="crea"]')})}}
+  studioAll()}
+ const firma=JSON.stringify([c&&c.messaggi&&c.messaggi.length,c&&c.lavora,c&&c.cosa,c&&c.agg]);
+ if(firma!==STU.firma){STU.firma=firma;const m=$('#stmsg');const giu=m.scrollHeight-m.scrollTop-m.clientHeight<60||!m.dataset.vista;m.innerHTML=studioMsgHtml();m.dataset.vista='1';if(giu)m.scrollTop=m.scrollHeight}
+ const b=$('#stinvia');if(b){b.disabled=lav||STU.invio||!STU.cliente;b.textContent=STU.invio?'Invio…':lav?'Claude lavora…':'Invia'}}
+function studioAll(){const e=$('#stall');if(e)e.innerHTML=STU.allegati.length?'📎 '+STU.allegati.map((f,i)=>`${esc(f.name)} <a href="#" data-st="via" data-i="${i}">✕</a>`).join(' · '):''}
+async function studioInvia(azione){if(STU.invio)return;const cliente=STU.cliente;if(!cliente){avvisa('Scegli prima il cliente');return}
+ const testo=(STU.bozza||'').trim();if(azione==='msg'&&!testo&&!STU.allegati.length){avvisa('Scrivi qualcosa o allega un file');return}
+ studioStopDetta();STU.invio=true;studioDisegna();
+ try{const all=[];for(let i=0;i<STU.allegati.length;i++){const f=STU.allegati[i];const b=$('#stinvia');if(b)b.textContent='Invio '+(i+1)+'/'+STU.allegati.length+'…';
+   const r=await studioFile(cliente,f);if(!r||!r.ok)throw new Error((r&&r.errore)||'Allegato non arrivato al PC: '+f.name);all.push(r.file)}
+  const r=await mandaStudio({cliente,testo,allegati:all,azione});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');
+  if(azione==='nuova'){avvisa(r.memoria?'Chat nuova. Intanto salvo cosa ho imparato nella chat di prima':'Chat nuova con '+cliente)}else{STU.bozza='';STU.allegati=[];const ta=$('#sttesto');if(ta)ta.value='';studioAll();avvisa('Mandato a Claude: rispondo qui appena ho finito')}
+  const d=studioD();d.conv=d.conv||{};const c=d.conv[cliente]=d.conv[cliente]||{messaggi:[]};
+  if(azione==='nuova'){c.messaggi=[];c.chat=r.chat;c.memoria=!!r.memoria;c.lunga=false}else{c.messaggi=(c.messaggi||[]).concat([{chi:'tu',testo:azione==='salva'?'💾 Salva cliente':testo,allegati:all.map(x=>x.split(/[\\/]/).pop()),ts:Date.now()/1000}]);c.lavora=true;c.cosa='Leggo il messaggio…'}
+  setTimeout(aggiorna,1500)
+ }catch(e){avvisa(e.message||String(e))}finally{STU.invio=false;STU.firma='';studioDisegna()}}
+function studioStopDetta(){if(STU.ascolta){try{STU.ascolta.stop()}catch(_){}STU.ascolta=null;const b=$('#stdetta');if(b)b.textContent='🎤 Detta'}}
+function studioDetta(){if(STU.ascolta){studioStopDetta();return}
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){avvisa('Qui la dettatura non c\'è: usa il microfono della tastiera del tablet');$('#sttesto')&&$('#sttesto').focus();return}
+ const r=new SR();r.lang='it-IT';r.continuous=true;r.interimResults=true;const base=(STU.bozza||'').trim();let fin='';
+ r.onresult=e=>{let tmp='';for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript+' ';else tmp+=x[0].transcript}
+  STU.bozza=(base?base+' ':'')+fin+tmp;const ta=$('#sttesto');if(ta)ta.value=STU.bozza};
+ r.onerror=e=>{avvisa(e.error==='not-allowed'?'Microfono non autorizzato: dai il permesso al browser':'Dettatura interrotta');studioStopDetta()};
+ r.onend=()=>{if(STU.ascolta===r){STU.ascolta=null;const b=$('#stdetta');if(b)b.textContent='🎤 Detta'}};
+ try{r.start();STU.ascolta=r;const b=$('#stdetta');if(b)b.textContent='⏹ Basta dettare'}catch(e){avvisa('Dettatura non partita')}}
+async function studioClic(ev){const t=ev.target&&ev.target.closest?ev.target.closest('[data-st]'):null;if(!t)return;const a=t.dataset.st;if(ev.preventDefault&&t.tagName==='A')ev.preventDefault();
+ if(a==='crea'){const n=(($('#stnuovo')||{}).value||'').trim();if(!n){avvisa('Scrivi il nome del cliente');return}STU.cliente=n;STU.nuovo=false;try{localStorage.setItem('studio_cliente',n)}catch(_){}
+  const d=studioD();d.clienti=d.clienti||[];if(!d.clienti.includes(n))d.clienti.push(n);studioDisegna()}
+ else if(a==='allega')$('#stfile').click();
+ else if(a==='via'){STU.allegati.splice(+t.dataset.i,1);studioAll()}
+ else if(a==='detta')studioDetta();
+ else if(a==='invia')studioInvia('msg');
+ else if(a==='salva')studioInvia('salva');
+ else if(a==='nuovachat'){if(!STU.cliente)return;studioInvia('nuova')}}
 
 // ---------- Il mio PC: sfoglia il computer di casa e metti in coda ----------
 const PC={dati:null,sel:new Set(),carico:false,errore:'',esito:'',cliente:null,prova:null,io:null};
