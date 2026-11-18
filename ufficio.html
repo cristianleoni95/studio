@@ -127,6 +127,9 @@ body.fp #joy.touch{display:block}body.fp #mirino{display:block}
 }
 .vx{background:transparent;border:1px solid #3a4658;color:#c9d1d9;border-radius:50%;width:26px;height:26px;padding:0;font-size:13px;line-height:24px;cursor:pointer;flex:none}.vx:hover{border-color:#ff9f43;color:#ff9f43}
 .stcl{display:flex;gap:6px;margin-top:10px}.stcl select,.stcl input{flex:1;min-width:0;background:#0a0e13;color:#e6edf3;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit}
+.drgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 10px;margin-top:10px}.drgrid label,.drgraf{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}
+.drgrid select,.drgraf select{background:#0a0e13;color:#e6edf3;border:1px solid var(--line);border-radius:8px;padding:7px;font:inherit;min-width:0}.drgrid label.drrev{flex-direction:row;align-items:center;gap:8px;color:#e6edf3}
+.drchip{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.drchip button{padding:6px 10px;border-radius:999px;font-size:13px}.drchip button.on{background:#ff4d6d;border-color:#ff4d6d;color:#fff}.drgraf{margin-top:8px}
 .stmsg{margin-top:10px;max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:2px}
 .stm{padding:9px 11px;border-radius:12px;font-size:14px;line-height:1.45;max-width:92%;word-wrap:break-word}.stm i{display:block;font-style:normal;font-size:11px;opacity:.55;margin-top:4px}
 .stm.tu{align-self:flex-end;background:rgba(88,166,255,.16);border:1px solid rgba(88,166,255,.35)}.stm.cl{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--line)}
@@ -341,7 +344,7 @@ function salotto(){ // lato destro: divano, macchinetta del caffe', videogioco
  scene.add(a);aTerra(M.ombra,X-1,12.6,2.2,2.4);
  pianta(X-.9,7.3,1.2);
 }
-const GIOCO={tex:null};
+const GIOCO={tex:null};const CRE={tex:null,f:''};
 
 // ---------- palco con 3 scalini + LED wall + schermi laterali ----------
 const PALCO={y:1.05,z:-6.5,gradini:[[13.6,7.6],[12.2,6.9],[10.8,6.2]]};
@@ -549,19 +552,24 @@ function postoScrivania(id,tipo,x,y,z,ry,opt){
   if(opt.oggetto==='cuffie'){const o=oggetto('cuffie',opt.colore);o.scale.setScalar(1.55);o.position.set(0,-.4,0);r.userData.testa.add(o)}
   if(opt.oggetto==='lente'){const o=oggetto('lente',opt.colore);o.scale.setScalar(.9);o.rotation.set(1.2,0,.3);o.position.set(.02,-.5,.1);r.userData.braccia[0].gom.add(o);r.userData.lente=true}
   p.blob=aTerra(M.ombra,p.seduta.x,p.seduta.z,1.5,1.5,.02);p.blob.visible=false;
-  if(tipo==='agente')p.bot={modo:'fermo',dove:'scrivania',path:null,i:0,timer:caso(4,25),spot:null,meta:'scrivania',svelto:false,segni:[]}}
+  if(tipo==='agente'&&!opt.fisso)p.bot={modo:'fermo',dove:'scrivania',path:null,i:0,timer:caso(4,25),spot:null,meta:'scrivania',svelto:false,segni:[]}}
  return nuovoPosto(p)}
 const COL=[-7.2,0,7.2],RIGA0=.2,PASSO=4.4,CORRIDOI=[-10.6,-3.6,3.6,10.6],FRONTE=-2.2;
 let nAgentiFatti=-1;
 function costruisciPostazioni(S){
  for(const p of posti.filter(p=>p.tipo==='agente'||p.tipo==='libero'))togliPosto(p);
  for(const k in SPOT)SPOT[k].forEach(s=>s.occ=null);
- const ag=S.agenti||[];const n=Math.max(1,ag.length); // solo le scrivanie degli agenti, niente posti vuoti (Cristian 15/11)
+ const ag=(S.agenti||[]).filter(a=>!a.posto);const n=Math.max(1,ag.length); // solo le scrivanie degli agenti, niente posti vuoti (Cristian 15/11); quelli con 'posto' stanno fuori dalle file
  ST.ZDAVANTI=Math.max(14.5,RIGA0+(Math.ceil(n/3)-1)*PASSO+5.5);faiStanza();
  for(let i=0;i<n;i++){const a=ag[i];const x=COL[i%3],z=RIGA0+Math.floor(i/3)*PASSO;
   if(a)postoScrivania(a.id,'agente',x,0,z,0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto});
   else postoScrivania('libero'+i,'libero',x,0,z,0,{colore:'#8b949e',libero:true})}
- nAgentiFatti=ag.map(a=>a.id+a.oggetto+a.colore).join();ostacoli();ombre()}
+ // (18/11) robot Diretta: di fianco alla 3090 gigante, vicino al palco di Claude, girato verso la stanza
+ for(const a of (S.agenti||[]).filter(a=>a.posto==='gpu')){const d=postoScrivania(a.id,'agente',13.3,0,-6.3,PI+.32,{colore:a.colore||'#ff4d6d',oggetto:a.oggetto,fisso:true});
+  d.camPos=d.g.localToWorld(new V3(3.0,3.8,-6.4));d.camTarget=d.g.localToWorld(new V3(0,1.5,.4));
+  const tg=tela(256,64,(x,w,h)=>{x.fillStyle='#1a0b10';x.fillRect(0,0,w,h);x.fillStyle=a.colore||'#ff4d6d';x.font='800 34px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('● DIRETTA',w/2,h/2+2)});
+  const tm=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:tg,toneMapped:false}));tm.scale.set(.9,.22,1);tm.position.set(0,1.17,.62);tm.rotation.x=-.25;d.g.add(tm)}
+ nAgentiFatti=(S.agenti||[]).map(a=>a.id+a.oggetto+a.colore).join();ostacoli();ombre()}
 let pClaude;
 function costruisciFissi(){
  faiStanza();faiPalco();
@@ -602,6 +610,11 @@ function costruisciFissi(){
  TMP.tex=tela(1024,720,()=>{});TMP.tex.anisotropy=8;
  {const c=rbox(.2,4.0,5.6,.06,M.metallo);c.position.set(-ST.W/2+.12,5.3,-7.2);scene.add(c);
   const q=new THREE.Mesh(new THREE.PlaneGeometry(5.36,3.77),new THREE.MeshBasicMaterial({map:TMP.tex,toneMapped:false}));q.rotation.y=PI/2;q.position.set(-ST.W/2+.235,5.3,-7.2);scene.add(q)}
+ // (18/11) CREDITI dell'abbonamento: due barre sul muro a sinistra, sopra le librerie
+ CRE.tex=tela(1024,520,()=>{});CRE.tex.anisotropy=8;
+ {const c=rbox(.2,2.75,5.3,.06,M.metallo);c.position.set(-ST.W/2+.12,5.55,.7);scene.add(c);
+  const q=new THREE.Mesh(new THREE.PlaneGeometry(5.06,2.57),new THREE.MeshBasicMaterial({map:CRE.tex,toneMapped:false}));q.rotation.y=PI/2;q.position.set(-ST.W/2+.235,5.55,.7);scene.add(q)}
+ nuovoPosto({id:'crediti',tipo:'crediti',etPos:new V3(-ST.W/2+.6,7.25,.7),pickPos:new V3(-ST.W/2+.45,5.55,.7),pickSize:new V3(1,2.9,5.5),camPos:new V3(-7.6,5.5,.7),camTarget:new V3(-ST.W/2,5.5,.7)});
  nuovoPosto({id:'tempi',tipo:'tempi',etPos:new V3(-ST.W/2+.6,7.65,-7.2),pickPos:new V3(-ST.W/2+.45,5.3,-7.2),pickSize:new V3(1,4.2,5.8),camPos:new V3(-8.2,5.4,-8.4),camTarget:new V3(-ST.W/2,5.2,-9.4)});
  [[-12.6,-4.5,1],[12.2,-6.8,1],[-12.6,3.5,1],[12.9,6.2,1],[-12.6,11,1],[12.9,12.2,1],[-3.6,6.6,0,8.3],[3.6,6.6,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?i<4:l,h||7.5));
  scene.add(box(M.tappeto,0,.012,-2.4,4.6,.025,2.0,false));
@@ -879,6 +892,7 @@ function applica(){
   if(p.tipo==='lavagna'){const j=lavoroPrincipale();p.el.className='et';p.el.innerHTML=`<b>Lavagna</b>${j?`<span>${esc(j.nome)} · ${j.fatti}/${j.passi.length}</span>`:''}`;continue}
   if(p.tipo==='davinci'){p.el.className='et';p.el.innerHTML=`<b>Timeline DaVinci</b>`;continue}
   if(p.tipo==='led')continue;
+  if(p.tipo==='crediti'){const c=S.crediti||{},s=c.sessione;p.el.className='et';p.el.style.borderColor=c.ok&&s?creCol(s.pct):'';p.el.innerHTML='<b>Crediti Claude</b>'+(c.ok?`<span>${s?'Sessione '+Math.round(s.pct)+'%':''}${c.settimana?' · Settimana '+Math.round(c.settimana.pct)+'%':''}</span>`:'<span>dato non disponibile</span>');disegnaCrediti();continue}
   if(p.tipo==='tempi'){p.el.className='et';p.el.innerHTML='<b>⏱ Tempi dei lavori</b>';disegnaTempi();continue}
   if(p.tipo==='tv'){const V=S.video||[],dag=V.filter(daGuardare).length;p.el.className='et';p.el.style.borderColor=dag?'var(--acc)':'';p.el.innerHTML='<b>🎬 Video finiti</b>'+(V.length?`<span>${dag?dag+' da guardare':V.length+' video'}</span>`:'');disegnaTV();continue}
   if(p.tipo==='miopc'){p.el.className='et';p.el.style.borderColor='#11f401';p.el.innerHTML='<b>🖥 Il mio PC</b><span>scegli i video dal computer</span>';disegnaMioPC(p);
@@ -974,6 +988,8 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
  else if(p.tipo==='tv'){vidDisegna();return}
  else if(p.tipo==='miopc'){pcDisegna();return}
  else if(p.tipo==='agente'&&p.id==='studio_clienti'){studioDisegna();return}
+ else if(p.tipo==='agente'&&p.id==='diretta'){direttaDisegna();return}
+ else if(p.tipo==='crediti'){h+=schedaCrediti()}
  else if(p.tipo==='libero'){h+=`<h2>Posto libero</h2><div class="ruolo">Scrivania pronta per il prossimo agente</div><div class="mut">Per aggiungerne uno: una riga in più in <b>agenti.json</b> (cartella Ufficio).</div>`}
  else{const eLed=p.tipo==='led';const a=(eLed?S.claude:p.dati)||{};const st=SPENTO?'riposa':a.stato||'riposa';
   h+=`<h2>${esc(a.nome||p.id)}</h2><div class="ruolo">${esc(a.ruolo||'')}</div><span class="chip ${st}">${st==='lavora'?'Al lavoro':st==='errore'?'Errore':'Fermo'}</span>${a.gpu?' <span class="chip">usa la 3090</span>':''}
@@ -1306,6 +1322,96 @@ async function studioClic(ev){const t=ev.target&&ev.target.closest?ev.target.clo
  else if(a==='invia')studioInvia('msg');
  else if(a==='salva')studioInvia('salva');
  else if(a==='nuovachat'){if(!STU.cliente)return;studioInvia('nuova')}}
+
+// ---------- (18/11) robot DIRETTA: le scelte della modalità In diretta del Pannello, sulla timeline aperta in DaVinci ----------
+const DIRG={cli:'',sc:{},multi:{camera:[],complemento:[]},rev:false,testo:'',invio:false,k:'',firma:'',ascolta:null};
+try{Object.assign(DIRG,JSON.parse(localStorage.getItem('ufficio_diretta')||'{}'),{invio:false,k:'',firma:'',ascolta:null})}catch(_){}
+const salvaDirg=()=>{try{localStorage.setItem('ufficio_diretta',JSON.stringify({cli:DIRG.cli,sc:DIRG.sc,multi:DIRG.multi,rev:DIRG.rev,testo:DIRG.testo}))}catch(_){}};
+const DIR_NO={tagli:'Nessun taglio',voce:'Voce originale',audio:'Nessuna musica',maschera:'Nessuna maschera',stile:'Nessuno',semplici:'Nessuno',nitidezza:'Nessuna',copertina:'Nessuna copertina',preset:'Nessun export'};
+const DIR_PASSI=[['tagli','Tagli'],['voce','Voce'],['audio','Musica'],['camera','Effetti camera',1],['complemento','Complementi / grafiche',1],['maschera','Maschera'],['stile','Sottotitoli fighi'],['semplici','Sottotitoli semplici'],['nitidezza','Nitidezza'],['copertina','Copertina'],['preset','Export alla fine']];
+const DIR_ORD=[['tagli','Tagli'],['voce','Voce'],['audio','Musica'],['camera','Effetti camera'],['complemento','Complementi'],['tracker','Tracker'],['maschera','Maschera'],['stile','Sottotitoli fighi'],['semplici','Sottotitoli semplici'],['nitidezza','Nitidezza'],['copertina','Copertina'],['revisore','Revisore'],['preset','Export']];
+const direttaD=()=>S.diretta_ag||{};
+const mandaDiretta=o=>mandaPC('/api/pc/diretta','diretta',o,60);
+function dirScelteUff(){const o={};for(const [k,,m] of DIR_PASSI)o[k]=m?(DIRG.multi[k]||[]).slice():(DIRG.sc[k]||DIR_NO[k]);o.revisore=!!DIRG.rev;o.grafiche=DIRG.sc.grafiche||((direttaD().scelte||{}).grafiche||[])[1]||'';return o}
+function dirOrdine(){const s=dirScelteUff(),q=new Set();for(const [k,,m] of DIR_PASSI){if(m?s[k].length:s[k]!==DIR_NO[k])q.add(k)}
+ if(q.has('stile')||q.has('semplici')){q.add('tracker');q.add('revisore')}if(s.revisore)q.add('revisore');
+ const p=DIR_ORD.filter(([k])=>q.has(k)).map(x=>x[1]);if(!p.length&&DIRG.testo.trim())p.push('Richiesta libera');return p}
+function dirRiep(){const p=dirOrdine(),e=$('#drriep');if(e)e.innerHTML=p.length?'<span class="mut">Faccio, in quest\'ordine:</span> '+p.map((n,i)=>(i+1)+'. <b>'+esc(n)+'</b>').join(' · ')+' · poi <b>anteprima</b> nei Video finiti':'<span class="mut">Niente scelto: scegli almeno una cosa o scrivi cosa vuoi che faccia.</span>'}
+function dirStatoHtml(){const d=direttaD(),r=d.run||{},dv=d.davinci||{},dvOn=S.servizi&&S.servizi.davinci;
+ let h=`<div class="perche" style="border-color:${dvOn&&dv.timeline?'rgba(63,185,80,.45)':'rgba(255,159,67,.6)'};background:rgba(255,255,255,.04)"><b>DaVinci</b>${SPENTO?'PC spento':!dvOn?'Chiuso: aprilo con il progetto e la timeline su cui lavorare.':dv.timeline&&dv.progetto!=='Untitled Project'?'Aperto su <b>'+esc(dv.progetto)+' › '+esc(dv.timeline)+'</b>: lavoro su questa timeline, niente timeline nuove né copie.':'Aperto, ma senza un progetto con una timeline aperta.'}</div>`;
+ if(r.stato==='lavora')h+=`<div class="stm cl lav"><span class="stdot"></span> Claude lavora sulla timeline aperta${r.inizio?' da '+tempo(S.ts-r.inizio):''}… <b>${esc(r.cosa||'')}</b>${(r.passi||[]).length?'<br><span class="mut">'+esc(r.passi.join(' → '))+'</span>':''}</div>`+
+  `<div class="azioni"><button class="stop" data-az="annulla" data-ag="diretta">${confermaAnn==='diretta'?'Sicuro? Tocca ancora':'⛔ Annulla la diretta'}</button></div>`;
+ else if(r.fine&&S.ts-r.fine<12*3600)h+=`<div class="stm ${r.stato==='errore'?'inf':'cl'}">${r.stato==='errore'?'Errore: '+esc(r.errore||''):mdSemplice(r.risposta||'Finito')}<i>Diretta · ${oraDi(r.fine)}</i></div>`;
+ const j=(S.lavori||[]).find(j=>j.tipo==='diretta');if(j&&(r.stato==='lavora'||/in corso|errore/.test(j.stato)))h+=schedaLavoro(j);
+ return h}
+function direttaDisegna(){const sc=$('#scheda'),d=direttaD(),X=d.scelte||{},cl=X.clienti||[];
+ const k='dir|'+Object.keys(X).map(q=>(X[q]||[]).length).join(',')+'|'+cl.map(c=>c.cartella).join(',');
+ if(DIRG.k!==k||!$('#drstato')){DIRG.k=k;DIRG.firma='';
+  const sel=(key,lista)=>{const v=DIRG.sc[key]||DIR_NO[key]||(key==='grafiche'?(lista||[])[1]:'');return `<select data-dr="${key}">${(lista||[]).map(o=>{const n=Array.isArray(o)?o[0]:o;return `<option${n===v?' selected':''} title="${esc(Array.isArray(o)?o[1]:'')}">${esc(n)}</option>`}).join('')}</select>`};
+  const multi=(key,lista)=>`<div class="drchip">${(lista||[]).filter(o=>o[0]!=='Nessuno').map(o=>`<button type="button" data-drm="${key}" data-v="${esc(o[0])}" title="${esc(o[1]||'')}" class="${(DIRG.multi[key]||[]).includes(o[0])?'on':''}">${esc(o[0])}</button>`).join('')}</div>`;
+  let h=`<button class="x" id="chiudi">✕</button><h2>🎬 Diretta</h2><div class="ruolo">Claude Code lavora sulla timeline <b>aperta adesso</b> in DaVinci: niente timeline nuove, copie o clip in più. Scegli una cosa o più insieme, o scrivi cosa vuoi.</div>
+  <div id="drstato"></div>
+  <div class="drgrid"><label>Cliente <small class="mut">(font e colori del brand)</small><select data-dr="cli"><option value="">Senza cliente</option>${cl.map(c=>`<option value="${esc(c.cartella)}"${c.cartella===DIRG.cli?' selected':''}>${esc(c.nome)}</option>`).join('')}</select></label>`;
+  for(const [key,nome,m] of DIR_PASSI){if(m)continue;h+=`<label>${esc(nome)}${sel(key,X[key])}</label>`}
+  h+=`<label class="drrev"><input type="checkbox" data-dr="rev"${DIRG.rev?' checked':''}> Revisore alla fine <small class="mut">(sempre, se ci sono scritte)</small></label></div>`;
+  h+=`<h3>Effetti camera <small class="mut">· anche più di uno</small></h3>${multi('camera',X.camera)}<h3>Complementi / grafiche <small class="mut">· anche più di uno</small></h3>${multi('complemento',X.complemento)}
+  <label class="drgraf"${(DIRG.multi.complemento||[]).length?'':' style="display:none"'}>Grafiche animate: quante e quanto lunghe${sel('grafiche',X.grafiche)}</label>
+  <div class="mut" style="margin-top:8px">Tracker: sempre, da solo, prima di ogni scritta. Multicam AI solo dal Pannello (chiude DaVinci).</div>
+  <div class="stbox"><b>Cosa vuoi che faccia</b> <span class="mut">(facoltativo)</span><textarea id="drtesto" placeholder="es. sposta i sottotitoli più in alto dal secondo 10"></textarea></div>
+  <div id="drriep" class="mut" style="margin-top:8px"></div>
+  <div class="azioni" style="margin-top:8px"><button data-dra="detta" id="drdetta">🎤 Detta</button><button class="pri" data-dra="vai" id="drvai">▶ Fai sulla timeline aperta</button></div><div id="drerr" class="perche" style="display:none;border-color:#ff4d4f;background:rgba(255,77,79,.1)"></div>`;
+  sc.innerHTML=h;sc.classList.add('su','largo');sc.onclick=direttaClic;
+  sc.querySelectorAll('select[data-dr]').forEach(e=>e.onchange=()=>{const key=e.dataset.dr;if(key==='cli')DIRG.cli=e.value;else DIRG.sc[key]=e.value;salvaDirg();dirRiep()});
+  const rv=sc.querySelector('input[data-dr="rev"]');rv.onchange=()=>{DIRG.rev=rv.checked;salvaDirg();dirRiep()};
+  const ta=$('#drtesto');ta.value=DIRG.testo||'';ta.oninput=()=>{DIRG.testo=ta.value;salvaDirg();dirRiep()};
+  $('#chiudi').onclick=()=>{dirStopDetta();chiudiScheda();if(!FP.on)vola(null)};dirRiep()}
+ const r=(d.run||{}),firma=JSON.stringify([r.stato,r.cosa,r.fine,d.davinci,S.servizi&&S.servizi.davinci,SPENTO,confermaAnn,(S.lavori||[]).filter(j=>j.tipo==='diretta').map(j=>j.fatti+j.stato+j.fase)]);
+ if(firma!==DIRG.firma){DIRG.firma=firma;$('#drstato').innerHTML=dirStatoHtml()}
+ const b=$('#drvai');if(b){const lav=r.stato==='lavora';b.disabled=lav||DIRG.invio||SPENTO;b.textContent=DIRG.invio?'Controllo DaVinci…':lav?'Claude sta lavorando…':'▶ Fai sulla timeline aperta'}}
+async function direttaClic(ev){const t=ev.target&&ev.target.closest?ev.target.closest('[data-dra],[data-drm],[data-az]'):null;if(!t)return;
+ if(t.dataset.az){azioniScheda(ev);return}
+ if(t.dataset.drm){const key=t.dataset.drm,v=t.dataset.v,L=DIRG.multi[key]=DIRG.multi[key]||[];const i=L.indexOf(v);if(i<0)L.push(v);else L.splice(i,1);t.classList.toggle('on',i<0);
+  const g=$('.drgraf');if(g)g.style.display=(DIRG.multi.complemento||[]).length?'':'none';salvaDirg();dirRiep();return}
+ if(t.dataset.dra==='detta'){dirDetta();return}
+ if(t.dataset.dra==='vai'){if(DIRG.invio)return;if(!dirOrdine().length){avvisa('Scegli almeno una cosa o scrivi cosa vuoi che faccia');return}
+  dirStopDetta();DIRG.invio=true;direttaDisegna();
+  try{const r=await mandaDiretta({cliente:DIRG.cli,scelte:dirScelteUff(),testo:DIRG.testo||''});if(!r||!r.ok)throw new Error((r&&r.errore)||'Non riuscito');
+   if(r.demo)avvisa('Demo: qui partirebbe Claude Code');else{avvisa('Parte Claude Code su '+(r.progetto||'')+' › '+(r.timeline||'')+': segui i passi sulla lavagna');DIRG.testo='';salvaDirg();const ta=$('#drtesto');if(ta)ta.value='';
+    const d=direttaD();d.run={stato:'lavora',inizio:S.ts,cosa:'Avvio Claude Code…',passi:r.passi||[]}}
+   const de=$('#drerr');if(de)de.style.display='none';setTimeout(aggiorna,1500)}catch(e){avvisa(e.message||String(e));const de=$('#drerr');if(de){de.style.display='';de.innerHTML='<b>Non parto</b>'+esc(e.message||String(e))}}finally{DIRG.invio=false;DIRG.firma='';direttaDisegna()}}}
+function dirStopDetta(){if(DIRG.ascolta){try{DIRG.ascolta.stop()}catch(_){}DIRG.ascolta=null;const b=$('#drdetta');if(b)b.textContent='🎤 Detta'}}
+function dirDetta(){if(DIRG.ascolta){dirStopDetta();return}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){avvisa('Qui la dettatura non c\'è: usa il microfono della tastiera del tablet');const ta=$('#drtesto');if(ta)ta.focus();return}
+ const r=new SR();r.lang='it-IT';r.continuous=true;r.interimResults=true;const base=(DIRG.testo||'').trim();let fin='';
+ r.onresult=e=>{let tmp='';for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)fin+=x[0].transcript+' ';else tmp+=x[0].transcript}
+  DIRG.testo=(base?base+' ':'')+fin+tmp;const ta=$('#drtesto');if(ta)ta.value=DIRG.testo;salvaDirg();dirRiep()};
+ r.onerror=e=>{avvisa(e.error==='not-allowed'?'Microfono non autorizzato: dai il permesso al browser':'Dettatura interrotta');dirStopDetta()};
+ r.onend=()=>{if(DIRG.ascolta===r){DIRG.ascolta=null;const b=$('#drdetta');if(b)b.textContent='🎤 Detta'}};
+ try{r.start();DIRG.ascolta=r;const b=$('#drdetta');if(b)b.textContent='⏹ Basta dettare'}catch(e){avvisa('Dettatura non partita')}}
+
+// ---------- (18/11) CREDITI dell'abbonamento Claude: barre sul muro a sinistra ----------
+const creCol=p=>p<60?'#3fb950':p<=85?'#ff9f43':'#ff4d4f';
+function creRicarica(ts){if(!ts)return '';const d=new Date(ts*1000),oggi=new Date(),dom=new Date(oggi.getTime()+86400000);
+ const ora=d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+ return d.toDateString()===oggi.toDateString()?'oggi alle '+ora:d.toDateString()===dom.toDateString()?'domani alle '+ora:d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})+' alle '+ora}
+function disegnaCrediti(){if(!CRE.tex)return;const c=CRE.tex.image,x=c.getContext('2d'),W=c.width,H=c.height,C=S.crediti||{};
+ const f=JSON.stringify([C,SPENTO]);if(CRE.f===f)return;CRE.f=f;
+ x.fillStyle='#0d1117';x.fillRect(0,0,W,H);x.fillStyle='#e6edf3';x.font=carattere(40,800);x.fillText('CREDITI CLAUDE',36,60);
+ x.fillStyle='#7d8590';x.font=carattere(22,500);x.textAlign='right';x.fillText(C.ok&&C.letto?'aggiornato alle '+oraDi(C.letto):'',W-36,58);x.textAlign='left';
+ if(!C.ok){x.fillStyle='#ff9f43';x.font=carattere(34,700);x.fillText('dato non disponibile',36,170);x.fillStyle='#7d8590';x.font=carattere(24,500);righe(x,C.perche||'',W-72,3).forEach((r,i)=>x.fillText(r,36,222+i*32));CRE.tex.needsUpdate=true;return}
+ [['Sessione (5 ore)',C.sessione,140],['Settimana',C.settimana,330]].forEach(([nome,v,y])=>{
+  x.fillStyle='#e6edf3';x.font=carattere(30,700);x.fillText(nome,36,y);
+  const p=v?Math.max(0,Math.min(100,v.pct)):null;x.textAlign='right';x.fillStyle=p==null?'#7d8590':creCol(p);x.font=carattere(44,800);x.fillText(p==null?'—':Math.round(p)+'%',W-36,y+6);x.textAlign='left';
+  x.fillStyle='#21262d';x.beginPath();x.roundRect(36,y+24,W-72,44,22);x.fill();
+  if(p){x.fillStyle=creCol(p);x.beginPath();x.roundRect(36,y+24,Math.max(44,(W-72)*p/100),44,22);x.fill()}
+  x.fillStyle='#9aa4ae';x.font=carattere(24,500);x.fillText(!v?'dato non disponibile':v.ricaricata?'già ricaricata':v.ricarica?'si ricarica '+creRicarica(v.ricarica):'',36,y+104)});
+ if(C.vecchio){x.fillStyle='#ff9f43';x.font=carattere(22,600);x.fillText('dato vecchio: si aggiorna alla prossima risposta di Claude',36,H-22)}
+ CRE.tex.needsUpdate=true}
+function schedaCrediti(){const C=S.crediti||{};let h=`<h2>Crediti Claude</h2><div class="ruolo">Il tuo abbonamento (gli stessi numeri di /usage in Claude Code)</div>`;
+ if(!C.ok)return h+`<div class="perche"><b>Dato non disponibile</b>${esc(C.perche||'')}</div>`;
+ for(const [n,v] of [['Sessione (5 ore)',C.sessione],['Settimana',C.settimana]]){const p=v?Math.round(v.pct):null;
+  h+=`<h3>${n} · <span style="color:${p==null?'inherit':creCol(p)}">${p==null?'—':p+'% usato'}</span></h3><div class="barra"><i style="width:${p||0}%;background:${p==null?'':creCol(p)}"></i></div><div class="mut">${!v?'dato non disponibile':v.ricaricata?'Già ricaricata':v.ricarica?'Si ricarica '+creRicarica(v.ricarica):''}</div>`}
+ return h+`<div class="mut" style="margin-top:10px">Verde sotto il 60% · arancione 60-85% · rosso oltre l'85%. Aggiornato alle ${oraDi(C.letto)}: arriva da Claude Code a ogni sua risposta (e ogni 2 minuti mentre una sessione è aperta).${C.vecchio?' <b style="color:#ff9f43">Dato vecchio: in questo momento nessun Claude sta lavorando.</b>':''}</div>`}
 
 // ---------- Il mio PC: sfoglia il computer di casa e metti in coda ----------
 const PC={dati:null,sel:new Set(),carico:false,errore:'',esito:'',cliente:null,prova:null,io:null};
