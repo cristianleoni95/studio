@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Teleprompter">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
+<link rel="icon" href="icona-192.png">
+<title>Teleprompter vocale</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: attrezzo da set, sobrio e leggibilissimo
+   IDEA: il vetro del teleprompter: nero assoluto, testo bianco, una riga di lettura
+   PICTURE: il testo stesso che scorre, con la parola letta che si spegne
+   COLOUR and TYPE: nero, bianco, un rosso "REC" come unico accento; Inter
+   LAYOUT: editor a una colonna, poi schermo pieno */
+:root{--bg:#0b0b0c;--panel:#161618;--line:#2a2a2e;--ink:#f4f4f5;--mute:#8b8b93;--rec:#ff3b30;color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-height:44px;padding:0 16px;cursor:pointer}
+button:hover{border-color:#55555c}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--rec);outline-offset:2px}
+.go{background:var(--rec);border-color:var(--rec);font-weight:700;color:#fff}
+#editor{max-width:900px;margin:0 auto;padding:clamp(20px,4vw,48px) 16px}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.05;margin:0 0 6px;font-weight:800}
+.sub{color:var(--mute);margin:0 0 22px}
+textarea{width:100%;min-height:42vh;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;font-size:17px;line-height:1.6;resize:vertical}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:18px 0}
+label{display:block;font-size:14px;color:var(--mute)}
+label b{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--rec);height:32px}
+select{width:100%;min-height:44px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 10px;margin-top:4px;font-size:16px}
+.check{display:flex;gap:10px;align-items:center;min-height:44px;color:var(--ink)}
+.check input{width:20px;height:20px;accent-color:var(--rec)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.note{font-size:14px;color:var(--mute);margin-top:18px}
+.warn{background:#2a1513;border:1px solid #5c2420;border-radius:10px;padding:12px 14px;margin:14px 0;display:none}
+kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-size:13px}
+
+#prompter{position:fixed;inset:0;background:#000;display:none}
+#scroller{position:absolute;inset:0;overflow:hidden}
+#text{margin:0 auto;padding:0 4vw;font-weight:700;color:#fff;line-height:1.35}
+#text p{margin:0 0 .6em}
+#text .w{transition:color .25s,opacity .25s;cursor:pointer;border-radius:4px}
+#text .w.read{opacity:.28}
+#text .w.cur{color:#ffd60a}
+.pad{height:100vh}
+#marker{position:absolute;left:0;right:0;pointer-events:none;height:0}
+#marker::before,#marker::after{content:"";position:absolute;top:-14px;border:14px solid transparent}
+#marker::before{left:0;border-left:20px solid var(--rec)}
+#marker::after{right:0;border-right:20px solid var(--rec)}
+#bar{position:absolute;top:0;left:0;right:0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));background:linear-gradient(#000e,#0000);transition:opacity .4s;z-index:2}
+#bar.hide{opacity:0;pointer-events:none}
+#bar button{min-height:40px;padding:0 12px;background:#1b1b1ecc}
+#status{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:14px;color:var(--mute)}
+#dot{width:12px;height:12px;border-radius:50%;background:#444}
+#dot.on{background:var(--rec);animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){#dot.on{animation:none}}
+#heard{position:absolute;left:0;right:0;bottom:0;padding:10px 16px;font-size:15px;color:#aaa;background:linear-gradient(#0000,#000d);display:none;z-index:2}
+.mirrorX #text{transform:scaleX(-1)}
+.mirrorY #scroller{transform:scaleY(-1)}
+</style>
+</head>
+<body>
+
+<section id="editor">
+  <a href="./" style="color:var(--mute);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;margin-bottom:6px">← Leoni Studio</a>
+  <h1>Teleprompter vocale</h1>
+  <p class="sub">Incolla il testo, premi Avvia e leggi: il testo scorre seguendo la tua voce.</p>
+  <div class="warn" id="noSupport">Questo browser non ha il riconoscimento vocale. Apri il file con <b>Google Chrome</b> o <b>Microsoft Edge</b>. Puoi comunque usare lo scorrimento automatico.</div>
+  <textarea id="src" spellcheck="false" aria-label="Testo da leggere"></textarea>
+  <div class="grid">
+    <label>Grandezza testo <b id="fsV"></b><input type="range" id="fs" min="28" max="140" step="2"></label>
+    <label>Larghezza colonna <b id="wdV"></b><input type="range" id="wd" min="40" max="100" step="2"></label>
+    <label>Riga di lettura (dall'alto) <b id="lnV"></b><input type="range" id="ln" min="15" max="60" step="1"></label>
+    <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="200" step="5"></label>
+    <label>Lingua<select id="lang">
+      <option value="it-IT">Italiano</option><option value="en-US">Inglese (US)</option><option value="en-GB">Inglese (UK)</option>
+      <option value="es-ES">Spagnolo</option><option value="fr-FR">Francese</option><option value="de-DE">Tedesco</option><option value="ro-RO">Rumeno</option></select></label>
+    <div>
+      <label class="check"><input type="checkbox" id="mx"> Specchio orizzontale (vetro)</label>
+      <label class="check"><input type="checkbox" id="my"> Capovolgi verticale</label>
+      <label class="check"><input type="checkbox" id="sh"> Mostra cosa sente</label>
+    </div>
+  </div>
+  <div class="row">
+    <button class="go" id="start">Avvia teleprompter</button>
+    <button id="clear">Svuota testo</button>
+  </div>
+  <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
+  Se salti una frase o improvvisi, il teleprompter ti aspetta e si riaggancia appena ritrova le tue parole (cerca fino a circa 40 parole più avanti).</p>
+</section>
+
+<section id="prompter">
+  <div id="scroller"><div class="pad"></div><div id="text"></div><div class="pad"></div></div>
+  <div id="marker"></div>
+  <div id="bar">
+    <button id="bBack">← Testo</button>
+    <button id="bMic">Ascolta</button>
+    <button id="bAuto">Auto</button>
+    <button id="bTop">Inizio</button>
+    <button id="bMinus">A−</button><button id="bPlus">A+</button>
+    <button id="bMirror">Specchio</button>
+    <button id="bFull">Schermo intero</button>
+    <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
+  </div>
+  <div id="heard"></div>
+</section>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const SAMPLE=`Ciao, sono Cristian di Leoni Films.
+
+Racconto storie con le immagini: matrimoni, aziende, eventi e contenuti per i social.
+
+Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma e guarda come scorre seguendo la tua voce.
+
+Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
+
+Quando vuoi, incolla qui il tuo copione e premi avvia.`;
+const DEF={text:SAMPLE,fs:64,wd:80,ln:33,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+let cfg={...DEF};
+try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg')||'{}')}}catch(e){}
+const save=()=>{try{localStorage.setItem('tp-cfg',JSON.stringify(cfg))}catch(e){}};
+
+const src=$('src');src.value=cfg.text;
+const sliders={fs:'px',wd:'%',ln:'%',sp:' px/s'};
+for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
+  el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
+for(const k of['mx','my','sh']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+$('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()};
+src.oninput=()=>{cfg.text=src.value;save()};
+$('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
+
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR)$('noSupport').style.display='block';
+
+const norm=w=>w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
+let S=[],pos=0,cur=0,target=0,listening=false,auto=false,rec=null,lastT=0;
+const textEl=$('text'),scroller=$('scroller'),prompter=$('prompter');
+
+function build(){
+  textEl.innerHTML='';S=[];
+  const paras=cfg.text.replace(/\r/g,'').split(/\n+/).filter(p=>p.trim());
+  for(const p of paras){
+    const pe=document.createElement('p');
+    p.trim().split(/\s+/).forEach((tok,i)=>{
+      if(i)pe.appendChild(document.createTextNode(' '));
+      const s=document.createElement('span');s.className='w';s.textContent=tok;
+      const n=norm(tok);
+      if(n){s.dataset.i=S.length;S.push({n,el:s})}
+      pe.appendChild(s);
+    });
+    textEl.appendChild(pe);
+  }
+}
+function applyLook(){
+  textEl.style.fontSize=cfg.fs+'px';
+  textEl.style.maxWidth=cfg.wd+'%';
+  $('marker').style.top=cfg.ln+'%';
+  prompter.classList.toggle('mirrorX',cfg.mx);
+  prompter.classList.toggle('mirrorY',cfg.my);
+  $('heard').style.display=cfg.sh?'block':'none';
+  if(prompter.style.display==='block')setPos(pos,true);
+}
+function lineY(){return scroller.clientHeight*cfg.ln/100}
+function setPos(p,jump){
+  pos=Math.max(0,Math.min(S.length,p));
+  S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)});
+  const w=S[Math.min(pos,S.length-1)];
+  if(w){const r=w.el.offsetTop+w.el.offsetHeight/2;target=r-lineY()}
+  if(jump){cur=target;scroller.scrollTop=cur}
+}
+function nearestToLine(){
+  const y=scroller.scrollTop+lineY();let best=pos,d=1e9;
+  S.forEach((w,i)=>{const c=Math.abs(w.el.offsetTop+w.el.offsetHeight/2-y);if(c<d){d=c;best=i}});
+  return best;
+}
+function moveLines(d){
+  if(!S.length)return;
+  const i0=Math.min(pos,S.length-1),top=S[i0].el.offsetTop;let i=i0;
+  if(d>0){while(i<S.length&&S[i].el.offsetTop<=top+2)i++}
+  else{while(i>0&&S[i-1].el.offsetTop>=top-2)i--; if(i>0){const pt=S[i-1].el.offsetTop;i--;while(i>0&&S[i-1].el.offsetTop>=pt-2)i--}}
+  if(auto){target+=d*cfg.fs*1.35;return}
+  setPos(i);
+}
+
+/* aggancio voce → testo */
+function tryMatch(R){
+  if(!R.length||!S.length)return;
+  const from=Math.max(0,pos-3),to=Math.min(S.length-1,pos+40);
+  let best=-1,bestScore=-1e9;
+  for(let drop=0;drop<=1;drop++){
+    const tail=R.slice(Math.max(0,R.length-6-drop),R.length-drop);
+    if(!tail.length)continue;
+    const last=tail[tail.length-1];
+    for(let j=from;j<=to;j++){
+      if(S[j].n!==last)continue;
+      let sc=1,si=j-1,ri=tail.length-2,miss=0;
+      while(ri>=0&&si>=0&&miss<3){
+        if(S[si].n===tail[ri]){sc++;si--;ri--}
+        else if(si>0&&S[si-1].n===tail[ri]){si-=2;ri--;sc++;miss++}
+        else{ri--;miss++}
+      }
+      const dist=j-pos;
+      const ok=sc>=2||(sc===1&&last.length>=4&&dist>=-1&&dist<=5)||(sc===1&&dist>=0&&dist<=1);
+      if(!ok)continue;
+      const score=sc*3-Math.abs(dist)/6-drop;
+      if(score>bestScore){bestScore=score;best=j}
+    }
+  }
+  if(best>=pos-1&&best>=0)setPos(best+1);
+}
+
+function startRec(){
+  if(!SR){$('stTxt').textContent='Voce non disponibile qui';return}
+  if(auto)toggleAuto();
+  rec=new SR();rec.lang=cfg.lang;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;
+  rec.onresult=e=>{
+    let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript+' ';
+    const words=t.split(/\s+/).map(norm).filter(Boolean);
+    $('heard').textContent=t.trim();
+    tryMatch(words);
+  };
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){listening=false;showMic();$('stTxt').textContent='Microfono bloccato: consentilo nel browser'}
+    else if(e.error==='network'){$('stTxt').textContent='Serve la connessione internet'}
+  };
+  rec.onend=()=>{if(listening){try{rec.start()}catch(err){setTimeout(()=>{if(listening)try{rec.start()}catch(e){}},300)}}};
+  listening=true;showMic();
+  try{rec.start()}catch(e){}
+}
+function stopRec(){listening=false;showMic();try{rec&&rec.stop()}catch(e){}}
+function showMic(){
+  $('dot').classList.toggle('on',listening||auto);
+  $('bMic').textContent=listening?'Pausa':'Ascolta';
+  $('stTxt').textContent=listening?'Sto ascoltando':auto?'Scorrimento automatico':'In pausa';
+}
+function toggleMic(){listening?stopRec():startRec()}
+function toggleAuto(){
+  auto=!auto;
+  if(auto){if(listening)stopRec();target=scroller.scrollTop}
+  else setPos(nearestToLine());
+  $('bAuto').textContent=auto?'Auto: on':'Auto';showMic();
+}
+
+function tick(t){
+  const dt=Math.min(.1,(t-lastT)/1000||0);lastT=t;
+  if(prompter.style.display==='block'){
+    if(auto){
+      target+=cfg.sp*dt;
+      const p=nearestToLine();if(p!==pos){pos=p;S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)})}
+      cur=target;
+    }else cur+=(target-cur)*Math.min(1,dt*5);
+    scroller.scrollTop=cur;
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function openPrompter(){
+  cfg.text=src.value;save();build();
+  $('editor').style.display='none';prompter.style.display='block';
+  applyLook();setPos(0,true);wake();startRec();
+}
+function closePrompter(){
+  stopRec();if(auto)toggleAuto();
+  prompter.style.display='none';$('editor').style.display='block';
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+}
+function full(){
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  else document.documentElement.requestFullscreen().catch(()=>{});
+}
+function font(d){cfg.fs=Math.max(28,Math.min(140,cfg.fs+d));$('fs').value=cfg.fs;$('fsV').textContent=cfg.fs+'px';save();applyLook()}
+
+$('start').onclick=openPrompter;
+$('bBack').onclick=closePrompter;
+$('bMic').onclick=toggleMic;
+$('bAuto').onclick=toggleAuto;
+$('bTop').onclick=()=>{if(auto)target=0;setPos(0)};
+$('bPlus').onclick=()=>font(4);$('bMinus').onclick=()=>font(-4);
+$('bMirror').onclick=()=>{cfg.mx=!cfg.mx;$('mx').checked=cfg.mx;save();applyLook()};
+$('bFull').onclick=full;
+textEl.addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!==undefined){if(auto)toggleAuto();setPos(+i)}});
+scroller.addEventListener('wheel',e=>{e.preventDefault();moveLines(e.deltaY>0?1:-1)},{passive:false});
+
+let hideT;
+function wake(){$('bar').classList.remove('hide');clearTimeout(hideT);hideT=setTimeout(()=>$('bar').classList.add('hide'),2500)}
+prompter.addEventListener('mousemove',wake);
+let ty=null;
+prompter.addEventListener('touchstart',e=>{wake();ty=e.touches[0].clientY},{passive:true});
+scroller.addEventListener('touchmove',e=>{e.preventDefault()},{passive:false});
+scroller.addEventListener('touchend',e=>{if(ty===null)return;const dy=ty-e.changedTouches[0].clientY;ty=null;
+  if(Math.abs(dy)>30){const n=Math.max(1,Math.round(Math.abs(dy)/(cfg.fs*1.35)));for(let i=0;i<n;i++)moveLines(dy>0?1:-1)}});
+
+document.addEventListener('keydown',e=>{
+  if(prompter.style.display!=='block'||e.target.tagName==='TEXTAREA')return;
+  const k=e.key;
+  if(k===' '){e.preventDefault();toggleMic()}
+  else if(k==='ArrowDown'||k==='PageDown'){e.preventDefault();moveLines(1)}
+  else if(k==='ArrowUp'||k==='PageUp'){e.preventDefault();moveLines(-1)}
+  else if(k==='Home'){if(auto)target=0;setPos(0)}
+  else if(k==='Escape'&&!document.fullscreenElement)closePrompter()
+  else if(k==='+'||k==='=')font(4)
+  else if(k==='-')font(-4)
+  else if(k==='m'||k==='M')$('bMirror').click()
+  else if(k==='f'||k==='F')full()
+  else if(k==='a'||k==='A')toggleAuto();
+});
+addEventListener('resize',()=>{if(prompter.style.display==='block')setPos(pos,true)});
+}
+</script>
+</body>
+</html>
