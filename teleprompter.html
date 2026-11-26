@@ -40,6 +40,11 @@ select{width:100%;min-height:44px;background:var(--panel);border:1px solid var(-
 .check input{width:20px;height:20px;accent-color:var(--rec)}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .note{font-size:14px;color:var(--mute);margin-top:18px}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin:10px 0 4px}
+.keys button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left}
+.keys button span{color:var(--mute)}
+.keys button.wait{border-color:var(--rec)}
+h2{font-size:20px;margin:26px 0 4px}
 .warn{background:#2a1513;border:1px solid #5c2420;border-radius:10px;padding:12px 14px;margin:14px 0;display:none}
 kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-size:13px}
 
@@ -97,6 +102,10 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button class="go" id="start">Avvia teleprompter</button>
     <button id="clear">Svuota testo</button>
   </div>
+  <h2>Telecomando Bluetooth</h2>
+  <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
+  <div class="keys" id="keys"></div>
+  <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -132,6 +141,8 @@ Quando vuoi, incolla qui il tuo copione e premi avvia.`;
 const DEF={text:SAMPLE,fs:64,mg:4,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg2')||'{}')}}catch(e){}
+const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
+if(!cfg.keys)cfg.keys={};
 const save=()=>{try{localStorage.setItem('tp-cfg2',JSON.stringify(cfg))}catch(e){}};
 
 const src=$('src');src.value=cfg.text;
@@ -144,6 +155,11 @@ $('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()
 src.oninput=()=>{cfg.text=src.value;save()};
 $('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
 
+let learning=null;
+function drawKeys(){$('keys').innerHTML=ACTS.map(([a,l])=>'<button data-a="'+a+'"'+(learning===a?' class="wait"':'')+'>'+l+'<span>'+(learning===a?'premi il tasto…':(cfg.keys[a]?keyName(cfg.keys[a]):'non impostato'))+'</span></button>').join('')}
+function keyName(k){return k===' '?'Spazio':k.replace('Arrow','Freccia ').replace('Audio','').replace('Media','')}
+$('keys').onclick=e=>{const b=e.target.closest('button');if(!b)return;learning=learning===b.dataset.a?null:b.dataset.a;drawKeys()};
+drawKeys();
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(!SR)$('noSupport').style.display='block';
 
@@ -327,6 +343,13 @@ scroller.addEventListener('touchend',e=>{if(ty===null)return;const dy=(ty-e.chan
   if(Math.abs(dy)>30){const n=Math.max(1,Math.round(Math.abs(dy)/(cfg.fs*1.35)));for(let i=0;i<n;i++)moveLines(dy>0?1:-1)}});
 
 document.addEventListener('keydown',e=>{
+  const kk=e.key&&e.key!=='Unidentified'?e.key:(e.code||String(e.keyCode));
+  if(prompter.style.display!=='block'){
+    $('keyTest').textContent='Arrivato il tasto: '+keyName(kk);
+    if(learning){e.preventDefault();for(const a in cfg.keys)if(cfg.keys[a]===kk)delete cfg.keys[a];cfg.keys[learning]=kk;learning=null;save();drawKeys()}
+    return;
+  }
+  for(const a in cfg.keys)if(cfg.keys[a]===kk){e.preventDefault();doAct(a);return}
   if(prompter.style.display!=='block'||e.target.tagName==='TEXTAREA')return;
   const k=e.key;
   if(k===' '){e.preventDefault();toggleMic()}
@@ -343,6 +366,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='f'||k==='F')full()
   else if(k==='a'||k==='A')toggleAuto();
 });
+function doAct(a){wake();({mic:toggleMic,down:()=>moveLines(1),up:()=>moveLines(-1),next:()=>sentence(1),prev:()=>sentence(-1),auto:toggleAuto,plus:()=>font(4),minus:()=>font(-4),top:()=>{if(auto)target=0;setPos(0)}})[a]()}
 addEventListener('resize',()=>{if(prompter.style.display==='block')setPos(pos,true)});
 }
 </script>
