@@ -70,6 +70,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 #dot.on{background:var(--rec);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){#dot.on{animation:none}}
+#toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);background:#1b1b1eee;border:1px solid var(--rec);border-radius:12px;padding:10px 18px;font-size:20px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;z-index:3;white-space:nowrap}
+#toast.show{opacity:1}
 #heard{position:absolute;left:0;right:0;bottom:0;padding:10px 16px;font-size:15px;color:#aaa;background:linear-gradient(#0000,#000d);display:none;z-index:2}
 .mirrorX #text{transform:scaleX(-1)}
 .mirrorY #scroller{transform:scaleY(-1)}
@@ -96,12 +98,16 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
       <label class="check"><input type="checkbox" id="mx"> Specchio ↔ (per il teleprompter col vetro)</label>
       <label class="check"><input type="checkbox" id="my"> Capovolgi ↕ (se nel vetro lo vedi sottosopra)</label>
       <label class="check"><input type="checkbox" id="sh"> Mostra cosa sente</label>
+      <label class="check"><input type="checkbox" id="vc"> Comandi vocali</label>
     </div>
   </div>
   <div class="row">
     <button class="go" id="start">Avvia teleprompter</button>
     <button id="clear">Svuota testo</button>
   </div>
+  <h2>Comandi vocali</h2>
+  <p class="sub" style="margin:0 0 6px">Dì il comando da solo, con una piccola pausa prima e dopo. Puoi anche cominciare con "ok".</p>
+  <div class="keys" id="vcList"></div>
   <h2>Telecomando Bluetooth</h2>
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
@@ -123,12 +129,13 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button id="bFull">Schermo intero</button>
     <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
   </div>
-  <div id="heard"></div>
+  <div id="heard"></div><div id="toast"></div>
 </section>
 
 <script>
 {
 const $=id=>document.getElementById(id);
+const norm=w=>w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
 const SAMPLE=`Ciao, sono Cristian di Leoni Films.
 
 Racconto storie con le immagini: matrimoni, aziende, eventi e contenuti per i social.
@@ -138,23 +145,52 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={text:SAMPLE,fs:64,mg:4,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
-try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg2')||'{}')}}catch(e){}
+try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg3')||'{}')}}catch(e){}
 const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
 if(!cfg.keys)cfg.keys={};
-const save=()=>{try{localStorage.setItem('tp-cfg2',JSON.stringify(cfg))}catch(e){}};
+const save=()=>{try{localStorage.setItem('tp-cfg3',JSON.stringify(cfg))}catch(e){}};
 
 const src=$('src');src.value=cfg.text;
 const sliders={fs:'px',mg:'%',ln:'%',sp:' px/s'};
 for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
-for(const k of['mx','my','sh']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+for(const k of['mx','my','sh','vc']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
 $('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
 $('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()};
 src.oninput=()=>{cfg.text=src.value;save()};
 $('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
 
+const CMDS=[
+ [['ripeti','ripeti la frase','rifai la frase','rifai','ho sbagliato','sbagliato'],()=>sentence(-1),'Ripeti la frase'],
+ [['torna indietro','indietro','torna su','frase prima','frase precedente'],()=>back2(),'Frase prima'],
+ [['rifai tutto','ricomincia','ricominciamo','dall\'inizio','torna all\'inizio','da capo'],()=>{if(auto)target=0;setPos(0)},'Dall\'inizio'],
+ [['avanti','vai avanti','frase dopo','salta'],()=>sentence(1),'Frase dopo'],
+ [['pausa','stop','fermati','ferma','aspetta'],()=>{frozen=true;showMic()},'Pausa'],
+ [['parti','riparti','vai','avvia','via','continua','partiamo','parti da qui'],()=>{frozen=false;showMic()},'Si parte'],
+ [['più grande','ingrandisci','testo più grande'],()=>font(6),'Testo più grande'],
+ [['più piccolo','rimpicciolisci','testo più piccolo'],()=>font(-6),'Testo più piccolo'],
+ [['più veloce','accelera'],()=>speed(15),'Più veloce'],
+ [['più lento','rallenta'],()=>speed(-15),'Più lento'],
+ [['automatico','scorrimento automatico'],()=>{if(!auto)toggleAuto()},'Scorrimento automatico'],
+ [['segui la voce','segui voce'],()=>{if(auto)toggleAuto()},'Segue la voce'],
+ [['specchio'],()=>$('bMirror').click(),'Specchio'],
+];
+const CMDMAP={};CMDS.forEach(([ps,fn,l])=>ps.forEach(p=>CMDMAP[norm(p)]=[fn,l]));
+$('vcList').innerHTML=CMDS.map(([ps,,l])=>'<button tabindex="-1" style="cursor:default">'+l+'<span>"'+ps.slice(0,2).join('", "')+'"</span></button>').join('');
+let frozen=false;
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),1300)}
+function tryCommand(raw){
+  if(!cfg.vc)return false;
+  const w=raw.split(/\s+/).map(norm).filter(Boolean);
+  while(w.length>1&&['ok','okay','oke','teleprompter','dai','allora'].includes(w[0]))w.shift();
+  if(!w.length||w.length>4)return false;
+  const c=CMDMAP[w.join('')];if(!c)return false;
+  for(let j=Math.max(0,pos-6);j<=Math.min(S.length-w.length,pos+6);j++){let ok=true;for(let k=0;k<w.length;k++)if(S[j+k].n!==w[k]){ok=false;break}if(ok)return false}
+  c[0]();toast(c[1]);return true;
+}
+function back2(){if(!S.length)return;if(auto)toggleAuto();let s=Math.min(pos,S.length-1);while(s>0&&!S[s].st)s--;s--;while(s>0&&!S[s].st)s--;setPos(Math.max(0,s))}
 let learning=null;
 function drawKeys(){$('keys').innerHTML=ACTS.map(([a,l])=>'<button data-a="'+a+'"'+(learning===a?' class="wait"':'')+'>'+l+'<span>'+(learning===a?'premi il tasto…':(cfg.keys[a]?keyName(cfg.keys[a]):'non impostato'))+'</span></button>').join('')}
 function keyName(k){return k===' '?'Spazio':k.replace('Arrow','Freccia ').replace('Audio','').replace('Media','')}
@@ -163,7 +199,6 @@ drawKeys();
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(!SR)$('noSupport').style.display='block';
 
-const norm=w=>w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]/g,'');
 let S=[],pos=0,cur=0,target=0,listening=false,auto=false,rec=null,lastT=0;
 const textEl=$('text'),scroller=$('scroller'),prompter=$('prompter');
 
@@ -178,7 +213,7 @@ function build(){
       const s=document.createElement('span');s.className='w';s.textContent=tok;
       const n=norm(tok);
       if(n){s.dataset.i=S.length;S.push({n,el:s,st:newS});newS=false}
-      if(/[.!?…:]['"»”)]*$/.test(tok))newS=true;
+      if(/[.!?…]['"»”)]*$/.test(tok))newS=true;
       pe.appendChild(s);
     });
     textEl.appendChild(pe);
@@ -260,13 +295,17 @@ function tryMatch(R){
 
 function startRec(){
   if(!SR){$('stTxt').textContent='Voce non disponibile qui';return}
-  if(auto)toggleAuto();
   rec=new SR();rec.lang=cfg.lang;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;
   rec.onresult=e=>{
-    let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript+' ';
-    const words=t.split(/\s+/).map(norm).filter(Boolean);
+    let t='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r=e.results[i],tx=r[0].transcript;
+      if(r.isFinal&&tryCommand(tx))continue;
+      t+=tx+' ';
+    }
     $('heard').textContent=t.trim();
-    tryMatch(words);
+    if(auto||frozen)return;
+    tryMatch(t.split(/\s+/).map(norm).filter(Boolean));
   };
   rec.onerror=e=>{
     if(e.error==='not-allowed'||e.error==='service-not-allowed'){listening=false;showMic();$('stTxt').textContent='Microfono bloccato: consentilo nel browser'}
@@ -280,12 +319,13 @@ function stopRec(){listening=false;showMic();try{rec&&rec.stop()}catch(e){}}
 function showMic(){
   $('dot').classList.toggle('on',listening||auto);
   $('bMic').textContent=listening?'Pausa':'Ascolta';
-  $('stTxt').textContent=listening?'Sto ascoltando':auto?'Scorrimento automatico':'In pausa';
+  $('stTxt').textContent=frozen?'In pausa: dì "parti"':auto?(listening?'Automatico · comandi vocali attivi':'Automatico'):listening?'Sto ascoltando':'In pausa';
+  $('dot').classList.toggle('on',(listening||auto)&&!frozen);
 }
 function toggleMic(){listening?stopRec():startRec()}
 function toggleAuto(){
   auto=!auto;
-  if(auto){if(listening)stopRec();target=scroller.scrollTop}
+  if(auto){target=scroller.scrollTop}
   else setPos(nearestToLine());
   $('bAuto').textContent=auto?'Auto: on':'Auto';showMic();
 }
@@ -294,7 +334,7 @@ function tick(t){
   const dt=Math.min(.1,(t-lastT)/1000||0);lastT=t;
   if(prompter.style.display==='block'){
     if(auto){
-      target+=cfg.sp*dt;
+      if(!frozen)target+=cfg.sp*dt;
       const p=nearestToLine();if(p!==pos){pos=p;S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)})}
       cur=target;
     }else cur+=(target-cur)*Math.min(1,dt*5);
@@ -310,7 +350,7 @@ function openPrompter(){
   applyLook();setPos(0,true);wake();startRec();
 }
 function closePrompter(){
-  stopRec();if(auto)toggleAuto();
+  frozen=false;stopRec();if(auto)toggleAuto();
   prompter.style.display='none';$('editor').style.display='block';
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
 }
