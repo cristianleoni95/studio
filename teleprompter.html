@@ -55,7 +55,18 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 #text .w{transition:color .25s,opacity .25s;cursor:pointer;border-radius:4px}
 #text .w.read{opacity:.42}
 #text .w.cur{color:#ffd60a}
-.pad{height:100vh}
+.pad{height:100vh;height:100dvh}
+#count{position:absolute;inset:0;display:none;place-items:center;background:#000;z-index:4;font-weight:800;font-size:min(55vw,55vh);line-height:1;color:#fff}
+#count.on{display:grid}
+#ciak{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000;z-index:4;padding:16px}
+#ciak.on{display:flex}
+#ciakSteps{display:flex;flex-direction:column;gap:12px}
+#ciak button{font-size:clamp(22px,4vw,34px);width:min(84vw,440px);min-height:64px;display:flex;justify-content:space-between;align-items:center;gap:20px;font-weight:800;letter-spacing:.02em}
+#ciak button.ok{border-color:#30d158;color:#30d158}
+#ciak p{color:var(--mute);margin:0;font-size:16px;text-align:center}
+.mirrorX #countN,.mirrorX #ciak>*{transform:scaleX(-1)}
+.mirrorY #count,.mirrorY #ciak{transform:scaleY(-1)}
+@media(max-width:760px){#bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}#bar::-webkit-scrollbar{display:none}#bar>*{flex:none}#status{margin-left:8px}}
 #marker{position:absolute;left:0;right:0;pointer-events:none;height:0}
 #band{position:absolute;left:0;right:0;pointer-events:none;background:rgba(255,255,255,.06);border-block:1px solid rgba(255,255,255,.08);transform:translateY(-50%)}
 #bar button.on{border-color:var(--rec)}
@@ -76,6 +87,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 .mirrorX #text{transform:scaleX(-1)}
 .mirrorY #scroller{transform:scaleY(-1)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -91,6 +104,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <label>Allineamento<select id="al"><option value="center">Centrato</option><option value="left">A sinistra</option></select></label>
     <label>Riga di lettura (50% = centro, all'obiettivo) <b id="lnV"></b><input type="range" id="ln" min="20" max="70" step="1"></label>
     <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="300" step="5"></label>
+    <label>Partenza<select id="go"><option value="count">Conto alla rovescia 3-2-1</option><option value="ciak">Ciak: motore, camera, audio, azione</option><option value="now">Subito</option></select></label>
     <label>Lingua<select id="lang">
       <option value="it-IT">Italiano</option><option value="en-US">Inglese (US)</option><option value="en-GB">Inglese (UK)</option>
       <option value="es-ES">Spagnolo</option><option value="fr-FR">Francese</option><option value="de-DE">Tedesco</option><option value="ro-RO">Rumeno</option></select></label>
@@ -99,6 +113,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
       <label class="check"><input type="checkbox" id="my"> Capovolgi ↕ (se nel vetro lo vedi sottosopra)</label>
       <label class="check"><input type="checkbox" id="sh"> Mostra cosa sente</label>
       <label class="check"><input type="checkbox" id="vc"> Comandi vocali</label>
+      <label class="check"><input type="checkbox" id="ca"> Nel ciak chiedi anche "audio"</label>
+      <label class="check"><input type="checkbox" id="fo"> Concentrazione sulla riga</label>
     </div>
   </div>
   <div class="row">
@@ -108,6 +124,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <h2>Comandi vocali</h2>
   <p class="sub" style="margin:0 0 6px">Dì il comando da solo, con una piccola pausa prima e dopo. Puoi anche cominciare con "ok".</p>
   <div class="keys" id="vcList"></div>
+  <h2>Telefono come telecomando</h2>
+  <p class="sub" id="rmInfo" style="margin:0">Collegamento in corso…</p>
   <h2>Telecomando Bluetooth</h2>
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
@@ -130,6 +148,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
   </div>
   <div id="heard"></div><div id="toast"></div>
+  <div id="count"><span id="countN">3</span></div>
+  <div id="ciak"><p>Dì "motore", "camera"<span id="ciakAudioHelp">, "audio"</span> e poi "azione". Oppure tocca qui.</p><div id="ciakSteps"></div></div>
 </section>
 
 <script>
@@ -145,7 +165,7 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg3')||'{}')}}catch(e){}
 const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
@@ -156,7 +176,8 @@ const src=$('src');src.value=cfg.text;
 const sliders={fs:'px',mg:'%',ln:'%',sp:' px/s'};
 for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
-for(const k of['mx','my','sh','vc']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+for(const k of['mx','my','sh','vc','ca','fo']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+$('go').value=cfg.go;$('go').onchange=()=>{cfg.go=$('go').value;save()};
 $('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
 $('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()};
 src.oninput=()=>{cfg.text=src.value;save()};
@@ -165,7 +186,7 @@ $('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
 const CMDS=[
  [['ripeti','ripeti la frase','rifai la frase','rifai','ho sbagliato','sbagliato'],()=>sentence(-1),'Ripeti la frase'],
  [['torna indietro','indietro','torna su','frase prima','frase precedente'],()=>back2(),'Frase prima'],
- [['rifai tutto','ricomincia','ricominciamo','dall\'inizio','torna all\'inizio','da capo'],()=>{if(auto)target=0;setPos(0)},'Dall\'inizio'],
+ [['rifai tutto','ricomincia','ricominciamo','dall\'inizio','torna all\'inizio','da capo'],()=>restartTake(),'Nuovo ciak: dall\'inizio'],
  [['avanti','vai avanti','frase dopo','salta'],()=>sentence(1),'Frase dopo'],
  [['pausa','stop','fermati','ferma','aspetta'],()=>{frozen=true;showMic()},'Pausa'],
  [['parti','riparti','vai','avvia','via','continua','partiamo','parti da qui'],()=>{frozen=false;showMic()},'Si parte'],
@@ -222,7 +243,11 @@ function build(){
 function applyLook(){
   textEl.style.fontSize=cfg.fs+'px';
   const m=cfg.nm?0:cfg.mg;textEl.style.padding='0 calc('+m+'vw + env(safe-area-inset-left))';
-  textEl.style.textAlign=cfg.al;$('spShow').textContent='Vel '+cfg.sp;
+  textEl.style.textAlign=cfg.al;
+  {const lh=cfg.fs*1.35,L=cfg.ln+'%',c=(d)=>'calc('+L+' '+(d<0?'- ':'+ ')+Math.abs(d)+'px)';
+   const mk=cfg.fo?'linear-gradient(to bottom,rgba(0,0,0,.3) 0,rgba(0,0,0,.3) '+c(-lh*3.2)+',#000 '+c(-lh*1.7)+',#000 '+c(lh*.8)+',rgba(0,0,0,.45) '+c(lh*2.6)+',rgba(0,0,0,.45) 100%)':'none';
+   scroller.style.webkitMaskImage=mk;scroller.style.maskImage=mk}
+  $('ciakAudioHelp').style.display=cfg.ca?'':'none';$('spShow').textContent='Vel '+cfg.sp;
   $('bMarg').classList.toggle('on',!cfg.nm);$('bMarg').textContent=cfg.nm?'Margini: no':'Margini: sì';
   const ly=cfg.my?100-cfg.ln:cfg.ln;$('marker').style.top=ly+'%';$('band').style.top=ly+'%';
   $('bMirror').classList.toggle('on',cfg.mx);$('bFlip').classList.toggle('on',cfg.my);$('band').style.height=(cfg.fs*1.35)+'px';
@@ -300,11 +325,12 @@ function startRec(){
     let t='';
     for(let i=e.resultIndex;i<e.results.length;i++){
       const r=e.results[i],tx=r[0].transcript;
+      if(phase==='ciak'){scanCiak(tx);continue}
       if(r.isFinal&&tryCommand(tx))continue;
       t+=tx+' ';
     }
     $('heard').textContent=t.trim();
-    if(auto||frozen)return;
+    if(auto||frozen||phase!=='read')return;
     tryMatch(t.split(/\s+/).map(norm).filter(Boolean));
   };
   rec.onerror=e=>{
@@ -334,12 +360,14 @@ function tick(t){
   const dt=Math.min(.1,(t-lastT)/1000||0);lastT=t;
   if(prompter.style.display==='block'){
     if(auto){
-      if(!frozen)target+=cfg.sp*dt;
+      if(!frozen&&phase==='read')target+=cfg.sp*dt;
       const p=nearestToLine();if(p!==pos){pos=p;S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)})}
       cur=target;
     }else cur+=(target-cur)*Math.min(1,dt*5);
     scroller.scrollTop=cur;
+    if(phase==='read'&&!frozen)el+=dt;
   }
+  if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -347,10 +375,10 @@ requestAnimationFrame(tick);
 function openPrompter(){
   cfg.text=src.value;save();build();
   $('editor').style.display='none';prompter.style.display='block';
-  applyLook();setPos(0,true);wake();startRec();
+  applyLook();setPos(0,true);wake();startRec();keepAwake();el=0;begin();
 }
 function closePrompter(){
-  frozen=false;stopRec();if(auto)toggleAuto();
+  frozen=false;phase='idle';clearInterval(cdT);$('count').classList.remove('on');$('ciak').classList.remove('on');stopRec();if(auto)toggleAuto();
   prompter.style.display='none';$('editor').style.display='block';
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
 }
@@ -411,6 +439,72 @@ document.addEventListener('keydown',e=>{
   else if(k==='.'||k===']')speed(10)
   else if(k===','||k==='[')speed(-10);
 });
+/* partenza: conto alla rovescia o ciak */
+let phase='idle',cdT,el=0,lastSend=0,lastState='',ciakDone={};
+const CIAK=[['motore',['motore','motor','motori']],['camera',['camera','telecamera','gira','partita','partito','registra']],['audio',['audio','suono']],['azione',['azione','azioni']]];
+function ciakSteps(){return CIAK.filter(([k])=>k!=='audio'||cfg.ca)}
+function drawCiak(){$('ciakSteps').innerHTML=ciakSteps().map(([k])=>'<button data-k="'+k+'" class="'+(ciakDone[k]?'ok':'')+'">'+k.toUpperCase()+'<span>'+(ciakDone[k]?'✓':'')+'</span></button>').join('')}
+function ciakMark(k){
+  if(phase!=='ciak'||ciakDone[k])return;
+  if(k==='azione'){const miss=ciakSteps().filter(([s])=>s!=='azione'&&!ciakDone[s]).map(([s])=>s);
+    if(miss.length){toast('Manca: '+miss.join(', '));return}
+    ciakDone.azione=true;drawCiak();setTimeout(countdown,250);return}
+  ciakDone[k]=true;drawCiak();
+}
+$('ciakSteps').onclick=e=>{const b=e.target.closest('button');if(b)ciakMark(b.dataset.k)};
+function scanCiak(tx){for(const w of tx.split(/\s+/).map(norm))for(const [k,ws] of CIAK)if(ws.includes(w)&&(k!=='audio'||cfg.ca))ciakMark(k)}
+function begin(){
+  clearInterval(cdT);$('count').classList.remove('on');$('ciak').classList.remove('on');frozen=false;
+  if(cfg.go==='ciak'){phase='ciak';ciakDone={};drawCiak();$('ciak').classList.add('on')}
+  else if(cfg.go==='count')countdown();else startReading();
+  showMic();
+}
+function countdown(){
+  $('ciak').classList.remove('on');phase='count';let n=3;$('countN').textContent=n;$('count').classList.add('on');
+  clearInterval(cdT);cdT=setInterval(()=>{n--;if(n>0)$('countN').textContent=n;else{clearInterval(cdT);$('count').classList.remove('on');startReading()}},1000);
+}
+function startReading(){phase='read';showMic()}
+function restartTake(){if(auto)target=0;setPos(0,true);el=0;begin()}
+let lock=null;
+async function keepAwake(){try{if(navigator.wakeLock&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&prompter.style.display==='block')keepAwake()});
+
+/* telefono come telecomando */
+let ch=null;
+function curSentence(){if(!S.length)return'';let s=Math.min(pos,S.length-1);while(s>0&&!S[s].st)s--;const out=[];for(let i=s;i<S.length&&(i===s||!S[i].st);i++)out.push(S[i].el.textContent);return out.join(' ').slice(0,160)}
+function stateObj(){const open=prompter.style.display==='block';const tot=S.length||cfg.text.split(/\s+/).filter(Boolean).length;
+  return{open,ph:open?phase:'idle',pos:open?pos:0,tot,li:listening,au:auto,fr:frozen,sp:cfg.sp,fs:cfg.fs,mx:cfg.mx,my:cfg.my,nm:cfg.nm,ca:cfg.ca,go:cfg.go,el:Math.round(el),ciak:ciakDone,line:open?curSentence():''}}
+function stateChanged(){const s=JSON.stringify(stateObj());return s!==lastState}
+function sendState(){if(!ch)return;const o=stateObj();lastState=JSON.stringify(o);try{ch.send({type:'broadcast',event:'state',payload:o})}catch(e){}}
+function roomFromUser(id){return String(parseInt(id.replace(/-/g,'').slice(0,8),16)%9000+1000)}
+async function remoteInit(){
+  try{
+    if(!window.supabase||!window.CRM_CONFIG)throw new Error('x');
+    const sb=window.supabase.createClient(CRM_CONFIG.SUPABASE_URL,CRM_CONFIG.SUPABASE_ANON_KEY);
+    const {data}=await sb.auth.getSession();let code;
+    if(data&&data.session)code=roomFromUser(data.session.user.id);
+    else{try{code=localStorage.getItem('tp-room')}catch(e){}if(!code){code=String(Math.floor(1000+Math.random()*9000));try{localStorage.setItem('tp-room',code)}catch(e){}}}
+    $('rmInfo').innerHTML='Sul telefono apri Leoni Studio → <b>Telecomando</b>. Codice di questo tablet: <b>'+code+'</b>'+(data&&data.session?' (preso dal tuo account, il telefono lo trova da solo).':'.');
+    ch=sb.channel('tp-'+code,{config:{broadcast:{self:false}}});
+    ch.on('broadcast',{event:'cmd'},({payload})=>{remoteCmd(payload&&payload.a);sendState()})
+      .subscribe(st=>{if(st==='SUBSCRIBED')sendState()});
+  }catch(e){$('rmInfo').textContent='Telecomando dal telefono non disponibile: serve internet.'}
+}
+function remoteCmd(a){
+  const open=prompter.style.display==='block';
+  const F={open:()=>{if(!open)openPrompter()},close:()=>{if(open)closePrompter()},
+    mic:toggleMic,pause:()=>{frozen=!frozen;showMic();toast(frozen?'Pausa':'Si parte')},
+    repeat:()=>sentence(-1),prev:back2,next:()=>sentence(1),up:()=>moveLines(-1),down:()=>moveLines(1),
+    top:()=>{if(auto)target=0;setPos(0)},take:restartTake,auto:toggleAuto,fast:()=>speed(10),slow:()=>speed(-10),
+    plus:()=>font(4),minus:()=>font(-4),mirror:()=>$('bMirror').click(),flip:()=>$('bFlip').click(),marg:toggleMarg,
+    go:()=>{if(phase==='ciak'||phase==='idle')countdown()},
+    motore:()=>ciakMark('motore'),camera:()=>ciakMark('camera'),audio:()=>ciakMark('audio'),azione:()=>ciakMark('azione'),ping:()=>{}};
+  if(F[a]&&(open||a==='open'||a==='ping'))F[a]();
+}
+remoteInit();
+keepAwake();document.addEventListener('pointerdown',keepAwake);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepAwake()});
+
 function doAct(a){wake();({mic:toggleMic,down:()=>moveLines(1),up:()=>moveLines(-1),next:()=>sentence(1),prev:()=>sentence(-1),auto:toggleAuto,fast:()=>speed(10),slow:()=>speed(-10),plus:()=>font(4),minus:()=>font(-4),top:()=>{if(auto)target=0;setPos(0)}})[a]()}
 addEventListener('resize',()=>{if(prompter.style.display==='block')setPos(pos,true)});
 }

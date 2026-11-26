@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icona-180.png">
+<link rel="icon" href="icona-192.png">
+<title>Telecomando teleprompter</title>
+<style>
+/* VOICE: telecomando da set, si usa senza guardare troppo
+   IDEA: una pulsantiera: tasti grandi, lo stato del teleprompter in cima
+   PICTURE: il riquadro stato con frase attuale, avanzamento e tempi
+   COLOUR and TYPE: scuro come Leoni Studio, rosso "REC" per pausa/azione, verde per i passi fatti
+   LAYOUT: una colonna per il telefono, tasti a griglia */
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#21262d;--line:#30363d;--txt:#e6edf3;--mut:#8b949e;--rec:#ff3b30;--ok:#30d158;color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif;overflow-x:clip;
+  padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;gap:10px}
+header a{color:var(--mut);text-decoration:none;min-height:44px;display:flex;align-items:center}
+h1{font-size:20px;margin:0;flex:1}
+#conn{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut)}
+#cdot{width:10px;height:10px;border-radius:50%;background:#555}
+#cdot.on{background:var(--ok)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+#phase{font-size:22px;font-weight:700;margin:0 0 4px}
+#line{color:var(--mut);font-size:15px;min-height:2.9em;margin:0 0 10px;overflow-wrap:anywhere}
+.prog{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--rec);transition:width .4s}
+.times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;text-align:center}
+.times b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.times span{font-size:13px;color:var(--mut)}
+.g{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:14px;min-height:60px;padding:6px;font-weight:600;cursor:pointer;touch-action:manipulation;user-select:none}
+button:active{transform:scale(.97);background:#2d333b}
+button:focus-visible{outline:2px solid var(--rec);outline-offset:2px}
+button.big{min-height:88px;font-size:22px}
+button.rec{background:var(--rec);border-color:var(--rec);color:#fff}
+button.on{border-color:var(--rec)}
+button.ok{border-color:var(--ok);color:var(--ok)}
+.val{display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--mut);text-align:center;line-height:1.2}
+.val b{display:block;color:var(--txt);font-size:18px}
+h2{font-size:14px;color:var(--mut);font-weight:600;margin:4px 2px -4px}
+.code{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.code input{font:inherit;font-size:20px;width:7em;min-height:48px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:0 12px;letter-spacing:.2em}
+.code button{min-height:48px;padding:0 16px}
+.note{font-size:13px;color:var(--mut);margin:0}
+.hid{display:none!important}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="./">← Studio</a><h1>Telecomando</h1><div id="conn"><span id="cdot"></span><span id="ctxt">Cerco il tablet…</span></div></header>
+
+  <section class="card" aria-live="polite">
+    <p id="phase">Teleprompter chiuso</p>
+    <p id="line">Apri il teleprompter sul tablet, o premi "Apri" qui sotto.</p>
+    <div class="prog"><i id="bar"></i></div>
+    <div class="times">
+      <div><b id="tEl">0:00</b><span>passato</span></div>
+      <div><b id="tLeft">–</b><span>mancano circa</span></div>
+      <div><b id="tTot">–</b><span>durata copione</span></div>
+    </div>
+  </section>
+
+  <div id="ciakBox" class="hid">
+    <h2>Ciak</h2>
+    <div class="g g4" id="ciakBtns"></div>
+  </div>
+
+  <button class="big rec" id="bPause" data-a="pause">Pausa</button>
+  <div class="g g3">
+    <button data-a="prev">◀◀<br>Frase prima</button>
+    <button data-a="repeat">↺<br>Ripeti frase</button>
+    <button data-a="next">▶▶<br>Frase dopo</button>
+  </div>
+  <div class="g g2">
+    <button data-a="up">▲ Riga su</button>
+    <button data-a="down">▼ Riga giù</button>
+  </div>
+  <div class="g g3">
+    <button data-a="slow">Vel −</button><div class="val">Velocità<b id="vSp">–</b></div><button data-a="fast">Vel +</button>
+    <button data-a="minus">A−</button><div class="val">Testo<b id="vFs">–</b></div><button data-a="plus">A+</button>
+  </div>
+  <div class="g g3">
+    <button data-a="mic" id="bMic">Ascolto</button>
+    <button data-a="auto" id="bAuto">Auto</button>
+    <button data-a="marg" id="bMarg">Margini</button>
+    <button data-a="mirror" id="bMx">Specchio ↔</button>
+    <button data-a="flip" id="bMy">Capovolgi ↕</button>
+    <button data-a="top">Inizio</button>
+  </div>
+  <div class="g g2">
+    <button data-a="take">Nuovo ciak<br><span style="font-weight:400;font-size:13px">rifai tutto da capo</span></button>
+    <button data-a="open" id="bOpen">Apri sul tablet</button>
+  </div>
+
+  <section class="card">
+    <h2 style="margin:0 0 8px">Collegamento</h2>
+    <div class="code"><input id="code" inputmode="numeric" maxlength="4" placeholder="0000" aria-label="Codice tablet"><button id="saveCode">Collega</button></div>
+    <p class="note" id="codeNote" style="margin-top:8px">Il codice lo trovi sul tablet, nella pagina del teleprompter, sotto "Telefono come telecomando".</p>
+  </section>
+</div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const WPS=2.5; // circa 150 parole al minuto, stima iniziale
+let ch=null,sb=null,last=null,seen=0;
+
+function send(a){
+  if(!ch)return;
+  try{ch.send({type:'broadcast',event:'cmd',payload:{a}})}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button[data-a]');if(b)send(b.dataset.a)});
+
+function render(s){
+  last=s;seen=Date.now();
+  const ph={idle:'Teleprompter chiuso',ciak:'Ciak: aspetto i comandi',count:'Conto alla rovescia…',read:s.fr?'In pausa':'In lettura'}[s.ph]||'';
+  $('phase').textContent=ph;
+  $('line').textContent=s.open?(s.line||''):'Apri il teleprompter sul tablet, o premi "Apri sul tablet".';
+  const p=s.tot?s.pos/s.tot:0;$('bar').style.width=Math.round(p*100)+'%';
+  // stima: parte da 150 parole/min, poi si adatta alla tua velocità vera
+  const wps=s.el>12&&s.pos>12?s.pos/s.el:WPS;
+  $('tEl').textContent=fmt(s.el);
+  $('tTot').textContent=s.tot?'~'+fmt(s.tot/WPS):'–';
+  $('tLeft').textContent=s.open&&s.tot?fmt((s.tot-s.pos)/wps):'–';
+  $('vSp').textContent=s.sp;$('vFs').textContent=s.fs;
+  $('bPause').textContent=s.fr?'Riparti':'Pausa';
+  $('bMic').classList.toggle('on',s.li);$('bMic').textContent=s.li?'Ascolto: sì':'Ascolto: no';
+  $('bAuto').classList.toggle('on',s.au);$('bAuto').textContent=s.au?'Auto: sì':'Auto';
+  $('bMarg').textContent=s.nm?'Margini: no':'Margini: sì';
+  $('bMx').classList.toggle('on',s.mx);$('bMy').classList.toggle('on',s.my);
+  $('bOpen').textContent=s.open?'Chiudi sul tablet':'Apri sul tablet';$('bOpen').dataset.a=s.open?'close':'open';
+  const steps=['motore','camera'].concat(s.ca?['audio']:[],['azione']);
+  const showCiak=s.ph==='ciak'||(s.open&&s.go==='ciak'&&s.ph!=='read');
+  $('ciakBox').classList.toggle('hid',!showCiak);
+  if(showCiak)$('ciakBtns').innerHTML=steps.map(k=>'<button data-a="'+k+'" class="'+(s.ciak&&s.ciak[k]?'ok':(k==='azione'?'rec':''))+'">'+k.toUpperCase()+'</button>').join('');
+}
+setInterval(()=>{const on=Date.now()-seen<5000;$('cdot').classList.toggle('on',on);$('ctxt').textContent=on?'Tablet collegato':'Cerco il tablet…'},1000);
+
+function join(code){
+  if(!sb)return;
+  if(ch){try{sb.removeChannel(ch)}catch(e){}}
+  $('code').value=code;
+  ch=sb.channel('tp-'+code,{config:{broadcast:{self:false}}});
+  ch.on('broadcast',{event:'state'},({payload})=>render(payload||{}))
+    .subscribe(st=>{if(st==='SUBSCRIBED')send('ping')});
+}
+$('saveCode').onclick=()=>{const c=$('code').value.replace(/\D/g,'').slice(0,4);if(c.length!==4){$('codeNote').textContent='Il codice è di 4 cifre.';return}
+  try{localStorage.setItem('tp-remote-code',c)}catch(e){}join(c);$('codeNote').textContent='Collegato al codice '+c+'.'};
+
+(async()=>{
+  try{
+    sb=window.supabase.createClient(CRM_CONFIG.SUPABASE_URL,CRM_CONFIG.SUPABASE_ANON_KEY);
+    let code=null;try{code=localStorage.getItem('tp-remote-code')}catch(e){}
+    if(!code){const {data}=await sb.auth.getSession();
+      if(data&&data.session){const id=data.session.user.id;code=String(parseInt(id.replace(/-/g,'').slice(0,8),16)%9000+1000);
+        $('codeNote').textContent='Codice preso dal tuo account Leoni Studio. Se il tablet ne mostra un altro, scrivilo qui.'}}
+    if(code)join(code);else $('codeNote').textContent='Scrivi il codice che vedi sul tablet e premi Collega.';
+  }catch(e){$('ctxt').textContent='Serve internet';}
+})();
+
+// schermo sempre acceso mentre usi il telecomando
+let lock=null;
+async function awake(){try{if(navigator.wakeLock&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
+awake();document.addEventListener('pointerdown',awake);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){awake();send('ping')}});
+}
+</script>
+</body>
+</html>
