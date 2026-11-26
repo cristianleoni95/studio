@@ -50,9 +50,11 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 
 #prompter{position:fixed;inset:0;background:#000;display:none}
 #scroller{position:absolute;inset:0;overflow:hidden}
+#inner{will-change:transform}
+.fade{position:absolute;left:0;right:0;pointer-events:none;z-index:1}
 #text{margin:0 auto;font-weight:700;color:#fff;line-height:1.35;transition:padding .3s}
 #text p{margin:0 0 .6em}
-#text .w{transition:color .25s,opacity .25s;cursor:pointer;border-radius:4px}
+#text .w{transition:color .3s,opacity .3s;cursor:pointer;border-radius:4px}
 #text .w.read{opacity:.42}
 #text .w.cur{color:#ffd60a}
 .pad{height:100vh;height:100dvh}
@@ -135,7 +137,8 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 </section>
 
 <section id="prompter">
-  <div id="scroller"><div class="pad"></div><div id="text"></div><div class="pad"></div></div>
+  <div id="scroller"><div id="inner"><div class="pad"></div><div id="text"></div><div class="pad"></div></div></div>
+  <div id="fadeA" class="fade"></div><div id="fadeB" class="fade"></div>
   <div id="band"></div><div id="marker"></div>
   <div id="bar">
     <button id="bBack">← Testo</button>
@@ -245,19 +248,48 @@ function applyLook(){
   textEl.style.fontSize=cfg.fs+'px';
   const m=cfg.nm?0:cfg.mg;textEl.style.padding='0 calc('+m+'vw + env(safe-area-inset-left))';
   textEl.style.textAlign=cfg.al;
-  {const lh=cfg.fs*1.35,L=cfg.ln+'%',c=(d)=>'calc('+L+' '+(d<0?'- ':'+ ')+Math.abs(d)+'px)';
-   const mk=cfg.fo?'linear-gradient(to bottom,rgba(0,0,0,.3) 0,rgba(0,0,0,.3) '+c(-lh*3.2)+',#000 '+c(-lh*1.7)+',#000 '+c(lh*.8)+',rgba(0,0,0,.45) '+c(lh*2.6)+',rgba(0,0,0,.45) 100%)':'none';
-   scroller.style.webkitMaskImage=mk;scroller.style.maskImage=mk}
+  placeFades();
   $('ciakAudioHelp').style.display=cfg.ca?'':'none';$('spShow').textContent='Vel '+cfg.sp;
   $('bMarg').classList.toggle('on',!cfg.nm);$('bMarg').textContent=cfg.nm?'Margini: no':'Margini: sì';
   const ly=cfg.my?100-cfg.ln:cfg.ln;$('marker').style.top=ly+'%';$('band').style.top=ly+'%';
   $('bMirror').classList.toggle('on',cfg.mx);$('bFlip').classList.toggle('on',cfg.my);$('band').style.height=(cfg.fs*1.35)+'px';
-  $('marker').style.top=cfg.ln+'%';
   prompter.classList.toggle('mirrorX',cfg.mx);
   prompter.classList.toggle('mirrorY',cfg.my);
   $('heard').style.display=cfg.sh?'block':'none';
-  if(prompter.style.display==='block')setPos(pos,true);
+  if(prompter.style.display==='block'){layout();setPos(pos,true)}
 }
+/* righe sfumate sopra e sotto la riga di lettura (più leggero della maschera) */
+function placeFades(){
+  const A=$('fadeA'),B=$('fadeB');A.style.display=B.style.display=cfg.fo?'block':'none';if(!cfg.fo)return;
+  const H=prompter.clientHeight||innerHeight,lh=cfg.fs*1.35,ly=H*(cfg.my?100-cfg.ln:cfg.ln)/100;
+  const before=Math.max(0,ly-lh*1.7),after=Math.max(0,ly+lh*.8);
+  // "prima" = testo già letto: sopra, oppure sotto se capovolto
+  const top=cfg.my?B:A,bot=cfg.my?A:B,dTop=cfg.my?.55:.7,dBot=cfg.my?.7:.55;
+  top.style.top='0';top.style.height=(cfg.my?Math.max(0,ly-lh*.8):before)+'px';
+  top.style.background='linear-gradient(to bottom,rgba(0,0,0,'+dTop+') 0,rgba(0,0,0,'+dTop+') calc(100% - '+(lh*1.5)+'px),rgba(0,0,0,0) 100%)';
+  const bt=cfg.my?ly+lh*1.7:after;bot.style.top=bt+'px';bot.style.height=Math.max(0,H-bt)+'px';
+  bot.style.background='linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,'+dBot+') '+(lh*1.8)+'px,rgba(0,0,0,'+dBot+') 100%)';
+}
+/* scorrimento continuo: ogni parola ha la sua altezza dentro la riga */
+let disp=0,wpsE=2.5,lastAdvT=0,shownPos=-1;
+const inner=$('inner');
+function layout(){
+  let i=0;
+  while(i<S.length){
+    const top=S[i].el.offsetTop,lh=S[i].el.offsetHeight;let j=i;
+    while(j<S.length&&Math.abs(S[j].el.offsetTop-top)<lh/2)j++;
+    const n=j-i;for(let k=i;k<j;k++)S[k].y=top+lh*((k-i)+.5)/n;
+    i=j;
+  }
+}
+function yAt(f){if(!S.length)return 0;f=Math.max(0,Math.min(S.length-1,f));const i=Math.floor(f),a=S[i].y||0,b=(S[i+1]||S[i]).y||a;return a+(b-a)*(f-i)}
+function paint(){
+  if(shownPos===pos)return;
+  const a=Math.max(0,Math.min(shownPos<0?0:shownPos,pos)-1),b=Math.min(S.length-1,Math.max(shownPos<0?S.length-1:shownPos,pos)+1);
+  for(let i=(shownPos<0?0:a);i<=(shownPos<0?S.length-1:b);i++){S[i].el.classList.toggle('read',i<pos);S[i].el.classList.toggle('cur',i===pos)}
+  shownPos=pos;
+}
+function applyScroll(){inner.style.transform='translate3d(0,'+(-cur).toFixed(1)+'px,0)'}
 function lineY(){return scroller.clientHeight*cfg.ln/100}
 function setPos(p,jump){
   p=Math.max(0,Math.min(S.length,p));
@@ -265,16 +297,17 @@ function setPos(p,jump){
     if(p<pos){if(tAt[p]!=null)el=tAt[p];for(let i=p+1;i<tAt.length;i++)tAt[i]=null}
     else for(let i=pos+1;i<=p;i++)if(tAt[i]==null)tAt[i]=el;
   }
-  pos=p;
-  S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)});
-  const w=S[Math.min(pos,S.length-1)];
-  if(w){const r=w.el.offsetTop+w.el.offsetHeight/2;target=r-lineY()}
-  if(jump){cur=target;scroller.scrollTop=cur}
+  const now=performance.now();
+  if(phase==='read'&&p>pos&&p-pos<8){const dtA=(now-lastAdvT)/1000;if(dtA>.15&&dtA<3)wpsE=Math.max(1,Math.min(5,wpsE*.75+((p-pos)/dtA)*.25))}
+  if(p!==pos)lastAdvT=now;
+  pos=p;paint();
+  if(jump||!S.length){disp=pos;cur=yAt(disp)-lineY();target=cur;applyScroll()}
+  else if(auto)target=yAt(pos)-lineY();
 }
 function nearestToLine(){
-  const y=scroller.scrollTop+lineY();let best=pos,d=1e9;
-  S.forEach((w,i)=>{const c=Math.abs(w.el.offsetTop+w.el.offsetHeight/2-y);if(c<d){d=c;best=i}});
-  return best;
+  if(!S.length)return 0;const y=cur+lineY();let lo=0,hi=S.length-1;
+  while(lo<hi){const m=(lo+hi)>>1;if((S[m].y||0)<y)lo=m+1;else hi=m}
+  return lo;
 }
 function sentence(d){
   if(!S.length)return;if(auto)toggleAuto();
@@ -358,8 +391,8 @@ function showMic(){
 function toggleMic(){listening?stopRec():startRec()}
 function toggleAuto(){
   auto=!auto;
-  if(auto){target=scroller.scrollTop}
-  else setPos(nearestToLine());
+  if(auto){target=cur}
+  else{const n=nearestToLine();disp=n;setPos(n)}
   $('bAuto').textContent=auto?'Auto: on':'Auto';showMic();
 }
 
@@ -368,10 +401,17 @@ function tick(t){
   if(prompter.style.display==='block'){
     if(auto){
       if(!frozen&&phase==='read')target+=cfg.sp*dt;
-      const p=nearestToLine();if(p!==pos){pos=p;S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)})}
-      cur=target;
-    }else cur+=(target-cur)*Math.min(1,dt*5);
-    scroller.scrollTop=cur;
+      cur=target;const p=nearestToLine();if(p!==pos){pos=p;paint()}
+    }else{
+      // va un pelo avanti mentre parli, per coprire il ritardo del riconoscimento
+      const speaking=phase==='read'&&!frozen&&t-lastHeard<900;
+      const goal=Math.min(S.length,pos+(speaking?Math.min(1.6,wpsE*.45):0));
+      const back=goal<disp-2;
+      disp+=(goal-disp)*(1-Math.exp(-dt*(back?9:3.2)));
+      const tg=yAt(disp)-lineY();
+      cur+=(tg-cur)*(1-Math.exp(-dt*12));
+    }
+    applyScroll();
     if(phase==='read'&&!frozen&&(auto||t-lastHeard<1300))el+=dt;
   }
   if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
@@ -382,7 +422,7 @@ requestAnimationFrame(tick);
 function openPrompter(){
   cfg.text=src.value;save();build();
   $('editor').style.display='none';prompter.style.display='block';
-  applyLook();setPos(0,true);wake();startRec();keepAwake();el=0;begin();
+  shownPos=-1;applyLook();layout();setPos(0,true);wake();startRec();keepAwake();el=0;begin();
 }
 function closePrompter(){
   frozen=false;phase='idle';clearInterval(cdT);$('count').classList.remove('on');$('ciak').classList.remove('on');stopRec();if(auto)toggleAuto();
@@ -514,7 +554,7 @@ keepAwake();document.addEventListener('pointerdown',keepAwake);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepAwake()});
 
 function doAct(a){wake();({mic:toggleMic,down:()=>moveLines(1),up:()=>moveLines(-1),next:()=>sentence(1),prev:()=>sentence(-1),auto:toggleAuto,fast:()=>speed(10),slow:()=>speed(-10),plus:()=>font(4),minus:()=>font(-4),top:()=>{if(auto)target=0;setPos(0)}})[a]()}
-addEventListener('resize',()=>{if(prompter.style.display==='block')setPos(pos,true)});
+addEventListener('resize',()=>{placeFades();if(prompter.style.display==='block'){layout();setPos(pos,true)}});
 }
 </script>
 </body>
