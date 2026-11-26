@@ -29,12 +29,19 @@ h1{font-size:20px;margin:0;flex:1}
 #cdot{width:10px;height:10px;border-radius:50%;background:#555}
 #cdot.on{background:var(--ok)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
-#phase{font-size:22px;font-weight:700;margin:0 0 4px}
-#line{color:var(--mut);font-size:15px;min-height:2.9em;margin:0 0 10px;overflow-wrap:anywhere}
+#phase{font-size:18px;font-weight:700;margin:0 0 8px}
+#scr{position:relative;height:38vh;min-height:220px;overflow-y:auto;background:#000;border:1px solid var(--line);border-radius:14px;padding:40% 14px;font-size:17px;line-height:1.5;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#scr p{margin:0 0 .7em}
+#scr span{cursor:pointer;border-radius:4px;padding:0 1px}
+#scr .rd{color:#6e7681}
+#scr .cs{background:#1f2a37}
+#scr .cu{background:var(--rec);color:#fff}
+#scr .empty{color:var(--mut);text-align:center}
+.scrnote{font-size:13px;color:var(--mut);margin:-4px 2px 0}
 .prog{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
 .prog i{display:block;height:100%;width:0;background:var(--rec);transition:width .4s}
-.times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px;text-align:center}
-.times b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;text-align:center}
+.times b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
 .times span{font-size:13px;color:var(--mut)}
 .g{display:grid;gap:10px}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -63,14 +70,16 @@ h2{font-size:14px;color:var(--mut);font-weight:600;margin:4px 2px -4px}
 
   <section class="card" aria-live="polite">
     <p id="phase">Teleprompter chiuso</p>
-    <p id="line">Apri il teleprompter sul tablet, o premi "Apri" qui sotto.</p>
     <div class="prog"><i id="bar"></i></div>
     <div class="times">
-      <div><b id="tEl">0:00</b><span>passato</span></div>
+      <div><b id="tEl">0:00</b><span>tempo letto</span></div>
       <div><b id="tLeft">–</b><span>mancano circa</span></div>
       <div><b id="tTot">–</b><span>durata copione</span></div>
     </div>
   </section>
+
+  <div id="scr"><p class="empty">Apri il teleprompter sul tablet: qui vedrai il copione.</p></div>
+  <p class="scrnote">Scorri il copione col dito e tocca una parola per far ripartire il tablet da lì.</p>
 
   <div id="ciakBox" class="hid">
     <h2>Ciak</h2>
@@ -129,7 +138,7 @@ function render(s){
   last=s;seen=Date.now();
   const ph={idle:'Teleprompter chiuso',ciak:'Ciak: aspetto i comandi',count:'Conto alla rovescia…',read:s.fr?'In pausa':'In lettura'}[s.ph]||'';
   $('phase').textContent=ph;
-  $('line').textContent=s.open?(s.line||''):'Apri il teleprompter sul tablet, o premi "Apri sul tablet".';
+  markScript(s.open?s.pos:-1);
   const p=s.tot?s.pos/s.tot:0;$('bar').style.width=Math.round(p*100)+'%';
   // stima: parte da 150 parole/min, poi si adatta alla tua velocità vera
   const wps=s.el>12&&s.pos>12?s.pos/s.el:WPS;
@@ -150,12 +159,33 @@ function render(s){
 }
 setInterval(()=>{const on=Date.now()-seen<5000;$('cdot').classList.toggle('on',on);$('ctxt').textContent=on?'Tablet collegato':'Cerco il tablet…'},1000);
 
+/* copione in piccolo */
+let W=[],spans=[],lastPos=-2,userScroll=0;
+const scr=$('scr');
+scr.addEventListener('touchmove',()=>userScroll=Date.now(),{passive:true});
+scr.addEventListener('wheel',()=>userScroll=Date.now(),{passive:true});
+scr.addEventListener('click',e=>{const sp=e.target.closest('span[data-i]');if(!sp)return;ch&&ch.send({type:'broadcast',event:'cmd',payload:{a:'goto',i:+sp.dataset.i}});userScroll=0;try{navigator.vibrate&&navigator.vibrate(12)}catch(err){}});
+function drawScript(w){
+  W=w;scr.textContent='';spans=[];let p=null;
+  w.forEach(([t,st,np],i)=>{if(np||!p){p=document.createElement('p');scr.appendChild(p)}else p.appendChild(document.createTextNode(' '));
+    const s=document.createElement('span');s.textContent=t;s.dataset.i=i;p.appendChild(s);spans.push(s)});
+  lastPos=-2;if(last)markScript(last.open?last.pos:-1);
+}
+function markScript(pos){
+  if(!spans.length||pos===lastPos)return;lastPos=pos;
+  let s=Math.min(Math.max(pos,0),W.length-1);while(s>0&&!W[s][1])s--;
+  let e=s+1;while(e<W.length&&!W[e][1])e++;
+  spans.forEach((sp,i)=>{sp.className=(pos>=0&&i<pos?'rd':'')+(pos>=0&&i>=s&&i<e?' cs':'')+(i===pos?' cu':'')});
+  const c=spans[Math.min(Math.max(pos,0),spans.length-1)];
+  if(c&&Date.now()-userScroll>4000){const top=c.offsetTop-scr.clientHeight*.4;try{scr.scrollTo({top,behavior:'smooth'})}catch(e){scr.scrollTop=top}}
+}
 function join(code){
   if(!sb)return;
   if(ch){try{sb.removeChannel(ch)}catch(e){}}
   $('code').value=code;
   ch=sb.channel('tp-'+code,{config:{broadcast:{self:false}}});
   ch.on('broadcast',{event:'state'},({payload})=>render(payload||{}))
+    .on('broadcast',{event:'script'},({payload})=>payload&&payload.w&&drawScript(payload.w))
     .subscribe(st=>{if(st==='SUBSCRIBED')send('ping')});
 }
 $('saveCode').onclick=()=>{const c=$('code').value.replace(/\D/g,'').slice(0,4);if(c.length!==4){$('codeNote').textContent='Il codice è di 4 cifre.';return}

@@ -226,19 +226,20 @@ const textEl=$('text'),scroller=$('scroller'),prompter=$('prompter');
 function build(){
   textEl.innerHTML='';S=[];
   const paras=cfg.text.replace(/\r/g,'').split(/\n+/).filter(p=>p.trim());
-  let newS=true;
+  let newS=true,newP=true;
   for(const p of paras){
-    const pe=document.createElement('p');newS=true;
+    const pe=document.createElement('p');newS=true;newP=true;
     p.trim().split(/\s+/).forEach((tok,i)=>{
       if(i)pe.appendChild(document.createTextNode(' '));
       const s=document.createElement('span');s.className='w';s.textContent=tok;
       const n=norm(tok);
-      if(n){s.dataset.i=S.length;S.push({n,el:s,st:newS});newS=false}
+      if(n){s.dataset.i=S.length;S.push({n,el:s,st:newS,np:newP});newS=false;newP=false}
       if(/[.!?…]['"»”)]*$/.test(tok))newS=true;
       pe.appendChild(s);
     });
     textEl.appendChild(pe);
   }
+  sendScript();
 }
 function applyLook(){
   textEl.style.fontSize=cfg.fs+'px';
@@ -259,7 +260,12 @@ function applyLook(){
 }
 function lineY(){return scroller.clientHeight*cfg.ln/100}
 function setPos(p,jump){
-  pos=Math.max(0,Math.min(S.length,p));
+  p=Math.max(0,Math.min(S.length,p));
+  if(phase==='read'){
+    if(p<pos){if(tAt[p]!=null)el=tAt[p];for(let i=p+1;i<tAt.length;i++)tAt[i]=null}
+    else for(let i=pos+1;i<=p;i++)if(tAt[i]==null)tAt[i]=el;
+  }
+  pos=p;
   S.forEach((w,i)=>{w.el.classList.toggle('read',i<pos);w.el.classList.toggle('cur',i===pos)});
   const w=S[Math.min(pos,S.length-1)];
   if(w){const r=w.el.offsetTop+w.el.offsetHeight/2;target=r-lineY()}
@@ -329,6 +335,7 @@ function startRec(){
       if(r.isFinal&&tryCommand(tx))continue;
       t+=tx+' ';
     }
+    if(t.trim())lastHeard=performance.now();
     $('heard').textContent=t.trim();
     if(auto||frozen||phase!=='read')return;
     tryMatch(t.split(/\s+/).map(norm).filter(Boolean));
@@ -365,7 +372,7 @@ function tick(t){
       cur=target;
     }else cur+=(target-cur)*Math.min(1,dt*5);
     scroller.scrollTop=cur;
-    if(phase==='read'&&!frozen)el+=dt;
+    if(phase==='read'&&!frozen&&(auto||t-lastHeard<1300))el+=dt;
   }
   if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
   requestAnimationFrame(tick);
@@ -440,7 +447,7 @@ document.addEventListener('keydown',e=>{
   else if(k===','||k==='[')speed(-10);
 });
 /* partenza: conto alla rovescia o ciak */
-let phase='idle',cdT,el=0,lastSend=0,lastState='',ciakDone={};
+let tAt=[],lastHeard=-1e9,phase='idle',cdT,el=0,lastSend=0,lastState='',ciakDone={};
 const CIAK=[['motore',['motore','motor','motori']],['camera',['camera','telecamera','gira','partita','partito','registra']],['audio',['audio','suono']],['azione',['azione','azioni']]];
 function ciakSteps(){return CIAK.filter(([k])=>k!=='audio'||cfg.ca)}
 function drawCiak(){$('ciakSteps').innerHTML=ciakSteps().map(([k])=>'<button data-k="'+k+'" class="'+(ciakDone[k]?'ok':'')+'">'+k.toUpperCase()+'<span>'+(ciakDone[k]?'✓':'')+'</span></button>').join('')}
@@ -463,7 +470,7 @@ function countdown(){
   $('ciak').classList.remove('on');phase='count';let n=3;$('countN').textContent=n;$('count').classList.add('on');
   clearInterval(cdT);cdT=setInterval(()=>{n--;if(n>0)$('countN').textContent=n;else{clearInterval(cdT);$('count').classList.remove('on');startReading()}},1000);
 }
-function startReading(){phase='read';showMic()}
+function startReading(){phase='read';tAt=[];tAt[pos]=el;showMic()}
 function restartTake(){if(auto)target=0;setPos(0,true);el=0;begin()}
 let lock=null;
 async function keepAwake(){try{if(navigator.wakeLock&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
@@ -475,6 +482,7 @@ function curSentence(){if(!S.length)return'';let s=Math.min(pos,S.length-1);whil
 function stateObj(){const open=prompter.style.display==='block';const tot=S.length||cfg.text.split(/\s+/).filter(Boolean).length;
   return{open,ph:open?phase:'idle',pos:open?pos:0,tot,li:listening,au:auto,fr:frozen,sp:cfg.sp,fs:cfg.fs,mx:cfg.mx,my:cfg.my,nm:cfg.nm,ca:cfg.ca,go:cfg.go,el:Math.round(el),ciak:ciakDone,line:open?curSentence():''}}
 function stateChanged(){const s=JSON.stringify(stateObj());return s!==lastState}
+function sendScript(){if(!ch||!S.length)return;try{ch.send({type:'broadcast',event:'script',payload:{w:S.map(x=>[x.el.textContent,x.st?1:0,x.np?1:0])}})}catch(e){}}
 function sendState(){if(!ch)return;const o=stateObj();lastState=JSON.stringify(o);try{ch.send({type:'broadcast',event:'state',payload:o})}catch(e){}}
 function roomFromUser(id){return String(parseInt(id.replace(/-/g,'').slice(0,8),16)%9000+1000)}
 async function remoteInit(){
@@ -486,11 +494,11 @@ async function remoteInit(){
     else{try{code=localStorage.getItem('tp-room')}catch(e){}if(!code){code=String(Math.floor(1000+Math.random()*9000));try{localStorage.setItem('tp-room',code)}catch(e){}}}
     $('rmInfo').innerHTML='Sul telefono apri Leoni Studio → <b>Telecomando</b>. Codice di questo tablet: <b>'+code+'</b>'+(data&&data.session?' (preso dal tuo account, il telefono lo trova da solo).':'.');
     ch=sb.channel('tp-'+code,{config:{broadcast:{self:false}}});
-    ch.on('broadcast',{event:'cmd'},({payload})=>{remoteCmd(payload&&payload.a);sendState()})
+    ch.on('broadcast',{event:'cmd'},({payload})=>{payload=payload||{};remoteCmd(payload.a,payload);if(payload.a==='ping')sendScript();sendState()})
       .subscribe(st=>{if(st==='SUBSCRIBED')sendState()});
   }catch(e){$('rmInfo').textContent='Telecomando dal telefono non disponibile: serve internet.'}
 }
-function remoteCmd(a){
+function remoteCmd(a,pl){
   const open=prompter.style.display==='block';
   const F={open:()=>{if(!open)openPrompter()},close:()=>{if(open)closePrompter()},
     mic:toggleMic,pause:()=>{frozen=!frozen;showMic();toast(frozen?'Pausa':'Si parte')},
@@ -498,7 +506,7 @@ function remoteCmd(a){
     top:()=>{if(auto)target=0;setPos(0)},take:restartTake,auto:toggleAuto,fast:()=>speed(10),slow:()=>speed(-10),
     plus:()=>font(4),minus:()=>font(-4),mirror:()=>$('bMirror').click(),flip:()=>$('bFlip').click(),marg:toggleMarg,
     go:()=>{if(phase==='ciak'||phase==='idle')countdown()},
-    motore:()=>ciakMark('motore'),camera:()=>ciakMark('camera'),audio:()=>ciakMark('audio'),azione:()=>ciakMark('azione'),ping:()=>{}};
+    motore:()=>ciakMark('motore'),camera:()=>ciakMark('camera'),audio:()=>ciakMark('audio'),azione:()=>ciakMark('azione'),ping:()=>{},goto:()=>{if(auto)toggleAuto();setPos(+pl.i)}};
   if(F[a]&&(open||a==='open'||a==='ping'))F[a]();
 }
 remoteInit();
