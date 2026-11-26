@@ -88,7 +88,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <label>Margine laterale <b id="mgV"></b><input type="range" id="mg" min="0" max="30" step="1"></label>
     <label>Allineamento<select id="al"><option value="center">Centrato</option><option value="left">A sinistra</option></select></label>
     <label>Riga di lettura (50% = centro, all'obiettivo) <b id="lnV"></b><input type="range" id="ln" min="20" max="70" step="1"></label>
-    <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="200" step="5"></label>
+    <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="300" step="5"></label>
     <label>Lingua<select id="lang">
       <option value="it-IT">Italiano</option><option value="en-US">Inglese (US)</option><option value="en-GB">Inglese (UK)</option>
       <option value="es-ES">Spagnolo</option><option value="fr-FR">Francese</option><option value="de-DE">Tedesco</option><option value="ro-RO">Rumeno</option></select></label>
@@ -106,7 +106,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
-  <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
+  <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
 
@@ -118,7 +118,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button id="bMic">Ascolta</button>
     <button id="bAuto">Auto</button>
     <button id="bPrev">◀ Frase</button><button id="bNext">Frase ▶</button><button id="bMarg">Margini</button><button id="bTop">Inizio</button>
-    <button id="bMinus">A−</button><button id="bPlus">A+</button>
+    <button id="bMinus">A−</button><button id="bPlus">A+</button><button id="bSlow">Vel −</button><span id="spShow" style="min-width:64px;text-align:center;font-size:14px;color:var(--mute)"></span><button id="bFast">Vel +</button>
     <button id="bMirror">Specchio ↔</button><button id="bFlip">Capovolgi ↕</button>
     <button id="bFull">Schermo intero</button>
     <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
@@ -141,7 +141,7 @@ Quando vuoi, incolla qui il tuo copione e premi avvia.`;
 const DEF={text:SAMPLE,fs:64,mg:4,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg2')||'{}')}}catch(e){}
-const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
+const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
 if(!cfg.keys)cfg.keys={};
 const save=()=>{try{localStorage.setItem('tp-cfg2',JSON.stringify(cfg))}catch(e){}};
 
@@ -187,7 +187,7 @@ function build(){
 function applyLook(){
   textEl.style.fontSize=cfg.fs+'px';
   const m=cfg.nm?0:cfg.mg;textEl.style.padding='0 calc('+m+'vw + env(safe-area-inset-left))';
-  textEl.style.textAlign=cfg.al;
+  textEl.style.textAlign=cfg.al;$('spShow').textContent='Vel '+cfg.sp;
   $('bMarg').classList.toggle('on',!cfg.nm);$('bMarg').textContent=cfg.nm?'Margini: no':'Margini: sì';
   const ly=cfg.my?100-cfg.ln:cfg.ln;$('marker').style.top=ly+'%';$('band').style.top=ly+'%';
   $('bMirror').classList.toggle('on',cfg.mx);$('bFlip').classList.toggle('on',cfg.my);$('band').style.height=(cfg.fs*1.35)+'px';
@@ -318,6 +318,8 @@ function full(){
   if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
   else document.documentElement.requestFullscreen().catch(()=>{});
 }
+function speed(d){cfg.sp=Math.max(10,Math.min(300,cfg.sp+d));$('sp').value=cfg.sp;$('spV').textContent=cfg.sp+' px/s';$('spShow').textContent='Vel '+cfg.sp;save();
+  if(!auto){$('stTxt').textContent='Velocità '+cfg.sp+' (vale in Auto)';clearTimeout(speed.t);speed.t=setTimeout(showMic,1500)}}
 function font(d){cfg.fs=Math.max(28,Math.min(140,cfg.fs+d));$('fs').value=cfg.fs;$('fsV').textContent=cfg.fs+'px';save();applyLook()}
 
 $('start').onclick=openPrompter;
@@ -328,6 +330,7 @@ $('bTop').onclick=()=>{if(auto)target=0;setPos(0)};
 $('bPlus').onclick=()=>font(4);$('bMinus').onclick=()=>font(-4);
 $('bMirror').onclick=()=>{cfg.mx=!cfg.mx;$('mx').checked=cfg.mx;save();applyLook()};
 $('bFull').onclick=full;
+$('bFast').onclick=()=>speed(10);$('bSlow').onclick=()=>speed(-10);
 $('bFlip').onclick=()=>{cfg.my=!cfg.my;$('my').checked=cfg.my;save();applyLook()};
 $('bPrev').onclick=()=>sentence(-1);$('bNext').onclick=()=>sentence(1);$('bMarg').onclick=toggleMarg;
 textEl.addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!==undefined){if(auto)toggleAuto();setPos(+i)}});
@@ -364,9 +367,11 @@ document.addEventListener('keydown',e=>{
   else if(k==='-')font(-4)
   else if(k==='m'||k==='M')$('bMirror').click()
   else if(k==='f'||k==='F')full()
-  else if(k==='a'||k==='A')toggleAuto();
+  else if(k==='a'||k==='A')toggleAuto()
+  else if(k==='.'||k===']')speed(10)
+  else if(k===','||k==='[')speed(-10);
 });
-function doAct(a){wake();({mic:toggleMic,down:()=>moveLines(1),up:()=>moveLines(-1),next:()=>sentence(1),prev:()=>sentence(-1),auto:toggleAuto,plus:()=>font(4),minus:()=>font(-4),top:()=>{if(auto)target=0;setPos(0)}})[a]()}
+function doAct(a){wake();({mic:toggleMic,down:()=>moveLines(1),up:()=>moveLines(-1),next:()=>sentence(1),prev:()=>sentence(-1),auto:toggleAuto,fast:()=>speed(10),slow:()=>speed(-10),plus:()=>font(4),minus:()=>font(-4),top:()=>{if(auto)target=0;setPos(0)}})[a]()}
 addEventListener('resize',()=>{if(prompter.style.display==='block')setPos(pos,true)});
 }
 </script>
