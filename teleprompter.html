@@ -45,13 +45,15 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 
 #prompter{position:fixed;inset:0;background:#000;display:none}
 #scroller{position:absolute;inset:0;overflow:hidden}
-#text{margin:0 auto;padding:0 4vw;font-weight:700;color:#fff;line-height:1.35}
+#text{margin:0 auto;font-weight:700;color:#fff;line-height:1.35;transition:padding .3s}
 #text p{margin:0 0 .6em}
 #text .w{transition:color .25s,opacity .25s;cursor:pointer;border-radius:4px}
-#text .w.read{opacity:.28}
+#text .w.read{opacity:.42}
 #text .w.cur{color:#ffd60a}
 .pad{height:100vh}
 #marker{position:absolute;left:0;right:0;pointer-events:none;height:0}
+#band{position:absolute;left:0;right:0;pointer-events:none;background:rgba(255,255,255,.06);border-block:1px solid rgba(255,255,255,.08);transform:translateY(-50%)}
+#bar button.on{border-color:var(--rec)}
 #marker::before,#marker::after{content:"";position:absolute;top:-14px;border:14px solid transparent}
 #marker::before{left:0;border-left:20px solid var(--rec)}
 #marker::after{right:0;border-right:20px solid var(--rec)}
@@ -78,15 +80,16 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <textarea id="src" spellcheck="false" aria-label="Testo da leggere"></textarea>
   <div class="grid">
     <label>Grandezza testo <b id="fsV"></b><input type="range" id="fs" min="28" max="140" step="2"></label>
-    <label>Larghezza colonna <b id="wdV"></b><input type="range" id="wd" min="40" max="100" step="2"></label>
-    <label>Riga di lettura (dall'alto) <b id="lnV"></b><input type="range" id="ln" min="15" max="60" step="1"></label>
+    <label>Margine laterale <b id="mgV"></b><input type="range" id="mg" min="0" max="30" step="1"></label>
+    <label>Allineamento<select id="al"><option value="center">Centrato</option><option value="left">A sinistra</option></select></label>
+    <label>Riga di lettura (50% = centro, all'obiettivo) <b id="lnV"></b><input type="range" id="ln" min="20" max="70" step="1"></label>
     <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="200" step="5"></label>
     <label>Lingua<select id="lang">
       <option value="it-IT">Italiano</option><option value="en-US">Inglese (US)</option><option value="en-GB">Inglese (UK)</option>
       <option value="es-ES">Spagnolo</option><option value="fr-FR">Francese</option><option value="de-DE">Tedesco</option><option value="ro-RO">Rumeno</option></select></label>
     <div>
-      <label class="check"><input type="checkbox" id="mx"> Specchio orizzontale (vetro)</label>
-      <label class="check"><input type="checkbox" id="my"> Capovolgi verticale</label>
+      <label class="check"><input type="checkbox" id="mx"> Specchio ↔ (per il teleprompter col vetro)</label>
+      <label class="check"><input type="checkbox" id="my"> Capovolgi ↕ (se nel vetro lo vedi sottosopra)</label>
       <label class="check"><input type="checkbox" id="sh"> Mostra cosa sente</label>
     </div>
   </div>
@@ -94,20 +97,20 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button class="go" id="start">Avvia teleprompter</button>
     <button id="clear">Svuota testo</button>
   </div>
-  <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
-  Se salti una frase o improvvisi, il teleprompter ti aspetta e si riaggancia appena ritrova le tue parole (cerca fino a circa 40 parole più avanti).</p>
+  <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
+  Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
 
 <section id="prompter">
   <div id="scroller"><div class="pad"></div><div id="text"></div><div class="pad"></div></div>
-  <div id="marker"></div>
+  <div id="band"></div><div id="marker"></div>
   <div id="bar">
     <button id="bBack">← Testo</button>
     <button id="bMic">Ascolta</button>
     <button id="bAuto">Auto</button>
-    <button id="bTop">Inizio</button>
+    <button id="bPrev">◀ Frase</button><button id="bNext">Frase ▶</button><button id="bMarg">Margini</button><button id="bTop">Inizio</button>
     <button id="bMinus">A−</button><button id="bPlus">A+</button>
-    <button id="bMirror">Specchio</button>
+    <button id="bMirror">Specchio ↔</button><button id="bFlip">Capovolgi ↕</button>
     <button id="bFull">Schermo intero</button>
     <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
   </div>
@@ -126,16 +129,17 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={text:SAMPLE,fs:64,wd:80,ln:33,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={text:SAMPLE,fs:64,mg:4,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
-try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg')||'{}')}}catch(e){}
-const save=()=>{try{localStorage.setItem('tp-cfg',JSON.stringify(cfg))}catch(e){}};
+try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg2')||'{}')}}catch(e){}
+const save=()=>{try{localStorage.setItem('tp-cfg2',JSON.stringify(cfg))}catch(e){}};
 
 const src=$('src');src.value=cfg.text;
-const sliders={fs:'px',wd:'%',ln:'%',sp:' px/s'};
+const sliders={fs:'px',mg:'%',ln:'%',sp:' px/s'};
 for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
 for(const k of['mx','my','sh']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+$('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
 $('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()};
 src.oninput=()=>{cfg.text=src.value;save()};
 $('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
@@ -150,13 +154,15 @@ const textEl=$('text'),scroller=$('scroller'),prompter=$('prompter');
 function build(){
   textEl.innerHTML='';S=[];
   const paras=cfg.text.replace(/\r/g,'').split(/\n+/).filter(p=>p.trim());
+  let newS=true;
   for(const p of paras){
-    const pe=document.createElement('p');
+    const pe=document.createElement('p');newS=true;
     p.trim().split(/\s+/).forEach((tok,i)=>{
       if(i)pe.appendChild(document.createTextNode(' '));
       const s=document.createElement('span');s.className='w';s.textContent=tok;
       const n=norm(tok);
-      if(n){s.dataset.i=S.length;S.push({n,el:s})}
+      if(n){s.dataset.i=S.length;S.push({n,el:s,st:newS});newS=false}
+      if(/[.!?…:]['"»”)]*$/.test(tok))newS=true;
       pe.appendChild(s);
     });
     textEl.appendChild(pe);
@@ -164,7 +170,11 @@ function build(){
 }
 function applyLook(){
   textEl.style.fontSize=cfg.fs+'px';
-  textEl.style.maxWidth=cfg.wd+'%';
+  const m=cfg.nm?0:cfg.mg;textEl.style.padding='0 calc('+m+'vw + env(safe-area-inset-left))';
+  textEl.style.textAlign=cfg.al;
+  $('bMarg').classList.toggle('on',!cfg.nm);$('bMarg').textContent=cfg.nm?'Margini: no':'Margini: sì';
+  const ly=cfg.my?100-cfg.ln:cfg.ln;$('marker').style.top=ly+'%';$('band').style.top=ly+'%';
+  $('bMirror').classList.toggle('on',cfg.mx);$('bFlip').classList.toggle('on',cfg.my);$('band').style.height=(cfg.fs*1.35)+'px';
   $('marker').style.top=cfg.ln+'%';
   prompter.classList.toggle('mirrorX',cfg.mx);
   prompter.classList.toggle('mirrorY',cfg.my);
@@ -184,6 +194,13 @@ function nearestToLine(){
   S.forEach((w,i)=>{const c=Math.abs(w.el.offsetTop+w.el.offsetHeight/2-y);if(c<d){d=c;best=i}});
   return best;
 }
+function sentence(d){
+  if(!S.length)return;if(auto)toggleAuto();
+  let i=Math.min(pos,S.length-1);
+  if(d<0){let s=i;while(s>0&&!S[s].st)s--; if(i-s<=1){s--;while(s>0&&!S[s].st)s--} setPos(Math.max(0,s))}
+  else{i++;while(i<S.length&&!S[i].st)i++;setPos(i)}
+}
+function toggleMarg(){cfg.nm=!cfg.nm;save();applyLook()}
 function moveLines(d){
   if(!S.length)return;
   const i0=Math.min(pos,S.length-1),top=S[i0].el.offsetTop;let i=i0;
@@ -196,7 +213,7 @@ function moveLines(d){
 /* aggancio voce → testo */
 function tryMatch(R){
   if(!R.length||!S.length)return;
-  const from=Math.max(0,pos-3),to=Math.min(S.length-1,pos+40);
+  const from=Math.max(0,pos-60),to=Math.min(S.length-1,pos+40);
   let best=-1,bestScore=-1e9;
   for(let drop=0;drop<=1;drop++){
     const tail=R.slice(Math.max(0,R.length-6-drop),R.length-drop);
@@ -211,13 +228,18 @@ function tryMatch(R){
         else{ri--;miss++}
       }
       const dist=j-pos;
-      const ok=sc>=2||(sc===1&&last.length>=4&&dist>=-1&&dist<=5)||(sc===1&&dist>=0&&dist<=1);
+      let ok;
+      if(dist<-3){
+        // stai rileggendo: torna indietro solo se la frase ripetuta è chiara
+        let chars=0;for(let k=j-sc+1;k<=j;k++)if(S[k])chars+=S[k].n.length;
+        ok=sc>=3&&chars>=10&&sc>=tail.length-1;
+      }else ok=sc>=2||(sc===1&&last.length>=4&&dist>=-1&&dist<=5)||(sc===1&&dist>=0&&dist<=1);
       if(!ok)continue;
-      const score=sc*3-Math.abs(dist)/6-drop;
+      const score=sc*3-(dist<0?Math.abs(dist)/4:dist/6)-drop;
       if(score>bestScore){bestScore=score;best=j}
     }
   }
-  if(best>=pos-1&&best>=0)setPos(best+1);
+  if(best>=0&&best+1!==pos)setPos(best+1);
 }
 
 function startRec(){
@@ -290,8 +312,10 @@ $('bTop').onclick=()=>{if(auto)target=0;setPos(0)};
 $('bPlus').onclick=()=>font(4);$('bMinus').onclick=()=>font(-4);
 $('bMirror').onclick=()=>{cfg.mx=!cfg.mx;$('mx').checked=cfg.mx;save();applyLook()};
 $('bFull').onclick=full;
+$('bFlip').onclick=()=>{cfg.my=!cfg.my;$('my').checked=cfg.my;save();applyLook()};
+$('bPrev').onclick=()=>sentence(-1);$('bNext').onclick=()=>sentence(1);$('bMarg').onclick=toggleMarg;
 textEl.addEventListener('click',e=>{const i=e.target.dataset&&e.target.dataset.i;if(i!==undefined){if(auto)toggleAuto();setPos(+i)}});
-scroller.addEventListener('wheel',e=>{e.preventDefault();moveLines(e.deltaY>0?1:-1)},{passive:false});
+scroller.addEventListener('wheel',e=>{e.preventDefault();moveLines((e.deltaY>0?1:-1)*(cfg.my?-1:1))},{passive:false});
 
 let hideT;
 function wake(){$('bar').classList.remove('hide');clearTimeout(hideT);hideT=setTimeout(()=>$('bar').classList.add('hide'),2500)}
@@ -299,7 +323,7 @@ prompter.addEventListener('mousemove',wake);
 let ty=null;
 prompter.addEventListener('touchstart',e=>{wake();ty=e.touches[0].clientY},{passive:true});
 scroller.addEventListener('touchmove',e=>{e.preventDefault()},{passive:false});
-scroller.addEventListener('touchend',e=>{if(ty===null)return;const dy=ty-e.changedTouches[0].clientY;ty=null;
+scroller.addEventListener('touchend',e=>{if(ty===null)return;const dy=(ty-e.changedTouches[0].clientY)*(cfg.my?-1:1);ty=null;
   if(Math.abs(dy)>30){const n=Math.max(1,Math.round(Math.abs(dy)/(cfg.fs*1.35)));for(let i=0;i<n;i++)moveLines(dy>0?1:-1)}});
 
 document.addEventListener('keydown',e=>{
@@ -308,6 +332,9 @@ document.addEventListener('keydown',e=>{
   if(k===' '){e.preventDefault();toggleMic()}
   else if(k==='ArrowDown'||k==='PageDown'){e.preventDefault();moveLines(1)}
   else if(k==='ArrowUp'||k==='PageUp'){e.preventDefault();moveLines(-1)}
+  else if(k==='ArrowLeft'){e.preventDefault();sentence(-1)}
+  else if(k==='ArrowRight'){e.preventDefault();sentence(1)}
+  else if(k==='g'||k==='G')toggleMarg()
   else if(k==='Home'){if(auto)target=0;setPos(0)}
   else if(k==='Escape'&&!document.fullscreenElement)closePrompter()
   else if(k==='+'||k==='=')font(4)
