@@ -106,6 +106,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <label>Allineamento<select id="al"><option value="center">Centrato</option><option value="left">A sinistra</option></select></label>
     <label>Riga di lettura (50% = centro, all'obiettivo) <b id="lnV"></b><input type="range" id="ln" min="20" max="70" step="1"></label>
     <label>Velocità scorrimento automatico <b id="spV"></b><input type="range" id="sp" min="10" max="300" step="5"></label>
+    <label>Riconoscimento voce<select id="eng"><option value="local">IA locale sul tablet (senza Siri, anche offline)</option><option value="web">Siri / Google del browser</option></select><span id="engSt" style="display:block;font-size:13px;margin-top:4px"></span></label>
     <label>Partenza<select id="go"><option value="count">Conto alla rovescia 3-2-1</option><option value="ciak">Ciak: motore, camera, audio, azione</option><option value="now">Subito</option></select></label>
     <label>Lingua<select id="lang">
       <option value="it-IT">Italiano</option><option value="en-US">Inglese (US)</option><option value="en-GB">Inglese (UK)</option>
@@ -169,7 +170,7 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={lv:true,go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={eng:'local',lv:true,go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg3')||'{}')}}catch(e){}
 const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
@@ -181,6 +182,7 @@ const sliders={fs:'px',mg:'%',ln:'%',sp:' px/s'};
 for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
 for(const k of['mx','my','sh','vc','ca','fo','lv']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+$('eng').value=cfg.eng;$('eng').onchange=()=>{cfg.eng=$('eng').value;save();if(cfg.eng==='local')loadVosk().catch(()=>{});if(listening){stopRec();startRec()}};
 $('go').value=cfg.go;$('go').onchange=()=>{cfg.go=$('go').value;save()};
 $('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
 $('lv').addEventListener('change',()=>{if(!cfg.lv)stopMeter();else if(listening)startMeter()});
@@ -273,7 +275,7 @@ function placeFades(){
   bot.style.background='linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,'+dBot+') '+(lh*1.8)+'px,rgba(0,0,0,'+dBot+') 100%)';
 }
 /* scorrimento continuo: ogni parola ha la sua altezza dentro la riga */
-let disp=0,wpsE=2.5,lastAdvT=0,shownPos=-1;
+let disp=0,wpsE=2.5,lastAdvT=0,shownPos=-1,backT=-1e9;
 const inner=$('inner');
 function layout(){
   let i=0;
@@ -301,7 +303,7 @@ function setPos(p,jump){
   }
   const now=performance.now();
   if(phase==='read'&&p>pos&&p-pos<8){const dtA=(now-lastAdvT)/1000;if(dtA>.15&&dtA<3)wpsE=Math.max(1,Math.min(5,wpsE*.75+((p-pos)/dtA)*.25))}
-  if(p!==pos)lastAdvT=now;
+  if(p!==pos)lastAdvT=now;if(p<pos)backT=now;
   pos=p;paint();
   if(jump||!S.length){disp=pos;cur=yAt(disp)-lineY();target=cur;applyScroll()}
   else if(auto)target=yAt(pos)-lineY();
@@ -328,7 +330,7 @@ function moveLines(d){
 }
 
 /* aggancio voce → testo */
-function tryMatch(R){
+function tryMatch(R,fresh){fresh=fresh||R.length;
   if(!R.length||!S.length)return;
   const from=Math.max(0,pos-60),to=Math.min(S.length-1,pos+40);
   let best=-1,bestScore=-1e9;
@@ -349,7 +351,7 @@ function tryMatch(R){
       if(dist<-3){
         // stai rileggendo: torna indietro solo se la frase ripetuta è chiara
         let chars=0;for(let k=j-sc+1;k<=j;k++)if(S[k])chars+=S[k].n.length;
-        ok=sc>=3&&chars>=10&&sc>=tail.length-1;
+        ok=fresh<=4&&sc>=3&&chars>=10&&sc>=tail.length-1&&(dist>-15||sc>=4);
       }else ok=sc>=2||(sc===1&&last.length>=4&&dist>=-1&&dist<=5)||(sc===1&&dist>=0&&dist<=1);
       if(!ok)continue;
       const score=sc*3-(dist<0?Math.abs(dist)/4:dist/6)-drop;
@@ -359,21 +361,31 @@ function tryMatch(R){
   if(best>=0&&best+1!==pos)setPos(best+1);
 }
 
+/* testo riconosciuto (da Siri/Google o dall'IA locale): conta solo le parole nuove */
+let prevLen=0;
+function handleSeg(segs){
+  let t='';
+  for(const s of segs){if(phase==='ciak'){if(s.conf==null||s.conf>=.75)scanCiak(s.tx);continue}if(s.fin&&(s.conf==null||s.conf>=.85)&&tryCommand(s.tx))continue;t+=s.tx+' '}
+  const words=t.split(/\s+/).map(norm).filter(Boolean);
+  if(words.length<prevLen)prevLen=0;
+  const fresh=words.length-prevLen;prevLen=words.length;
+  if(fresh>0)lastHeard=performance.now();
+  $('heard').textContent=t.trim();
+  if(auto||frozen||phase!=='read'||fresh<=0)return;
+  tryMatch(words,fresh);
+}
+function useLocal(){return cfg.eng==='local'&&/^it/.test(cfg.lang)}
 function startRec(){
+  prevLen=0;
+  if(useLocal()){startLocal();return}
+  startWeb();
+}
+function startWeb(){
   if(!SR){$('stTxt').textContent='Voce non disponibile qui';return}
   rec=new SR();rec.lang=cfg.lang;rec.continuous=true;rec.interimResults=true;rec.maxAlternatives=1;
   rec.onresult=e=>{
-    let t='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const r=e.results[i],tx=r[0].transcript;
-      if(phase==='ciak'){scanCiak(tx);continue}
-      if(r.isFinal&&tryCommand(tx))continue;
-      t+=tx+' ';
-    }
-    if(t.trim())lastHeard=performance.now();
-    $('heard').textContent=t.trim();
-    if(auto||frozen||phase!=='read')return;
-    tryMatch(t.split(/\s+/).map(norm).filter(Boolean));
+    const segs=[];for(let i=e.resultIndex;i<e.results.length;i++)segs.push({tx:e.results[i][0].transcript,fin:e.results[i].isFinal});
+    handleSeg(segs);
   };
   rec.onerror=e=>{
     if(e.error==='not-allowed'||e.error==='service-not-allowed'){listening=false;showMic();$('stTxt').textContent='Microfono bloccato: consentilo nel browser'}
@@ -384,7 +396,52 @@ function startRec(){
   try{rec.start()}catch(e){}
   startMeter();
 }
-function stopRec(){listening=false;showMic();stopMeter();try{rec&&rec.stop()}catch(e){}}
+function stopRec(){listening=false;showMic();stopLocal();stopMeter();try{rec&&rec.stop()}catch(e){}rec=null}
+
+/* IA locale (Vosk): gira tutta sul tablet, riconosce solo le parole del copione e dei comandi */
+let voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
+function engSay(t){$('engSt').textContent=t}
+function loadVosk(){
+  if(voskP)return voskP;
+  engSay('Carico l\'IA locale… (la prima volta scarica circa 35 MB)');
+  voskP=new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement('script');s.src='ia/vosk.js';s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)})
+    .then(()=>Vosk.createModel('ia/vosk-model-small-it-0.4.tar.gz'))
+    .then(m=>{vModel=m;engSay('IA locale pronta');return m})
+    .catch(e=>{voskP=null;engSay('IA locale non disponibile su questo dispositivo');throw e});
+  return voskP;
+}
+function grammarWords(){
+  const set=new Set(['[unk]','ok']);
+  const add=w=>{w=w.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-zàáèéìíòóùú']/g,'');if(!w||w==="'")return;set.add(w);
+    if(w.includes("'")){const i=w.indexOf("'"),a=w.slice(0,i),b=w.slice(i+1);if(a)set.add(a+"'");if(b)set.add(b)}};
+  S.forEach(x=>add(x.el.textContent));
+  CMDS.forEach(([ps])=>ps.forEach(p=>p.split(/\s+/).forEach(add)));
+  CIAK.forEach(([,ws])=>ws.forEach(add));
+  return [...set];
+}
+async function startLocal(){
+  listening=true;showMic();$('stTxt').textContent='Preparo l\'IA locale…';
+  try{
+    const m=await loadVosk();await ensureAudio();if(!listening)return;
+    stopLocal(true);
+    vrec=new m.KaldiRecognizer(actx.sampleRate,JSON.stringify(grammarWords()));try{vrec.setWords(true)}catch(e){}
+    vrec.on('partialresult',msg=>{const p=((msg.result&&msg.result.partial)||'').replace(/\[unk\]/g,'').trim();handleSeg([{tx:p,fin:false,conf:0}])});
+    vrec.on('result',msg=>{const r=msg.result||{},t=r.text||'';const ws=(r.result||[]).filter(w=>w.word!=='[unk]');const conf=ws.length?Math.min(...ws.map(w=>w.conf)):0;if(t)handleSeg([{tx:t.replace(/\[unk\]/g,'').trim(),fin:true,conf}]);prevLen=0});
+    vnode=actx.createScriptProcessor(4096,1,1);
+    vnode.onaudioprocess=e=>{try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
+    vmute=actx.createGain();vmute.gain.value=0;msrc.connect(vnode);vnode.connect(vmute);vmute.connect(actx.destination);
+    showMic();engSay('IA locale: sto ascoltando');startMeter();
+  }catch(e){
+    if(!listening)return;
+    toast('IA locale non disponibile: uso Siri/Google');engSay('IA locale non disponibile: uso Siri/Google');startWeb();
+  }
+}
+function stopLocal(keepAudio){
+  try{vnode&&(vnode.onaudioprocess=null,vnode.disconnect())}catch(e){}
+  try{vmute&&vmute.disconnect()}catch(e){}
+  try{vrec&&vrec.remove()}catch(e){}
+  vnode=null;vmute=null;vrec=null;
+}
 function showMic(){
   $('dot').classList.toggle('on',listening||auto);
   $('bMic').textContent=listening?'Pausa':'Ascolta';
@@ -408,8 +465,9 @@ function tick(t){
     }else{
       // va un pelo avanti mentre parli, per coprire il ritardo del riconoscimento
       const speaking=phase==='read'&&!frozen&&t-lastHeard<900;
-      const goal=Math.min(S.length,pos+(speaking?Math.min(1.6,wpsE*.45):0));
-      const back=goal<disp-2;
+      let goal=Math.min(S.length,pos+(speaking?Math.min(1.2,wpsE*.35):0));
+      const back=t-backT<1500;
+      if(!back&&goal<disp)goal=disp; // quando smetti di parlare il testo si ferma, non torna indietro
       disp+=(goal-disp)*(1-Math.exp(-dt*(back?9:3.2)));
       const tg=yAt(disp)-lineY();
       cur+=(tg-cur)*(1-Math.exp(-dt*12));
@@ -522,16 +580,20 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* livello del microfono del tablet, mandato al telecomando */
 let actx=null,an=null,lvBuf=null,mStream=null,pkHold=-90,rmsAcc=0,rmsN=0,lastLvl=0;
+async function ensureAudio(){
+  if(actx&&mStream)return;
+  mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false,channelCount:1}});
+  actx=new(window.AudioContext||window.webkitAudioContext)();
+  msrc=actx.createMediaStreamSource(mStream);
+  if(actx.state==='suspended')actx.resume().catch(()=>{});
+}
 async function startMeter(){
   if(an||!cfg.lv||!navigator.mediaDevices)return;
-  try{
-    mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
-    actx=new(window.AudioContext||window.webkitAudioContext)();
-    an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(mStream).connect(an);
-    lvBuf=new Float32Array(an.fftSize);if(actx.state==='suspended')actx.resume().catch(()=>{});
-  }catch(e){an=null}
+  // con Siri/Google il microfono si apre una seconda volta solo per il livello
+  try{await ensureAudio();an=actx.createAnalyser();an.fftSize=1024;msrc.connect(an);lvBuf=new Float32Array(an.fftSize)}catch(e){an=null}
 }
-function stopMeter(){try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{actx&&actx.close()}catch(e){}an=null;actx=null;mStream=null}
+function stopMeter(){if(listening&&useLocal()){try{an&&an.disconnect()}catch(e){}an=null;return}
+  try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{actx&&actx.close()}catch(e){}an=null;actx=null;mStream=null;msrc=null}
 document.addEventListener('pointerdown',()=>{if(actx&&actx.state==='suspended')actx.resume().catch(()=>{})});
 function meterTick(t){
   if(!an)return;
@@ -577,6 +639,7 @@ function remoteCmd(a,pl){
   if(F[a]&&(open||a==='open'||a==='ping'))F[a]();
 }
 remoteInit();
+if(useLocal())loadVosk().catch(()=>{});
 keepAwake();document.addEventListener('pointerdown',keepAwake);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepAwake()});
 
