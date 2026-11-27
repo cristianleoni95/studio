@@ -46,6 +46,11 @@ button.on{border-color:var(--acc);color:var(--acc)}
 @keyframes batte{50%{opacity:.35}}
 #scheda{position:fixed;z-index:6;right:12px;top:calc(58px + env(safe-area-inset-top));width:min(380px,calc(100vw - 24px));max-height:calc(100vh - 80px);max-height:calc(100dvh - 80px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;backdrop-filter:blur(14px);transform:translateX(calc(100% + 24px));transition:transform .35s cubic-bezier(.2,.8,.2,1);user-select:text;-webkit-user-select:text}
 #scheda.su{transform:none}
+#jarvis{position:fixed;z-index:8;left:12px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 24px));padding:8px 10px;border-radius:999px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px)}
+#jorb{width:38px;height:38px;flex:none;border-radius:50%;padding:0;border:1px solid #7fd6ff;background:radial-gradient(circle at 50% 50%,#eaffff 0,#58c8ff 30%,#0b3a66 70%,#061422 100%);box-shadow:0 0 14px rgba(88,200,255,.55)}
+#jarvis.parla #jorb{animation:jpulsa .9s infinite}@keyframes jpulsa{50%{box-shadow:0 0 30px rgba(120,220,255,1);transform:scale(1.08)}}
+#jtesto{font-size:13.5px;line-height:1.3;max-height:5.4em;overflow:hidden}#jmic,#jvoce{flex:none;border-radius:50%;width:38px;height:38px;padding:0}#jmic.rec{background:#c62828;border-color:#ff8a80;animation:batte 1s infinite}
+@media(max-width:700px){#jarvis{bottom:calc(64px + env(safe-area-inset-bottom))}}
 #scheda.largo{width:min(560px,calc(100vw - 24px))}
 .vplayer{width:100%;max-height:60vh;border-radius:12px;background:#000;display:block;margin:8px 0}
 #scheda textarea{width:100%;min-height:92px;margin-top:10px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a0e13;color:var(--txt);font:inherit;font-size:15px}
@@ -149,6 +154,7 @@ body.fp #joy.touch{display:block}body.fp #mirino{display:block}
  <span id="vid" class="pill"></span>
  <span id="pc" class="pill">PC: —</span>
  <a id="bApp" class="btn" href="./" style="display:none">← App</a>
+ <button id="bJar" title="La voce dell'ufficio: saluta, annuncia chi inizia e chi finisce, risponde. Non usa crediti.">🎙 Jarvis</button>
  <button id="bMusica">♪ Musica</button>
  <button id="bRegistro">Diario</button>
  <button id="bEntra">Entra nella stanza</button>
@@ -162,6 +168,7 @@ body.fp #joy.touch{display:block}body.fp #mirino{display:block}
  <div class="ora" id="muOra"></div><div class="mut">"Automatico" segue la musica scelta per il cliente del lavoro in corso; senza lavori mette chill da ufficio.</div></div>
 <div id="joy"><i></i></div>
 <button id="azFP" class="pri"></button>
+<div id="jarvis" style="display:none"><button id="jorb" title="Dimmi lo stato"></button><div id="jtesto">Jarvis</div><button id="jvoce" title="Cambia voce">♀</button><button id="jmic" title="Parla con Jarvis">🎤</button></div>
 <div id="avviso">Tocca un robot per volare alla sua scrivania · trascina per girare · pizzica o rotella per lo zoom</div>
 <div id="login"><form id="lgForm"><div class="logo" style="text-align:center;font-size:20px;margin:0">LEONI <b>STUDIO</b></div>
  <input id="lg_email" type="email" placeholder="Email" autocomplete="username" required><input id="lg_pw" type="password" placeholder="Password" autocomplete="current-password" required>
@@ -201,7 +208,7 @@ const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.22;
 const camera=new THREE.PerspectiveCamera(36,1,.25,220);
 const controls=new OrbitControls(camera,canvas);
-Object.assign(controls,{enableDamping:true,dampingFactor:.08,maxPolarAngle:1.47,minDistance:2.5,maxDistance:85,zoomSpeed:.9,rotateSpeed:.7,panSpeed:.8});
+Object.assign(controls,{enableDamping:true,dampingFactor:.08,maxPolarAngle:1.47,minDistance:2.5,maxDistance:125,zoomSpeed:.9,rotateSpeed:.7,panSpeed:.8});
 controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};
 
 // ---------- texture disegnate (niente file esterni) ----------
@@ -220,17 +227,19 @@ const T={
   for(let i=0;i<900;i++){const a=r()*.035,s=20+r()*120;x.fillStyle=r()>.5?`rgba(255,255,255,${a})`:`rgba(20,22,30,${a})`;x.beginPath();x.ellipse(r()*w,r()*h,s,s*(.4+r()*.6),r()*3,0,7);x.fill()}
   for(let i=0;i<5000;i++){x.fillStyle=`rgba(${r()>.5?255:0},${r()>.5?255:0},${r()>.5?255:0},.05)`;x.fillRect(r()*w,r()*h,2,2)}
   x.strokeStyle='rgba(30,32,38,.35)';x.lineWidth=3;for(let i=1;i<4;i++){x.beginPath();x.moveTo(i*w/4,0);x.lineTo(i*w/4,h);x.stroke();x.beginPath();x.moveTo(0,i*h/4);x.lineTo(w,i*h/4);x.stroke()}}),
- muro:tela(32,256,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#8f8378');g.addColorStop(.35,'#c9bbab');g.addColorStop(.8,'#e6d8c6');g.addColorStop(1,'#bfb1a0');x.fillStyle=g;x.fillRect(0,0,w,h)}),
+ muro:tela(32,256,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#6f7278');g.addColorStop(.35,'#a9acb0');g.addColorStop(.8,'#c9cbcd');g.addColorStop(1,'#8d8f93');x.fillStyle=g;x.fillRect(0,0,w,h)}),
  alone:sfumato('rgba(255,255,255,1)','rgba(255,225,170,.35)','rgba(255,200,120,0)'),
  pozza:sfumato('rgba(255,214,150,.9)','rgba(255,200,130,.35)','rgba(255,190,110,0)'),
  ombra:sfumato('rgba(0,0,0,.75)','rgba(0,0,0,.4)','rgba(0,0,0,0)'),
 };
-for(const k of ['legnoPalco','legnoTavolo','legnoScuro','cemento']){T[k].wrapS=T[k].wrapT=THREE.RepeatWrapping}
+T.parquet=legno('#7a5a3e','rgba(35,20,10,.55)',10,23);
+for(const k of ['legnoPalco','legnoTavolo','legnoScuro','cemento','parquet']){T[k].wrapS=T[k].wrapT=THREE.RepeatWrapping}
+T.parquet.repeat.set(9,7);
 T.cemento.repeat.set(3,3);T.legnoPalco.repeat.set(3,2);
 
 // ---------- materiali condivisi ----------
 const M={
- pavimento:new THREE.MeshStandardMaterial({map:T.cemento,roughness:.42,metalness:.08}),
+ pavimento:new THREE.MeshStandardMaterial({map:T.parquet,roughness:.5,metalness:.02}),
  muro:new THREE.MeshStandardMaterial({map:T.muro,roughness:.95}),
  battiscopa:new THREE.MeshStandardMaterial({color:0x8a4f2a,roughness:.6}),
  palco:new THREE.MeshStandardMaterial({map:T.legnoPalco,roughness:.45,side:THREE.DoubleSide}),
@@ -265,7 +274,7 @@ const rbox=(w,h,d,r,m)=>{const o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,r
 function aTerra(mat,x,z,w,d,y=.012,parent=scene){const o=new THREE.Mesh(G.piano,mat);o.rotation.x=-PI/2;o.position.set(x,y,z);o.scale.set(w,d,1);o.renderOrder=1;parent.add(o);return o}
 
 // ---------- stanza ----------
-const ST={W:32,ZDIETRO:-11.5,ZDAVANTI:14,H:9};
+const ST={W:46,ZDIETRO:-11.5,ZDAVANTI:23.5,H:9};
 const stanza=new THREE.Group();scene.add(stanza);
 function faiStanza(){
  stanza.clear();
@@ -281,7 +290,7 @@ function faiStanza(){
 // ---------- luci: sera in ufficio, pozze calde sotto le lampade ----------
 scene.add(new THREE.HemisphereLight(0xffeedd,0x2c2a3a,.42));
 const sole=new THREE.DirectionalLight(0xffd9ad,1.25);sole.position.set(7,24,12);sole.castShadow=true;
-sole.shadow.mapSize.set(TOUCH?1024:2048,TOUCH?1024:2048);Object.assign(sole.shadow.camera,{left:-21,right:21,top:24,bottom:-24,near:1,far:75});sole.shadow.bias=-.0004;sole.shadow.normalBias=.03;sole.shadow.radius=5;
+sole.shadow.mapSize.set(TOUCH?1024:2048,TOUCH?1024:2048);Object.assign(sole.shadow.camera,{left:-29,right:29,top:34,bottom:-30,near:1,far:95});sole.shadow.bias=-.0004;sole.shadow.normalBias=.03;sole.shadow.radius=5;
 scene.add(sole,sole.target);
 function lampada(x,z,luce,alt=7.5){ // 14/11: niente lampade appese al soffitto (Cristian); resta la luce calda dall'alto
  if(luce){const p=new THREE.PointLight(0xffc27a,95,19,1.8);p.position.set(x,alt-.5,z);scene.add(p)}
@@ -304,19 +313,20 @@ function libreria(x,z,ry){const g=new THREE.Group();g.position.set(x,0,z);g.rota
  pianta(-W/4,0,.55,g,H+.02);scene.add(g)}
 // posti dove i robot passano il tempo libero (x,z, direzione in cui guardano, corridoio da cui si arriva)
 const SPOT={
- caffe:[{x:13.5,z:9.3,ry:PI/2,cx:10.6},{x:13.5,z:10.6,ry:PI/2,cx:10.6}],
- divano:[{x:14.3,z:2.2,ry:-PI/2,cx:10.6},{x:14.3,z:3.6,ry:-PI/2,cx:10.6},{x:14.3,z:5.0,ry:-PI/2,cx:10.6}],
- gioco_:[{x:13.6,z:12.6,ry:PI/2,cx:10.6}],
+ caffe:[{x:20.5,z:9.3,ry:PI/2,cx:10.6},{x:20.5,z:10.6,ry:PI/2,cx:10.6}],
+ divano:[{x:21.3,z:2.2,ry:-PI/2,cx:10.6},{x:21.3,z:3.6,ry:-PI/2,cx:10.6},{x:21.3,z:5.0,ry:-PI/2,cx:10.6}],
+ gioco_:[{x:20.6,z:12.6,ry:PI/2,cx:10.6}],
+ mensa:[{x:16.0,z:14.62,ry:0,cx:10.6,ez:14.0},{x:18.4,z:14.62,ry:0,cx:10.6,ez:14.0},{x:17.2,z:18.52,ry:0,cx:10.6,ez:18.0,via:[[17.2,18.0]]},{x:15.4,z:20.48,ry:PI,cx:10.6,ez:21.2}],          // a tavola
  led:[{x:-2.4,z:-2.9,ry:PI,cx:-3.6,ez:-2.2},{x:0,z:-3.2,ry:PI,cx:3.6,ez:-2.2},{x:2.4,z:-2.9,ry:PI,cx:3.6,ez:-2.2}],          // guardano la coda sul LED wall
- piante:[{x:13.9,z:7.3,ry:PI/2,cx:10.6},{x:-13.7,z:12.7,ry:-PI/2,cx:-10.6}],                                                // annaffiano le piante
- ginnastica:[{x:12.3,z:.4,ry:-PI/2,cx:10.6},{x:11.9,z:13.7,ry:-PI/2,cx:10.6}],                                              // due piegamenti
- biliardino:[{x:-14.8,z:5.6,ry:PI/2,cx:-10.6,ez:7.5,via:[[-14.8,7.5]]},{x:-12.4,z:5.6,ry:-PI/2,cx:-10.6}],                  // calcio balilla
- libreria:[{x:-13.7,z:-1.2,ry:-PI/2,cx:-10.6},{x:-13.7,z:2.6,ry:-PI/2,cx:-10.6}],
+ piante:[{x:20.9,z:7.3,ry:PI/2,cx:10.6},{x:-21.4,z:8.4,ry:-PI/2,cx:-10.6}],                                                // annaffiano le piante
+ ginnastica:[{x:18.3,z:.4,ry:-PI/2,cx:10.6},{x:14.6,z:11.0,ry:-PI/2,cx:10.6}],                                              // due piegamenti
+ biliardino:[{x:-21.8,z:5.6,ry:PI/2,cx:-10.6,ez:7.5,via:[[-21.8,7.5]]},{x:-19.4,z:5.6,ry:-PI/2,cx:-10.6}],                  // calcio balilla
+ libreria:[{x:-20.7,z:-1.2,ry:-PI/2,cx:-10.6},{x:-20.7,z:2.6,ry:-PI/2,cx:-10.6}],
  lavagna:[{x:10.6,z:-9.5,ry:PI,cx:10.6},{x:11.8,z:-9.5,ry:PI,cx:10.6},{x:13.0,z:-9.5,ry:PI,cx:10.6}],
 };
 function salotto(){ // lato destro: divano, macchinetta del caffe', videogioco
  const X=ST.W/2;
- scene.add(box(M.tappeto,13.6,.015,3.6,4.2,.03,6.2,false));
+ scene.add(box(M.tappeto,20.6,.03,3.6,4.2,.03,6.2,false));
  const d=new THREE.Group();d.position.set(X-.95,0,3.6);d.rotation.y=-PI/2;   // il divano guarda verso il centro (-x)
  const base=rbox(5.2,.5,1.5,.12,M.divano);base.position.y=.42;d.add(base);
  const sch=rbox(5.2,1.25,.42,.14,M.divano);sch.position.set(0,.95,-.62);d.add(sch);
@@ -374,6 +384,7 @@ function oggetto(tipo,colore){const g=new THREE.Group();const mc=new THREE.MeshS
  if(tipo==='forbici'){for(const s of [-1,1]){const l=box(M.metallo,0,.34,0,.05,.6,.02);l.rotation.z=s*.28;l.position.x=s*.02;g.add(l);const a=tor(.11,.03);a.position.set(s*.15,.02,0);g.add(a)}}
  else if(tipo==='cuffie'){const a=tor(.3,.035,M.plasticaNera,PI);a.position.y=.3;g.add(a);for(const s of [-1,1]){const p=cil(mc,s*.3,.26,0,.13,.1);p.rotation.z=PI/2;g.add(p)}}
  else if(tipo==='microfono'){g.add(cil(M.metalloScuro,0,.03,0,.17,.05),cil(M.metallo,0,.3,0,.022,.5));g.add(mesh(G.sfera,mc,0,.62,0,.12,.16,.12),cil(M.metalloScuro,0,.5,0,.07,.1))}
+ else if(tipo==='pianoforte'){const bi=new THREE.MeshStandardMaterial({color:'#f4f1ea',roughness:.45});g.add(box(M.plasticaNera,0,.06,0,.74,.1,.3));g.add(box(mc,0,.13,-.12,.74,.05,.05));for(let i=0;i<10;i++)g.add(box(bi,-.315+i*.07,.12,.04,.064,.025,.19));for(const i of [0,1,3,4,5,7,8])g.add(box(M.plasticaNera,-.28+i*.07,.14,0,.036,.025,.11))}
  else if(tipo==='fumetto'){const b=rbox(.62,.4,.1,.08,mc);b.position.y=.42;g.add(b);const c=new THREE.Mesh(new THREE.ConeGeometry(.08,.2,4),mc);c.position.set(-.14,.14,0);c.rotation.z=PI;g.add(c);
   for(let i=0;i<3;i++)g.add(box(new THREE.MeshBasicMaterial({color:0xffffff}),i==2?-.07:0,.5-i*.09,.055,i==2?.28:.42,.04,.01,false))}
  else if(tipo==='mirino'){const a=tor(.24,.03);a.position.y=.36;g.add(a);g.add(box(mc,0,.36,0,.66,.035,.035),box(mc,0,.36,0,.035,.66,.035));g.add(mesh(G.sfera,new THREE.MeshBasicMaterial({color:0xff3b30}),0,.36,0,.05,.05,.05,false))}
@@ -538,6 +549,125 @@ function faiGPU(x,z,ry){
  const l=new THREE.PointLight(0x00d0ff,4,8,2);l.position.set(0,4,D/2+1.6);g.add(l);GPU.luce=l;
  scene.add(g);aTerra(M.ombra,x,z,6,5);GPU.gruppo=g;return g}
 
+// ---------- (27/11) EDIFICIO A STANZE: ogni reparto ha la sua sala, con i suoi strumenti ----------
+const STANZE=[
+ {nome:'SALA AUDIO',col:'#b98cff',tap:0x3a3350,ids:['pulizia','voce','canzone']},
+ {nome:'MONTAGGIO',col:'#58a6ff',tap:0x2b3f52,ids:['tagli','sottotitoli','tracker','grafiche','render']},
+ {nome:'FOTO E AI',col:'#ffb454',tap:0x4a4238,ids:['studioai','selezione_foto','color_foto','studio_clienti']}];
+const EDI=new THREE.Group();scene.add(EDI);const CLI={tex:null};
+const SEDUTI=new Set(['divano','mensa']);
+function insegna(t,x,y,z,w=4.4,col='#f5b301',parent=EDI){const tx=tela(640,120,(c,W,H)=>{c.fillStyle='#12151a';c.fillRect(0,0,W,H);c.fillStyle=col;c.fillRect(0,H-8,W,8);c.fillStyle='#f4f4f0';c.font='800 58px system-ui,"Segoe UI",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(t,W/2,H/2-3)});
+ const g=new THREE.Group();g.position.set(x,y,z);const h=w*.1875;const b=rbox(w+.14,h+.14,.09,.03,M.metalloScuro);b.castShadow=false;g.add(b);
+ const p=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:tx,toneMapped:false}));p.scale.set(w,h,1);p.position.z=.05;g.add(p);
+ for(const s of [-1,1])g.add(cil(M.metalloScuro,s*w*.42,(ST.H-y)/2+h/2,0,.018,ST.H-y,false));parent.add(g);return g}
+const MAT2={moquette:c=>new THREE.MeshStandardMaterial({color:c,roughness:1}),nero:new THREE.MeshStandardMaterial({color:0x101216,roughness:.55,metalness:.3}),
+ acciaio:new THREE.MeshStandardMaterial({color:0xc9ccd1,roughness:.28,metalness:.95}),schiuma:new THREE.MeshStandardMaterial({color:0x23262d,roughness:1}),
+ telo:new THREE.MeshStandardMaterial({color:0xe9e6df,roughness:.95,side:THREE.DoubleSide}),luce:new THREE.MeshBasicMaterial({color:0xfff3d6}),rame:new THREE.MeshStandardMaterial({color:0xb87333,roughness:.35,metalness:.8})};
+// strumenti di riferimento di ogni sala
+function cassaAudio(x,z,ry=0,parent=EDI){const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry;
+ g.add(cil(MAT2.nero,0,.02,0,.34,.04),cil(MAT2.acciaio,0,.62,0,.035,1.2));const c=rbox(.62,.98,.52,.05,MAT2.nero);c.position.y=1.7;g.add(c);
+ const w=cil(new THREE.MeshStandardMaterial({color:0x2a2c31,roughness:.35,metalness:.2}),0,1.56,.265,.22,.03,false);w.rotation.x=PI/2;g.add(w);const tw=cil(MAT2.acciaio,0,1.98,.265,.075,.03,false);tw.rotation.x=PI/2;g.add(tw);
+ parent.add(g);aTerra(M.ombra,x,z,1.3,1.3);return g}
+function salaAudio(x,z){ // banco mixer con due casse, pianoforte digitale, pannelli fonoassorbenti, microfono su asta
+ const g=new THREE.Group();g.position.set(x,0,z);
+ const banco=rbox(3.4,.1,1.3,.03,M.legnoScuro);banco.position.y=1.0;g.add(banco);for(const s of [-1,1])g.add(box(MAT2.nero,s*1.55,.5,0,.1,1.0,1.2));
+ const mix=rbox(2.3,.14,.9,.03,MAT2.nero);mix.position.set(0,1.13,.08);mix.rotation.x=.16;g.add(mix);
+ for(let i=0;i<16;i++){const f=box(MAT2.acciaio,-1.0+i*.133,1.23+Math.sin(i*1.7)*.012,.22+((i*7)%5)*.05,.035,.04,.07,false);g.add(f)}
+ for(let i=0;i<16;i++)g.add(cil(new THREE.MeshStandardMaterial({color:i%4?0x3a3d44:0xb98cff,roughness:.4}),-1.0+i*.133,1.215,-.2,.03,.05,false));
+ const mon=rbox(1.9,.9,.06,.03,MAT2.nero);mon.position.set(0,1.95,-.5);g.add(mon);
+ const onda=tela(512,220,(c,W,H)=>{c.fillStyle='#0b0d12';c.fillRect(0,0,W,H);for(let k=0;k<3;k++){c.strokeStyle=['#b98cff','#58d6a0','#ffb454'][k];c.lineWidth=2;c.beginPath();for(let i=0;i<W;i+=2){const a=Math.sin(i*.05+k)*Math.sin(i*.011+k*2);c.moveTo(i,40+k*70-a*26);c.lineTo(i,40+k*70+a*26)}c.stroke()}});
+ const sm=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:onda,toneMapped:false}));sm.scale.set(1.8,.8,1);sm.position.set(0,1.95,-.465);g.add(sm);g.add(cil(MAT2.nero,0,1.3,-.5,.04,.5));
+ EDI.add(g);aTerra(M.ombra,x,z,4.2,2.2);cassaAudio(x-2.3,z-.3,.35);cassaAudio(x+2.3,z-.3,-.35);
+ // pianoforte digitale
+ const p=new THREE.Group();p.position.set(x-.2,0,z+4.0);const corpo=rbox(2.6,.16,.62,.03,MAT2.nero);corpo.position.y=1.02;p.add(corpo);
+ const tasti=tela(512,48,(c,W,H)=>{c.fillStyle='#f4f4f0';c.fillRect(0,0,W,H);c.fillStyle='#111';for(let i=0;i<52;i++){c.fillRect(i*W/52,0,1,H);if(![2,6].includes(i%7))c.fillRect(i*W/52+W/52*.68,0,W/52*.62,H*.6)}});
+ const tk=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:tasti,toneMapped:false}));tk.rotation.x=-PI/2;tk.scale.set(2.45,.3,1);tk.position.set(0,1.105,.12);p.add(tk);
+ for(const s of [-1,1]){const l=box(MAT2.nero,s*1.05,.5,0,.06,1.0,.5);l.rotation.z=s*.12;p.add(l)}const sg=rbox(.9,.1,.42,.04,M.tessuto);sg.position.set(0,.62,1.0);p.add(sg,cil(MAT2.nero,0,.3,1.0,.05,.6));
+ EDI.add(p);aTerra(M.ombra,x-.2,z+4.2,3.2,2.4);
+ // microfono su asta con filtro
+ const m=new THREE.Group();m.position.set(x+2.2,0,z+3.7);m.add(cil(MAT2.nero,0,.03,0,.36,.06),cil(MAT2.acciaio,0,.95,0,.022,1.85));const br=cil(MAT2.acciaio,.22,1.86,0,.016,.6,false);br.rotation.z=PI/2-.5;m.add(br);
+ const cap=cil(MAT2.rame,.48,1.78,0,.085,.3);m.add(cap);const fl=cil(new THREE.MeshStandardMaterial({color:0x111,roughness:.9,transparent:true,opacity:.7}),.48,1.8,.24,.19,.02,false);fl.rotation.x=PI/2;m.add(fl);EDI.add(m);aTerra(M.ombra,x+2.2,z+3.7,1,1);
+ // parete fonoassorbente dietro (piramidi)
+ const par=new THREE.Group();par.position.set(x,0,z+6.2);par.add(box(MAT2.nero,0,1.9,.06,4.6,3.6,.08));
+ for(let i=0;i<9;i++)for(let j=0;j<7;j++){const k=new THREE.Mesh(new THREE.ConeGeometry(.3,.26,4),(i+j)%2?MAT2.schiuma:new THREE.MeshStandardMaterial({color:0x3d3552,roughness:1}));k.rotation.set(-PI/2,PI/4,0);k.position.set(-2.0+i*.5,.4+j*.5,-.09);par.add(k)}
+ EDI.add(par)}
+function salaFoto(x,z){ // set fotografico: fondale, softbox, cavalletto con macchina, sgabello
+ const g=new THREE.Group();g.position.set(x,0,z);
+ for(const s of [-1,1])g.add(cil(MAT2.nero,s*2.1,1.7,1.9,.035,3.4),cil(MAT2.nero,s*2.1,.03,1.9,.3,.06));const bar=cil(MAT2.acciaio,0,3.4,1.9,.05,4.4,false);bar.rotation.z=PI/2;g.add(bar);
+ const sh=new THREE.Shape();sh.moveTo(0,3.35);sh.lineTo(0,.5);sh.quadraticCurveTo(0,0,-.6,0);sh.lineTo(-2.6,0);sh.lineTo(-2.6,.02);sh.lineTo(-.6,.02);sh.quadraticCurveTo(-.02,.02,-.02,.5);sh.lineTo(-.02,3.35);
+ const telo=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:3.9,bevelEnabled:false}),MAT2.telo);telo.rotation.y=PI/2;telo.position.set(-1.95,0,1.88);telo.receiveShadow=true;g.add(telo);
+ for(const s of [-1,1]){const sb=new THREE.Group();sb.position.set(s*2.5,0,-.9);sb.rotation.y=s*-.7+PI;sb.add(cil(MAT2.nero,0,.03,0,.34,.06),cil(MAT2.acciaio,0,1.1,0,.025,2.2));
+  const cs=new THREE.Mesh(new THREE.CylinderGeometry(.75,.2,.7,4,1,true),new THREE.MeshStandardMaterial({color:0x15171b,roughness:.8,side:THREE.DoubleSide}));cs.rotation.set(PI/2,PI/4,0);cs.position.set(0,2.35,-.25);sb.add(cs);
+  const lu=new THREE.Mesh(G.piano,MAT2.luce);lu.scale.set(1.02,1.02,1);lu.position.set(0,2.35,-.61);lu.rotation.y=PI;sb.add(lu);g.add(sb)}
+ const cv=new THREE.Group();cv.position.set(0,0,-1.6);for(let i=0;i<3;i++){const l=cil(MAT2.nero,Math.sin(i*2.094)*.33,.72,Math.cos(i*2.094)*.33,.02,1.5,false);l.rotation.set(Math.cos(i*2.094)*.42,0,-Math.sin(i*2.094)*.42);cv.add(l)}
+ const cam=rbox(.42,.3,.26,.04,MAT2.nero);cam.position.y=1.58;cv.add(cam);const ob=cil(MAT2.nero,0,1.58,.26,.11,.3);ob.rotation.x=PI/2;cv.add(ob);const le=cil(new THREE.MeshPhysicalMaterial({color:0x223a5a,roughness:.05,clearcoat:1}),0,1.58,.415,.09,.01,false);le.rotation.x=PI/2;cv.add(le);g.add(cv);
+ g.add(cil(M.legnoScuro,0,.72,.5,.26,.06),cil(MAT2.acciaio,0,.36,.5,.03,.7));EDI.add(g);aTerra(M.ombra,x,z+.3,5.6,5.2)}
+function mensa(x,z){ // due tavoli lunghi con panche, cucina con frigo, forno e distributore
+ for(const dz of [0,3.9]){const t=new THREE.Group();t.position.set(x,0,z+dz);const p=rbox(4.2,.09,1.15,.03,M.tavolo);p.position.y=1.0;t.add(p);
+  for(const s of [-1,1]){t.add(box(MAT2.nero,s*1.8,.48,0,.08,.96,.9));const pn=rbox(4.0,.08,.42,.03,M.legnoScuro);pn.position.set(0,.56,s*.98);t.add(pn);for(const q of [-1,1])t.add(box(MAT2.nero,q*1.7,.26,s*.98,.07,.52,.34))}
+  for(let i=0;i<3;i++){t.add(cil(M.bianco,-1.3+i*1.3,1.06,(i%2?.2:-.2),.19,.02,false));t.add(cil(new THREE.MeshStandardMaterial({color:[0xd9a441,0x7fae4b,0xc65a3a][i],roughness:.8}),-1.3+i*1.3,1.085,(i%2?.2:-.2),.12,.035,false));t.add(cil(M.vetro,-1.0+i*1.3,1.12,(i%2?-.2:.25),.045,.14,false))}
+  EDI.add(t);aTerra(M.ombra,x,z+dz,4.8,3)}
+ const X=ST.W/2,k=new THREE.Group();k.position.set(X-.6,0,z+2);k.rotation.y=-PI/2;
+ k.add(box(M.cassettiera,0,.55,0,5.2,1.1,1.0));const top=rbox(5.3,.08,1.1,.03,new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.3,metalness:.3}));top.position.y=1.14;k.add(top);
+ const fr=rbox(1.15,2.6,1.0,.05,MAT2.acciaio);fr.position.set(-3.3,1.3,0);k.add(fr,box(MAT2.nero,-2.82,1.5,.52,.04,.9,.04,false));
+ const fo=rbox(.85,.5,.6,.04,MAT2.nero);fo.position.set(1.6,1.44,-.1);k.add(fo);k.add(box(new THREE.MeshBasicMaterial({color:0x7fe0ff}),1.86,1.5,.21,.14,.07,.01,false));
+ k.add(cil(MAT2.acciaio,-.4,1.2,.1,.3,.03),cil(MAT2.acciaio,-.4,1.5,-.3,.02,.5));for(let i=0;i<5;i++)k.add(box(M.cassettiera,-1.9+i*.95,2.9,-.3,.9,.9,.5));
+ const ds=rbox(1.2,2.7,.95,.05,new THREE.MeshStandardMaterial({color:0x8b1a1a,roughness:.45,metalness:.3}));ds.position.set(3.6,1.35,0);k.add(ds);
+ const vt=tela(128,256,(c,W,H)=>{c.fillStyle='#10141a';c.fillRect(0,0,W,H);const col=['#ffcc00','#34c759','#ff3b30','#58a6ff','#ff9f43'];for(let r=0;r<5;r++)for(let q=0;q<4;q++){c.fillStyle=col[(r*3+q)%5];c.fillRect(8+q*29,10+r*46,22,34)}});
+ const vp=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:vt,toneMapped:false}));vp.scale.set(.8,1.75,1);vp.position.set(3.45,1.65,.485);k.add(vp);EDI.add(k);aTerra(M.ombra,X-.9,z+2,2.2,9.6)}
+function salaPC(x,z){ // la stanza di Cristian: armadio rack, poltrona, tappeto, grande schermo a muro
+ const X=-ST.W/2;EDI.add(box(MAT2.moquette(0x1f3a2a),x,.014,z,9.4,.028,8.2,false));
+ const rk=new THREE.Group();rk.position.set(X+.7,0,z+2.6);rk.rotation.y=PI/2;const c=rbox(1.3,3.2,1.1,.04,MAT2.nero);c.position.y=1.6;rk.add(c);
+ for(let i=0;i<9;i++){rk.add(box(new THREE.MeshStandardMaterial({color:0x1c1f25,roughness:.4,metalness:.5}),0,.4+i*.31,.56,1.1,.24,.02,false));for(let q=0;q<5;q++)rk.add(box(new THREE.MeshBasicMaterial({color:(i+q)%3?0x11f401:0xffb340}),-.4+q*.09,.4+i*.31,.575,.035,.035,.01,false))}
+ EDI.add(rk);aTerra(M.ombra,X+.9,z+2.6,2,2);
+ const sw=tela(1024,420,(c,W,H)=>{c.fillStyle='#07110b';c.fillRect(0,0,W,H);c.fillStyle='#11f401';c.fillRect(0,0,W,10);c.font='800 92px system-ui,sans-serif';c.fillText('IL MIO PC',44,150);c.fillStyle='#9fe8a0';c.font='500 40px system-ui,sans-serif';c.fillText('Le cartelle del computer di casa: scegli i video',44,236);c.fillText('e mettili in coda, anche dal tablet.',44,290);c.fillStyle='#11f401';c.font='700 36px system-ui,sans-serif';c.fillText('Tocca la scrivania per aprire  ▸',44,372)});
+ const cr=rbox(.2,3.0,6.9,.06,M.plasticaNera);cr.position.set(X+.12,5.0,z-.6);EDI.add(cr);const q=new THREE.Mesh(new THREE.PlaneGeometry(6.6,2.72),new THREE.MeshBasicMaterial({map:sw,toneMapped:false}));q.rotation.y=PI/2;q.position.set(X+.235,5.0,z-.6);EDI.add(q);
+ const po=new THREE.Group();po.position.set(x+3.3,0,z+2.4);po.rotation.y=-2.4;const b=rbox(1.3,.42,1.2,.14,M.divano);b.position.y=.45;const s=rbox(1.3,1.1,.34,.14,M.divano);s.position.set(0,.95,-.5);po.add(b,s);EDI.add(po);aTerra(M.ombra,x+3.3,z+2.4,2,2);pianta(x-3.9,z+3.4,1.3)}
+function faiEdificio(){ // parti fisse: zone, insegne, sale laterali
+ const hw=ST.W/2,zb=ST.ZDIETRO;
+ EDI.add(box(MAT2.moquette(0x262a33),0,.006,-6.6,23,.012,9.4,false));                       // direzione (dietro, al centro)
+ EDI.add(box(MAT2.moquette(0x33302a),19.4,.012,6.3,7,.024,35,false),box(MAT2.moquette(0x2c3038),-19.4,.012,-3.4,7,.024,15.6,false));
+ insegna('DIREZIONE',0,8.35,zb+2.2,4.6,'#d97757');insegna('REVISIONE',-11.2,4.9,-3.2,3.6,'#f5b301');insegna('REGIA · GPU',14.0,8.3,-1.0,3.8,'#ff4d6d');
+ insegna('MENSA E RELAX',19.3,5.6,.2,4.6,'#34c759');insegna('SALA TEMPI',-19.3,5.6,-2.6,4.2,'#ffffff');insegna('BIBLIOTECA E GIOCHI',-19.3,5.6,4.2,5.2,'#58a6ff');insegna('IL MIO PC',-19.3,5.6,9.6,4.0,'#11f401');
+ // lavagna delle ORE PER CLIENTE, sul muro di fondo della Sala Tempi
+ CLI.tex=tela(1024,640,()=>{});CLI.tex.anisotropy=8;{const c=rbox(6.3,3.95,.2,.06,M.metallo);c.position.set(-19.4,5.2,zb+.12);EDI.add(c);
+  const q=new THREE.Mesh(new THREE.PlaneGeometry(6.06,3.72),new THREE.MeshBasicMaterial({map:CLI.tex,toneMapped:false}));q.position.set(-19.4,5.2,zb+.235);EDI.add(q)}
+ // tavolo riunioni nella Sala Tempi
+ {const t=new THREE.Group();t.position.set(-19.2,0,-7.2);const p=rbox(2.0,.09,4.2,.04,M.tavolo);p.position.y=1.0;t.add(p,box(MAT2.nero,0,.48,-1.5,1.2,.96,.1),box(MAT2.nero,0,.48,1.5,1.2,.96,.1));
+  for(const s of [-1,1])for(let i=-1;i<=1;i++){const sd=rbox(.6,.1,.6,.04,M.tessuto);sd.position.set(s*1.6,.62,i*1.3);t.add(sd,cil(MAT2.acciaio,s*1.6,.31,i*1.3,.03,.6));const sc=rbox(.08,.7,.6,.03,M.tessuto);sc.position.set(s*1.92,1.0,i*1.3);t.add(sc)}
+  EDI.add(t);aTerra(M.ombra,-19.2,-7.2,5.2,5.4)}
+ mensa(17.2,15.6);salaPC(-18.6,15.2);
+ [[19.5,-6,1],[19.5,16,1],[-19.5,-6,1],[-19.5,15,1],[-19.5,5,0],[0,19,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?0:l,h||7.5));
+}
+const DIV=new THREE.Group();scene.add(DIV);
+function faiDivisori(colonne){ // parti che dipendono da quante scrivanie ci sono: pareti di vetro tra le sale, moquette, strumenti in fondo
+ DIV.clear();const zf=ST.ZDAVANTI,telaio=MAT2.nero;
+ const vetro=new THREE.MeshPhysicalMaterial({color:0xcfe9ff,roughness:.06,metalness:0,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false});
+ const maxR=Math.max(...colonne.map(c=>c.length),1);
+ for(const x of [-9.6,-4.6,4.6,9.6])for(let r=0;r<Math.max(maxR,5);r++){const z0=RIGA0+r*PASSO-1.0,len=2.9;      // pannelli a fianco di ogni fila: il passaggio verso il corridoio resta libero
+  const v=new THREE.Mesh(G.box,vetro);v.position.set(x,1.45,z0+len/2);v.scale.set(.05,2.5,len);DIV.add(v);
+  DIV.add(box(telaio,x,.1,z0+len/2,.09,.2,len,false),box(telaio,x,2.72,z0+len/2,.07,.06,len,false),box(telaio,x,1.45,z0,.07,2.6,.07,false),box(telaio,x,1.45,z0+len,.07,2.6,.07,false))}
+ STANZE.forEach((s,i)=>{const n=Math.max(colonne[i].length,1),len=(Math.max(maxR,5)-1)*PASSO+6.4;
+  DIV.add(box(MAT2.moquette(s.tap),COL[i],.014,RIGA0-1.2+len/2,4.6,.028,len,false));insegna(s.nome,COL[i],4.55,RIGA0-1.9,3.9,s.col,DIV)});
+ // strumenti nelle file rimaste libere in fondo a ogni sala
+ const libero=i=>RIGA0+colonne[i].length*PASSO;
+ if(colonne[0].length<=3)salaAudio2(COL[0],libero(0)+.6);
+ if(colonne[2].length<=4)salaFoto2(COL[2],libero(2)+1.6);
+ // portali verso le ali: pilastri e trave alta (si passa sotto dappertutto)
+ for(const x of [-12.3,12.3]){const len=zf-(-.6);DIV.add(box(telaio,x,4.15,-.6+len/2,.34,.3,len,false));for(const z of [-.6,6.2,11.6,17.2,zf-.4])DIV.add(box(telaio,x,2.0,z,.3,4.0,.3))}
+}
+// gli strumenti stanno nel gruppo che si rifa' con le scrivanie (cosi' non restano doppi)
+function salaAudio2(x,z){const prima=EDI.children.length;salaAudio(x,z);while(EDI.children.length>prima)DIV.add(EDI.children[prima])}
+function salaFoto2(x,z){const prima=EDI.children.length;salaFoto(x,z);while(EDI.children.length>prima)DIV.add(EDI.children[prima])}
+function disegnaClienti(){if(!CLI.tex)return;const c=CLI.tex.image,x=c.getContext('2d'),W=c.width,H=c.height,L=(S.tempi_clienti||[]).slice(0,7);
+ x.fillStyle='#f7f7f3';x.fillRect(0,0,W,H);x.fillStyle='#1a1a1a';x.font=carattere(48,800);x.fillText('ORE DI LAVORO PER CLIENTE',30,62);x.fillStyle='#5f6368';x.font=carattere(22,600);x.fillText('solo il tempo in cui si è lavorato davvero (pause e notti escluse)',30,96);
+ x.fillStyle='#d93025';x.fillRect(30,110,W-60,4);if(!L.length){x.fillStyle='#5f6368';x.font=carattere(30,600);x.fillText(SPENTO?'PC spento':'Ancora nessun lavoro registrato',30,180);CLI.tex.needsUpdate=true;return}
+ const max=Math.max(...L.map(c=>c.secondi),1);L.forEach((k,i)=>{const y=150+i*68;x.fillStyle='#1a1a1a';x.font=carattere(30,800);x.fillText(String(k.cliente).slice(0,26),30,y+28);
+  x.fillStyle='#e3e3de';x.fillRect(430,y+4,360,30);x.fillStyle='#1a73e8';x.fillRect(430,y+4,360*k.secondi/max,30);
+  x.fillStyle='#188038';x.font=carattere(32,800);x.fillText(oreMin(k.secondi),810,y+30);x.fillStyle='#5f6368';x.font=carattere(20,600);x.fillText(k.video+' video',30,y+54)});
+ CLI.tex.needsUpdate=true}
+const oreMin=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?h+' h '+String(m).padStart(2,'0')+' min':m?m+' min':s+' s'};
+
 // ---------- postazioni ----------
 const posti=[];const etichette=$('#etichette');const pickers=[];
 function nuovoPosto(p){const el=document.createElement('div');el.className='et';etichette.appendChild(el);p.el=el;
@@ -560,10 +690,10 @@ function costruisciPostazioni(S){
  for(const p of posti.filter(p=>p.tipo==='agente'||p.tipo==='libero'))togliPosto(p);
  for(const k in SPOT)SPOT[k].forEach(s=>s.occ=null);
  const ag=(S.agenti||[]).filter(a=>!a.posto);const n=Math.max(1,ag.length); // solo le scrivanie degli agenti, niente posti vuoti (Cristian 15/11); quelli con 'posto' stanno fuori dalle file
- ST.ZDAVANTI=Math.max(14.5,RIGA0+(Math.ceil(n/3)-1)*PASSO+5.5);faiStanza();
- for(let i=0;i<n;i++){const a=ag[i];const x=COL[i%3],z=RIGA0+Math.floor(i/3)*PASSO;
-  if(a)postoScrivania(a.id,'agente',x,0,z,0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto});
-  else postoScrivania('libero'+i,'libero',x,0,z,0,{colore:'#8b949e',libero:true})}
+ const colonne=[[],[],[]];for(const a of ag){let c=STANZE.findIndex(s=>s.ids.includes(a.id));if(c<0)c=[0,1,2].sort((i,j)=>colonne[i].length-colonne[j].length)[0];colonne[c].push(a)}
+ ST.ZDAVANTI=Math.max(23.5,RIGA0+(Math.max(...colonne.map(c=>c.length),5)-1)*PASSO+5.7);faiStanza();
+ colonne.forEach((c,ci)=>c.forEach((a,ri)=>postoScrivania(a.id,'agente',COL[ci],0,RIGA0+ri*PASSO,0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto})));
+ faiDivisori(colonne);
  // (18/11) robot Diretta: di fianco alla 3090 gigante, vicino al palco di Claude, girato verso la stanza
  for(const a of (S.agenti||[]).filter(a=>a.posto==='gpu')){const d=postoScrivania(a.id,'agente',13.3,0,-6.3,PI+.32,{colore:a.colore||'#ff4d6d',oggetto:a.oggetto,fisso:true});
   d.camPos=d.g.localToWorld(new V3(3.0,3.8,-6.4));d.camTarget=d.g.localToWorld(new V3(0,1.5,.4));
@@ -572,7 +702,7 @@ function costruisciPostazioni(S){
  nAgentiFatti=(S.agenti||[]).map(a=>a.id+a.oggetto+a.colore).join();ostacoli();ombre()}
 let pClaude;
 function costruisciFissi(){
- faiStanza();faiPalco();
+ faiStanza();faiPalco();faiEdificio();
  // Claude sul palco, rivolto verso gli agenti: clic su di lui = vista da dietro le spalle sui suoi monitor
  pClaude=postoScrivania('claude','claude',0,PALCO.y,PALCO.z,PI,{colore:'#d97757',oggetto:'nessuno',grande:true,scala:1.22});
  pClaude.camPos=pClaude.g.localToWorld(new V3(2.6,4.3,4.4));pClaude.camTarget=pClaude.g.localToWorld(new V3(1.1,1.7,-.8));
@@ -586,26 +716,26 @@ function costruisciFissi(){
  // 3090
  const gx=14.3,gz=-2.9;faiGPU(gx,gz,-.95).scale.setScalar(.8);
  nuovoPosto({id:'gpu',tipo:'gpu',etPos:new V3(gx,7.6,gz),pickPos:new V3(gx,3.5,gz),pickSize:new V3(3.4,7,2.6),pickRot:-.95,camPos:new V3(gx-11,5.5,gz+12),camTarget:new V3(gx-1,3.6,gz)});
- libreria(-15.5,-1.2,PI/2);libreria(-15.5,2.6,PI/2);salotto();
+ libreria(-22.5,-1.2,PI/2);libreria(-22.5,2.6,PI/2);salotto();
  // TV dei video finiti: schermo verticale sulla parete destra, sopra il divano
  TVV.tex=tela(540,960,()=>{});TVV.tex.anisotropy=8;
  const tvc=rbox(.2,4.55,2.72,.06,M.plasticaNera);tvc.position.set(ST.W/2-.12,5.1,3.6);scene.add(tvc);
  const tvs=new THREE.Mesh(new THREE.PlaneGeometry(2.44,4.34),new THREE.MeshBasicMaterial({map:TVV.tex,toneMapped:false}));tvs.rotation.y=-PI/2;tvs.position.set(ST.W/2-.235,5.1,3.6);scene.add(tvs);
- nuovoPosto({id:'tv',tipo:'tv',etPos:new V3(ST.W/2-.6,7.75,3.6),pickPos:new V3(ST.W/2-.45,5.1,3.6),pickSize:new V3(1,4.8,3),camPos:new V3(8.4,5.2,4.9),camTarget:new V3(ST.W/2,5.0,6.1)});
+ nuovoPosto({id:'tv',tipo:'tv',etPos:new V3(ST.W/2-.6,7.75,3.6),pickPos:new V3(ST.W/2-.45,5.1,3.6),pickSize:new V3(1,4.8,3),camPos:new V3(15.4,5.2,4.9),camTarget:new V3(ST.W/2,5.0,6.1)});
  // Il mio PC: la postazione di Cristian. Da qui si scelgono i video sul computer di casa (anche dal tablet).
- const mp=postoScrivania('miopc','miopc',-13.2,0,9.4,0,{colore:'#11f401',libero:true,grande:true,oggetto:'nessuno'});
+ const mp=postoScrivania('miopc','miopc',-18.6,0,13.4,0,{colore:'#11f401',libero:true,grande:true,oggetto:'nessuno'});
  const torre=rbox(.55,1.25,1.15,.05,M.plasticaNera);torre.position.set(2.5,.63,.1);mp.g.add(torre);
  mp.g.add(box(new THREE.MeshBasicMaterial({color:0x11f401}),2.5,.63,.685,.06,1.0,.02,false),box(new THREE.MeshBasicMaterial({color:0x11f401}),2.215,.63,.1,.02,1.0,.9,false));
  const targa=tela(256,64,(x,w,h)=>{x.fillStyle='#111';x.fillRect(0,0,w,h);x.fillStyle='#11f401';x.font='800 34px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('CRISTIAN',w/2,h/2+2)});
  const tg=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:targa,toneMapped:false}));tg.scale.set(.8,.2,1);tg.position.set(1.35,1.17,.6);tg.rotation.x=-.25;mp.g.add(tg);
- pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15,-10.4,1.3);pianta(-14.9,12.5,1.4);
- {const cb=new THREE.Group();cb.position.set(-13.6,0,5.6);   // calcio balilla
+ pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15.6,-10.4,1.3);pianta(-22,8.4,1.4);pianta(22,-10.4,1.5);pianta(13.2,22.4,1.3);
+ {const cb=new THREE.Group();cb.position.set(-20.6,0,5.6);   // calcio balilla
   const cassa=rbox(1.25,.4,2.3,.05,M.legnoScuro);cassa.position.y=1.0;cb.add(cassa);cb.add(box(new THREE.MeshStandardMaterial({color:0x2f8f4e,roughness:.8}),0,1.205,0,1.05,.02,2.1,false));
   for(const sx of [-1,1])for(const sz of [-1,1])cb.add(box(M.metalloScuro,sx*.5,.4,sz*1.0,.09,.8,.09));
   for(let i=0;i<4;i++){const z=-.75+i*.5,st=cil(M.metallo,0,1.34,z,.018,2.0,false);st.rotation.z=PI/2;cb.add(st);
    for(let k=-1;k<=1;k++)cb.add(box(new THREE.MeshStandardMaterial({color:i%2?0xd93025:0x1a73e8,roughness:.5}),k*.3,1.28,z,.07,.17,.05,false));
    const m=cil(M.plasticaNera,(i%2?1:-1)*1.0,1.34,z,.045,.16,false);m.rotation.z=PI/2;cb.add(m)}
-  scene.add(cb);aTerra(M.ombra,-13.6,5.6,2.6,3.4)}
+  scene.add(cb);aTerra(M.ombra,-20.6,5.6,2.6,3.4)}
  // lavagna dei TEMPI sul muro sinistro, vicino allo schermo della timeline
  TMP.tex=tela(1024,720,()=>{});TMP.tex.anisotropy=8;
  {const c=rbox(.2,4.0,5.6,.06,M.metallo);c.position.set(-ST.W/2+.12,5.3,-7.2);scene.add(c);
@@ -614,8 +744,9 @@ function costruisciFissi(){
  CRE.tex=tela(1024,520,()=>{});CRE.tex.anisotropy=8;
  {const c=rbox(.2,2.75,5.3,.06,M.metallo);c.position.set(-ST.W/2+.12,5.55,.7);scene.add(c);
   const q=new THREE.Mesh(new THREE.PlaneGeometry(5.06,2.57),new THREE.MeshBasicMaterial({map:CRE.tex,toneMapped:false}));q.rotation.y=PI/2;q.position.set(-ST.W/2+.235,5.55,.7);scene.add(q)}
- nuovoPosto({id:'crediti',tipo:'crediti',etPos:new V3(-ST.W/2+.6,7.25,.7),pickPos:new V3(-ST.W/2+.45,5.55,.7),pickSize:new V3(1,2.9,5.5),camPos:new V3(-7.6,5.5,.7),camTarget:new V3(-ST.W/2,5.5,.7)});
- nuovoPosto({id:'tempi',tipo:'tempi',etPos:new V3(-ST.W/2+.6,7.65,-7.2),pickPos:new V3(-ST.W/2+.45,5.3,-7.2),pickSize:new V3(1,4.2,5.8),camPos:new V3(-8.2,5.4,-8.4),camTarget:new V3(-ST.W/2,5.2,-9.4)});
+ nuovoPosto({id:'crediti',tipo:'crediti',etPos:new V3(-ST.W/2+.6,7.25,.7),pickPos:new V3(-ST.W/2+.45,5.55,.7),pickSize:new V3(1,2.9,5.5),camPos:new V3(-14.6,5.5,.7),camTarget:new V3(-ST.W/2,5.5,.7)});
+ nuovoPosto({id:'clienti',tipo:'tempi',etPos:new V3(-19.4,7.6,ST.ZDIETRO+.5),pickPos:new V3(-19.4,5.2,ST.ZDIETRO+.4),pickSize:new V3(6.4,4.1,.8),camPos:new V3(-18.6,5.4,-3.6),camTarget:new V3(-19.4,5.2,ST.ZDIETRO)});
+ nuovoPosto({id:'tempi',tipo:'tempi',etPos:new V3(-ST.W/2+.6,7.65,-7.2),pickPos:new V3(-ST.W/2+.45,5.3,-7.2),pickSize:new V3(1,4.2,5.8),camPos:new V3(-15.2,5.4,-8.4),camTarget:new V3(-ST.W/2,5.2,-9.4)});
  [[-12.6,-4.5,1],[12.2,-6.8,1],[-12.6,3.5,1],[12.9,6.2,1],[-12.6,11,1],[12.9,12.2,1],[-3.6,6.6,0,8.3],[3.6,6.6,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?i<4:l,h||7.5));
  scene.add(box(M.tappeto,0,.012,-2.4,4.6,.025,2.0,false));
  faiThor();
@@ -644,7 +775,7 @@ function vai(p,dove,spot,svelto){const b=p.bot;if(THOR.amico===p&&dove!=='thor')
 function libero(tipo){return (SPOT[tipo]||[]).find(s=>!s.occ)}
 function segna(b){if(!b.segni.length)return;b.segni.forEach(k=>NONSEGNATI.delete(k));b.segni=[];disegnaLavagna()}
 // cosa fanno quando non hanno lavoro: piu' scelte, il divano e' solo una delle tante
-const SVAGHI=[['caffe',2],['divano',1],['gioco_',2],['libreria',1],['led',2],['piante',2],['ginnastica',2],['biliardino',3],['thor',3],['scrivania',2]];
+const SVAGHI=[['mensa',3],['caffe',2],['divano',1],['gioco_',2],['libreria',1],['led',2],['piante',2],['ginnastica',2],['biliardino',3],['thor',3],['scrivania',2]];
 function scegliSvago(p){const b=p.bot,sacco=[];for(const [t,w] of SVAGHI)if(t!==b.dove)for(let i=0;i<w;i++)sacco.push(t);
  for(let k=0;k<10;k++){const t=sacco[(Math.random()*sacco.length)|0];
   if(t==='scrivania')return vai(p,'scrivania');
@@ -656,6 +787,7 @@ function arrivato(p){const b=p.bot,r=p.robot,u=r.userData;b.modo='fermo';b.dove=
  if(b.dove==='scrivania'){r.position.copy(p.seduta);r.rotation.y=p.sedutaRy;posa(r,true);p.blob.visible=false;b.timer=caso(10,30)}
  else{const s=b.spot;r.rotation.y=s.ry;
   if(b.dove==='divano'){r.position.set(s.x+.25,.62,s.z);posa(r,true);u.libro.visible=true;b.timer=caso(14,28)}
+  else if(b.dove==='mensa'){r.position.set(s.x,.62,s.z);posa(r,true);u.tazza.visible=true;b.timer=caso(20,45)}
   else if(b.dove==='led'){b.timer=caso(10,20)}
   else if(b.dove==='piante'){u.tazza.visible=true;b.timer=caso(8,14)}
   else if(b.dove==='ginnastica'){b.timer=caso(12,20)}
@@ -682,9 +814,9 @@ function animaRobot(p,dt,t){const r=p.robot,u=r.userData,a=p.dati||{},f=u.fase,b
    const k=t*(b.svelto?13:9)+f;r.position.y=.5*u.scala+Math.abs(Math.sin(k))*.05;u.gambe[0].rotation.x=Math.sin(k)*.75;u.gambe[1].rotation.x=-Math.sin(k)*.75;
    u.braccia.forEach((br,i)=>{br.sp.rotation.x=(i?1:-1)*Math.sin(k)*.6;br.gom.rotation.x=-.35});u.testa.rotation.set(0,0,0);
    p.blob.position.set(r.position.x,.02,r.position.z);p.etPos.set(r.position.x,p.etAlt+.75,r.position.z);return}
-  if(b.dove!=='scrivania'){p.blob.position.set(r.position.x,.02,r.position.z);if(b.dove!=='divano')r.position.y=.5*u.scala+(MUS.on&&!MUS.audio.paused?Math.abs(Math.sin(t*4.2+f))*.04:0);p.etPos.set(r.position.x,p.etAlt+(b.dove==='divano'?.6:.75),r.position.z);
+  if(b.dove!=='scrivania'){p.blob.position.set(r.position.x,.02,r.position.z);if(!SEDUTI.has(b.dove))r.position.y=.5*u.scala+(MUS.on&&!MUS.audio.paused?Math.abs(Math.sin(t*4.2+f))*.04:0);p.etPos.set(r.position.x,p.etAlt+(SEDUTI.has(b.dove)?.6:.75),r.position.z);
    if(b.dove==='divano'){u.testa.rotation.set(.35,Math.sin(t*.3+f)*.1,0);u.braccia.forEach((br,i)=>{br.sp.rotation.x=-.75;br.gom.rotation.x=-1.0+(i?Math.sin(t*.7+f)*.04:0)})}
-   else if(b.dove==='caffe'){const s=Math.max(0,Math.sin(t*.9+f));u.testa.rotation.set(-.1*s,Math.sin(t*.5+f)*.3,0);u.braccia[1].sp.rotation.x=-.5-s*.75;u.braccia[1].gom.rotation.x=-1.1-s*.6;u.braccia[0].sp.rotation.x=0;u.braccia[0].gom.rotation.x=-.2}
+   else if(b.dove==='caffe'||b.dove==='mensa'){const s=Math.max(0,Math.sin(t*.9+f));u.testa.rotation.set(-.1*s,Math.sin(t*.5+f)*.3,0);u.braccia[1].sp.rotation.x=-.5-s*.75;u.braccia[1].gom.rotation.x=-1.1-s*.6;u.braccia[0].sp.rotation.x=0;u.braccia[0].gom.rotation.x=-.2}
    else if(b.dove==='gioco_'){u.testa.rotation.set(.05,Math.sin(t*2+f)*.08,0);u.braccia.forEach((br,i)=>{br.sp.rotation.x=-.8+Math.sin(t*9+i*2)*.08;br.gom.rotation.x=-.9+Math.sin(t*14+i*3)*.15});r.position.y=.5*u.scala+Math.abs(Math.sin(t*5+f))*.02}
    else if(b.dove==='libreria'){u.testa.rotation.set(.3,0,0);u.braccia.forEach(br=>{br.sp.rotation.x=-.7;br.gom.rotation.x=-1.0})}
    else if(b.dove==='led'){const pt=Math.sin(t*.5+f)>.55;u.testa.rotation.set(-.28,Math.sin(t*.4+f)*.25,0);u.braccia[1].sp.rotation.x=pt?-1.9:-.1;u.braccia[1].gom.rotation.x=pt?-.2:-.3;u.braccia[0].sp.rotation.x=-.05;u.braccia[0].gom.rotation.x=-.3}
@@ -886,6 +1018,7 @@ function applica(){
  const ora={};(S.lavori||[]).forEach(j=>j.passi.forEach(p=>ora[j.id+'|'+p.nome]=p));
  if(passiPrima)for(const k in ora){const p=ora[k];if(p.stato==='fatto'&&passiPrima[k]&&passiPrima[k]!=='fatto'){const po=posti.find(q=>q.id===p.agente&&q.bot);if(po){NONSEGNATI.add(k);po.bot.segni.push(k);setTimeout(()=>{if(NONSEGNATI.delete(k)){po.bot.segni=po.bot.segni.filter(s=>s!==k);disegnaLavagna()}},70000)}}}
  passiPrima={};for(const k in ora)passiPrima[k]=ora[k].stato;
+ try{jEventi()}catch(e){}
  for(const p of posti){
   if(p.tipo==='gpu'){p.dati=P;p.el.className='et'+(SPENTO?' libero':'');p.el.style.borderColor=!SPENTO&&g.uso>50?'#76b900':'';
    p.el.innerHTML=`<b>RTX 3090</b><span>${SPENTO?'PC spento':`${g.uso??'—'}% · ${g.temp??'—'}°C · ${g.watt??'—'} W`}</span>`;continue}
@@ -893,7 +1026,7 @@ function applica(){
   if(p.tipo==='davinci'){p.el.className='et';p.el.innerHTML=`<b>Timeline DaVinci</b>`;continue}
   if(p.tipo==='led')continue;
   if(p.tipo==='crediti'){const c=S.crediti||{},s=c.sessione;p.el.className='et';p.el.style.borderColor=c.ok&&s?creCol(s.pct):'';p.el.innerHTML='<b>Crediti Claude</b>'+(c.ok?`<span>${s?'Sessione '+Math.round(s.pct)+'%':''}${c.settimana?' · Settimana '+Math.round(c.settimana.pct)+'%':''}</span>`:'<span>dato non disponibile</span>');disegnaCrediti();continue}
-  if(p.tipo==='tempi'){p.el.className='et';p.el.innerHTML='<b>⏱ Tempi dei lavori</b>';disegnaTempi();continue}
+  if(p.tipo==='tempi'){p.el.className='et';p.el.innerHTML=p.id==='clienti'?'<b>👥 Ore per cliente</b>':'<b>⏱ Tempi dei lavori</b>';if(p.id==='clienti')disegnaClienti();else disegnaTempi();continue}
   if(p.tipo==='tv'){const V=S.video||[],dag=V.filter(daGuardare).length;p.el.className='et';p.el.style.borderColor=dag?'var(--acc)':'';p.el.innerHTML='<b>🎬 Video finiti</b>'+(V.length?`<span>${dag?dag+' da guardare':V.length+' video'}</span>`:'');disegnaTV();continue}
   if(p.tipo==='miopc'){p.el.className='et';p.el.style.borderColor='#11f401';p.el.innerHTML='<b>🖥 Il mio PC</b><span>scegli i video dal computer</span>';disegnaMioPC(p);
    const L=p.g.userData.lampada;L.obb=SPENTO?0:1;L.rossa=false;L.anello.material.color.set('#11f401');continue}
@@ -964,10 +1097,11 @@ document.addEventListener('visibilitychange',()=>{if(!MUS.on)return;if(document.
 
 // ---------- scheda dettagli ----------
 let aperta=null;
+let confermaSalta=null;
 function riga(a,b,cls=''){return `<div class="riga ${cls}"><span>${a}</span><span>${b}</span></div>`}
 function schedaDiario(n){const d=(S.diario||[]).slice(-n).reverse();return d.length?d.map(x=>riga(`<b>${esc(x.chi)}</b> · ${esc(x.testo)}`,oraDi(x.ts),/ERRORE|BLOCCAT|SALTAT/.test(x.testo)?'err':'')).join(''):'<div class="mut">Oggi ancora niente nel diario. Si riempie quando Claude segnala i passi (passo.py) o quando cambiano le tracce in DaVinci.</div>'}
 function schedaLavoro(j){if(!j)return '';
- return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · '+restaPasso(p):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
+ return `<h3>${esc(j.nome)} · ${j.fatti}/${j.passi.length} passi</h3>`+j.passi.map((p,i)=>riga(`${p.stato==='fatto'?'☒':'☐'} ${i+1}. ${esc(p.nome)}${p.stato==='da_fare'&&!/^(Anteprima|Correzioni)$/.test(p.nome)?` <button data-az="salta" data-id="${esc(j.id)}" data-passo="${esc(p.nome)}" style="margin-left:6px;padding:1px 8px;font-size:12px">${confermaSalta===j.id+'|'+p.nome?'Sicuro? Tocca ancora':'⏭ Salta'}</button>`:''}`,p.stato==='fatto'?'fatto'+(p.secondi?' · '+tempo(p.secondi):''):p.stato==='in_corso'?'in corso · '+restaPasso(p):p.stato==='saltato'?'SALTATO':p.stato==='errore'?'errore':'~'+tempo(p.stima),p.stato==='fatto'?'ok':p.stato==='in_corso'?'ora':p.stato==='errore'||p.stato==='saltato'?'err':'')).join('')+
  `<canvas class="graf" width="680" height="96" data-job="${esc(j.id)}"></canvas><div class="mut" style="margin-top:4px">${j.inizio?'Iniziato alle <b>'+oraDi(j.inizio)+'</b> · ':''}${j.resta!=null?'restano circa <b>'+tempo(j.resta)+'</b> · fine verso le '+oraDi(S.ts+j.resta):j.fine?'finito alle <b>'+oraDi(j.fine)+'</b>':esc(j.stato)}${j.messaggio?' · '+esc(j.messaggio):''}</div>`+azioniLavoro(j)}
 function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<button class="x" id="chiudi">✕</button>';const A=S.attenzione||[];
  const avvisi=A.map(a=>`<div class="avv">⚠ ${esc(a.testo)}</div>`).join('');
@@ -982,7 +1116,8 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
   <div class="mut" style="margin-top:6px">ComfyUI ${S.servizi&&S.servizi.comfy?'acceso':'spento'} · DaVinci ${S.servizi&&S.servizi.davinci?'aperto':'chiuso'}</div>`}
  else if(p.tipo==='lavagna'){h+=`<h2>Lavagna</h2><div class="ruolo">I passi che hai scelto, in ordine. Chi finisce va a fare la X.</div>${avvisi}${bloccoAuto()}`+((S.lavori||[]).map(schedaLavoro).join('')||'<div class="mut">Nessun progetto scelto: quando ne metti uno nel Pannello (coda o In diretta) i passi compaiono qui.</div>')}
  else if(p.tipo==='davinci'){const t=TL||{};h+=`<h2>Timeline DaVinci</h2><div class="ruolo">Sola lettura: la stanza non tocca niente in DaVinci</div>`+(t.ok?`<div class="cosa">${esc(t.progetto)} › ${esc(t.timeline||'—')}</div>`+(t.tracce||[]).map(k=>riga(`<b>${esc(k.t)}</b> ${esc(k.nome)}`,k.n+' clip')).join('')+`<div class="mut" style="margin-top:8px">Durata ${tempo((t.durata||0)/(t.fps||25))} · ${t.fps} fps · letta alle ${oraDi(t.letto)}. Si aggiorna ogni 30 secondi quando DaVinci è aperto.</div>`:'<div class="mut">Timeline non ancora letta (DaVinci chiuso?).</div>')}
- else if(p.tipo==='tempi'){const T_=S.tempi||[];h+=`<h2>⏱ Tempi dei lavori</h2><div class="ruolo">Ora di inizio, ora di fine e quanto ci ha messo ogni video, passo per passo</div>`+
+ else if(p.tipo==='tempi'){const T_=S.tempi||[],C_=S.tempi_clienti||[];h+=`<h2>⏱ Tempi dei lavori</h2><div class="ruolo">Conta solo il tempo in cui si è lavorato davvero: pause, notti e lavori lasciati aperti non entrano nel conto.</div>`+
+  (C_.length?'<h3>Ore per cliente</h3>'+C_.map(c=>riga('<b>'+esc(c.cliente)+'</b> · '+c.video+' video','<b>'+oreMin(c.secondi)+'</b>')).join(''):'')+
   (T_.length?T_.map(j=>`<h3>${esc(j.nome)}${j.giri>1?' · '+j.giri+' giri':''}</h3>`+riga('Inizio',oraDi(j.inizio))+riga('Fine',j.in_corso?'in corso'+(j.resta!=null?' · restano ~'+tempo(j.resta):''):oraDi(j.fine),j.in_corso?'ora':'')+riga('<b>In tutto</b>','<b>'+tempo(j.secondi)+'</b>'+(j.video_s?' · video di '+mmss(j.video_s):''))+
    (j.passi||[]).slice().sort((a,b)=>(b[1]||0)-(a[1]||0)).map(q=>riga('&nbsp;&nbsp;'+esc(q[0]),tempo(q[1]))).join('')).join(''):'<div class="mut">Ancora nessun lavoro registrato. Da adesso ogni video montato lascia qui inizio, fine e tempi.</div>')}
  else if(p.tipo==='tv'){vidDisegna();return}
@@ -1008,12 +1143,14 @@ function disegnaScheda(){const p=aperta,sc=$('#scheda');if(!p)return;let h='<but
    const r=(S.registro||[]).filter(x=>x.id===p.id).slice(-8).reverse();
    h+='<h3>Storico di oggi</h3>'+(r.length?r.map(x=>riga(esc(x.cosa),`${oraDi(x.fine)} · ${tempo(x.secondi)}`,x.esito==='errore'?'err':'')).join(''):'<div class="mut">Oggi ancora niente.</div>');
    if(p.id==='color_foto')h+=`<h3>Foto: color</h3><div class="mut">Lavora sul progetto aperto in DaVinci, solo sulle foto col cuore (Buona). "Fai la color" prepara la timeline <b>Color foto</b>: la controlli nella pagina Color e poi confermi l'export.</div><div class="azioni"><button data-foto="prepara">🎨 Fai la color (poi controllo io)</button><button data-foto="esporta">✅ Ho controllato: esporta</button><button data-foto="tutto">⚡ Color + esporta subito</button></div>`;
+   if(p.id==='canzone')h+=`<h3>Voce e piano</h3><div class="mut">In DaVinci metti sulle tracce audio la registrazione della camera (voce e piano insieme) <b>oppure</b> le due registrazioni separate (voce e piano), lasciale accese e premi il tasto. Capisce da solo qual &egrave; la voce, fa il mix da studio (voce davanti, piano sotto, riverbero) e mette in timeline <b>VOCE</b>, <b>PIANO</b> e <b>RIVERBERO VOCE</b>; le registrazioni originali le spegne. Se lo rilanci rif&agrave; le sue tracce.<br><b>Ronzio</b> (trasformatore del Clavinova): lo controlla da solo e lo toglie solo se c'&egrave;. Per una canzone gi&agrave; fatta usa il tasto <b>Controlla il ronzio</b>: mette in timeline il piano pulito e rif&agrave; il mix.</div><div class="azioni"><button data-canzone="auphonic">🎙 Mixa voce e piano (con Auphonic)</button><button data-canzone="gratis">🎹 Mixa senza Auphonic (gratis)</button><button data-canzone="ronzio">🔇 Controlla il ronzio (canzone gi&agrave; fatta)</button></div>`;
    if(a.cartella)h+=`<div class="azioni">${LOCALE?`<button id="apri">Apri cartella risultato</button>`:'<span class="mut">«Apri cartella» funziona dal PC di casa.</span>'}</div>`}}
  sc.classList.remove('largo');sc.onclick=azioniScheda;const su=sc.scrollTop;sc.innerHTML=h;sc.classList.add('su');sc.scrollTop=su;
  sc.querySelectorAll('canvas.graf').forEach(c=>{const j=(S.lavori||[]).find(j=>j.id===c.dataset.job);if(j)graficoTempi(c.getContext('2d'),j,0,6,680,84,false)});
  $('#chiudi').onclick=()=>{chiudiScheda();if(!FP.on)vola(null)};
  const cc=$('#coccola');if(cc)cc.onclick=()=>{THOR.festa=2.5};
  sc.querySelectorAll('[data-foto]').forEach(x=>x.onclick=async e=>{e.stopPropagation();let dest='';if(x.dataset.foto!=='prepara'){let ult='';try{ult=localStorage.getItem('foto_dest')||''}catch(_){}dest=prompt((x.dataset.foto==='esporta'?'Esporto le foto della timeline Color foto.':'Color + export senza controllo.')+'\nIn quale cartella del PC le metto? (percorso completo, es. E:\\Consegne\\Battesimo Marcella)',ult);if(dest===null)return;dest=dest.trim();if(!/^[A-Za-z]:\\/.test(dest)){alert('Scrivi il percorso completo, che inizia con la lettera del disco (es. E:\\Consegne\\Battesimo)');return}try{localStorage.setItem('foto_dest',dest)}catch(_){}}x.disabled=true;x.textContent='Avvio…';try{const r=LOCALE?await (await fetch('/api/foto/avvia',{method:'POST',headers:{'X-Ufficio':'1','Content-Type':'application/json'},body:JSON.stringify({modo:x.dataset.foto,cartella:dest})})).json():await comandoPC({tipo:'foto_color',modo:x.dataset.foto,cartella:dest},30);x.textContent=r&&r.ok?'Partito ✓':'Errore: '+((r&&r.errore)||'')}catch(err){x.textContent='Errore: '+(err.message||'il PC non risponde')}});
+ sc.querySelectorAll('[data-canzone]').forEach(x=>x.onclick=async e=>{e.stopPropagation();if(!LOCALE){x.textContent='Per ora si lancia dall\'Ufficio sul PC';return}x.disabled=true;x.textContent='Avvio…';try{const r=await (await fetch('/api/canzone/avvia',{method:'POST',headers:{'X-Ufficio':'1','Content-Type':'application/json'},body:JSON.stringify({gratis:x.dataset.canzone==='gratis',ronzio:x.dataset.canzone==='ronzio'})})).json();x.textContent=r&&r.ok?'Partito ✓ (guarda il robot)':'Errore: '+((r&&r.errore)||'')}catch(err){x.textContent='Errore: '+(err.message||'il PC non risponde')}});
  const b=$('#apri');if(b)b.onclick=()=>fetch('/api/apri/'+p.id,{method:'POST',headers:{'X-Ufficio':'1'}})}
 function chiudiScheda(){aperta=null;$('#scheda').classList.remove('su');const vp=$('#vplay');if(vp)vp.pause()}
 
@@ -1058,6 +1195,7 @@ function azioniLavoro(j){const id=j.id.slice(2),coda=j.tipo==='coda',v=(S.video|
  if(coda&&!att)h+=`<button data-az="su" data-id="${esc(id)}" title="Falla prima">▲</button><button data-az="giu" data-id="${esc(id)}" title="Falla dopo">▼</button><button data-az="togli" data-id="${esc(id)}"${confermaTogli===id?' class="pri"':''}>${confermaTogli===id?'Sicuro? Tocca ancora':'✕ Togli dalla coda'}</button>`;
  return h+'</div>'+(rev.esito==='da_correggere'?`<div class="perche"><b>Correzione chiesta</b>${esc(rev.nota||'')}</div>`:'')}
 async function azioniScheda(ev){const t=ev.target.closest('[data-az]');if(!t)return;const az=t.dataset.az,id=t.dataset.id;
+ if(az==='salta'){const k=id+'|'+t.dataset.passo;if(confermaSalta!==k){confermaSalta=k;disegnaScheda();setTimeout(()=>{if(confermaSalta===k){confermaSalta=null;disegnaScheda()}},4000);return}confermaSalta=null;t.disabled=true;t.textContent='…';let r;try{r=await codaAzione({azione:'salta',id,passo:t.dataset.passo})}catch(e){r={ok:false,errore:e.message||String(e)}}avvisa(!r||!r.ok?((r&&r.errore)||'Non riuscito'):'Saltato: '+t.dataset.passo+' (Claude non lo fa)');setTimeout(aggiorna,1200);return}
  if(az==='guarda'){apriVideo(id);return}
  if(az==='esegui'){t.disabled=true;t.textContent='Avvio…';let r;try{r=await codaAzione({azione:'esegui'})}catch(e){r={ok:false,errore:e.message||String(e)}}
   avvisa(!r||!r.ok?((r&&r.errore)||'Non riuscito'):r.messaggio||'Parte Claude Code: segue la coda fino alla fine');setTimeout(aggiorna,1500);return}
@@ -1246,6 +1384,71 @@ async function noteManda(t){if(VID.rec){avvisa('Ferma prima la registrazione');r
  }catch(e){avvisa(e.message||String(e));t.disabled=false;noteDisegna()}}
 $('#vid').onclick=()=>apriVideo();
 
+// ---------- (27/11) JARVIS: la voce dell'ufficio. Tutto nel browser: non usa crediti di Claude ----------
+// Parla con la voce del dispositivo, annuncia chi inizia e chi finisce (con i tempi) e risponde a domande semplici sui dati della stanza.
+const JAR={on:false,salutato:false,prima:null,lavPrima:null,attPrima:0,vidPrima:null,rec:null,coda:[]};
+try{JAR.on=localStorage.getItem('jarvis')==='1'}catch(e){}
+// voce: femminile e il piu' possibile naturale (27/11, Cristian). Ordine: voci 'Natural' femminili (Edge), Google italiano, altre femminili. Il tasto ♀ le prova una per una.
+const jVoci=()=>{const v=speechSynthesis.getVoices().filter(x=>/^it/i.test(x.lang)),p=x=>(/Natural|Neural/i.test(x.name)?0:/Google/i.test(x.name)?1:2)+(/Isabella|Elsa|Alice|Federica|Fabiola|Paola|Irma|Pierina|Bianca|Google/i.test(x.name)?0:3);return v.sort((a,b)=>p(a)-p(b))};
+function jVoce(){const v=jVoci();let n='';try{n=localStorage.getItem('jarvis_voce')||''}catch(e){}return v.find(x=>x.name===n)||v[0]||null}
+function jDice(t,mostra=true){if(!t)return;if(mostra){const e=$('#jtesto');e.textContent=t;$('#jarvis').classList.add('parla');clearTimeout(jDice.t);jDice.t=setTimeout(()=>$('#jarvis').classList.remove('parla'),Math.max(4000,t.length*75))}
+ if(!JAR.on||!('speechSynthesis' in window))return;try{const u=new SpeechSynthesisUtterance(t.replace(/[·›→]/g,', ').replace(/\b3090\b/g,'trenta novanta'));u.lang='it-IT';const v=jVoce();if(v)u.voice=v;u.rate=1;u.pitch=1.08;u.volume=1;
+  const m=MUS.on&&!MUS.audio.paused;if(m){MUS.audio.volume=MUS.vol*.25;u.onend=u.onerror=()=>{if(!speechSynthesis.pending)MUS.audio.volume=MUS.vol}}speechSynthesis.speak(u)}catch(e){}}
+const jMin=s=>{s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?h+(h===1?' ora':' ore')+(m?' e '+m+' minuti':''):m>1?m+' minuti':m===1?'un minuto':s+' secondi'};
+function jStato(){const ag=[S.claude,S.revisore,...(S.agenti||[])].filter(a=>a&&a.stato==='lavora'&&a.id!=='claude'),nc=(S.coda||[]).filter(j=>j.stato==='in coda').length,dag=(S.video||[]).filter(daGuardare).length,A=S.attenzione||[],g=(S.pc||{}).gpu||{};
+ if(SPENTO)return 'Il computer di casa non risponde: non ho dati aggiornati.';
+ const p=[];p.push(ag.length?(ag.length===1?'Sta lavorando '+ag[0].nome+': '+ag[0].cosa:'Stanno lavorando '+ag.map(a=>a.nome).join(', ')):'Nessun agente al lavoro');
+ p.push(nc?(nc===1?'un video in coda':nc+' video in coda'):'coda vuota');if(dag)p.push(dag===1?'un video finito da guardare':dag+' video finiti da guardare');
+ if(A.length)p.push('attenzione: '+A[0].testo);if(g.uso!=null)p.push('scheda video al '+Math.round(g.uso)+' per cento'+(g.temp?', '+Math.round(g.temp)+' gradi':''));return p.join('. ')+'.'}
+function jSaluto(){const h=new Date().getHours();return (h<5?'Buonanotte':h<13?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera')+' Cristian Leoni, siamo pronti a lavorare. '+jStato()}
+function jTempi(q){const C=S.tempi_clienti||[],T_=S.tempi||[];if(!C.length)return 'Non ho ancora tempi registrati.';
+ const c=C.find(c=>q.includes(String(c.cliente).toLowerCase().split(' ')[0]));if(c)return 'Per '+c.cliente+' abbiamo lavorato '+jMin(c.secondi)+' su '+c.video+' video.';
+ const u=T_.find(j=>!j.in_corso);return 'In tutto: '+C.slice(0,4).map(c=>c.cliente+' '+jMin(c.secondi)).join(', ')+'.'+(u?' L\'ultimo video, '+u.nome+', ha richiesto '+jMin(u.secondi)+'.':'')}
+function jRisposta(q){q=q.toLowerCase();
+ if(/ciao|buongiorno|buonasera|ci sei|pronto/.test(q))return jSaluto();
+ if(/quanto.*lavor|ore|tempi|tempo|prezz/.test(q))return jTempi(q);
+ if(/coda/.test(q)){const c=(S.coda||[]).filter(j=>j.stato==='in coda'||/lavorazione/.test(j.stato));return c.length?'In coda: '+c.map(j=>j.nome+', '+j.stato).join('. ')+'.':'La coda è vuota.'}
+ if(/video|finit|guardare/.test(q)){const v=(S.video||[]).filter(daGuardare);return v.length?'Da guardare: '+v.map(x=>x.nome).join(', ')+'.':'Nessun video da guardare.'}
+ if(/scheda|gpu|temperatur|computer|pc/.test(q)){const P=S.pc||{},g=P.gpu||{},c=P.cpu||{},r=P.ram||{};return 'Scheda video al '+Math.round(g.uso||0)+' per cento, '+Math.round(g.temp||0)+' gradi, memoria video '+(g.vram??'?')+' giga. Processore al '+Math.round(c.uso||0)+' per cento, memoria '+(r.usata??'?')+' giga.'}
+ if(/credit|abbonament/.test(q)){const k=S.crediti||{};return k.ok===false||!k.finestre?'Non ho il dato dei crediti in questo momento.':'Crediti: '+(k.finestre||[]).map(f=>f.nome+' al '+f.pct+' per cento').join(', ')+'.'}
+ if(/diario|successo|fatto oggi/.test(q)){const d=(S.diario||[]).slice(-3);return d.length?'Ultime cose: '+d.map(x=>x.chi+', '+x.testo).join('. '):'Oggi il diario è vuoto.'}
+ if(/pausa|ferma/.test(q)&&/automatic|coda|tutto/.test(q)){codaAzione({azione:'pausa'}).catch(()=>{});return 'Metto in pausa l\'automatico: finito il video in corso non ne inizia altri.'}
+ if(/riprendi|riparti/.test(q)){codaAzione({azione:'riprendi'}).catch(()=>{});return 'Automatico ripreso.'}
+ const a=[S.revisore,...(S.agenti||[])].find(a=>a&&q.includes(a.nome.toLowerCase().split(' ')[0]));
+ if(a)return a.nome+(a.stato==='lavora'?' sta lavorando: '+a.cosa+(a.resta!=null?'. Restano circa '+jMin(a.resta):''):a.stato==='errore'?' è in errore: '+a.cosa:' è fermo. '+(a.motivo||''));
+ if(/chi|stato|situazione|come va|cosa (fanno|succede)|lavor/.test(q))return jStato();
+ return 'Posso dirti: lo stato, chi lavora, la coda, i video finiti, le ore per cliente, la scheda video. Oppure mettere in pausa l\'automatico.'}
+// annunci: chi inizia, chi finisce e quanto ci ha messo, errori, video pronti
+function jEventi(){if(SPENTO||!S.agenti)return;const ora={};[S.revisore,...S.agenti].forEach(a=>{if(a)ora[a.id]={st:a.stato,cosa:a.cosa,da:a.da,nome:a.nome}});
+ const lav={};(S.lavori||[]).forEach(j=>lav[j.id]=j.stato);const vid=(S.video||[]).filter(daGuardare).map(v=>v.id).join();
+ if(JAR.prima){const frasi=[];
+  for(const k in ora){const a=ora[k],p=JAR.prima[k];if(!p)continue;
+   if(a.st==='lavora'&&p.st!=='lavora')frasi.push(a.nome+' ha iniziato: '+String(a.cosa).split(': ').pop());
+   else if(p.st==='lavora'&&a.st==='riposa')frasi.push(a.nome+' ha finito'+(p.da?' in '+jMin(S.ts-p.da):''));
+   else if(a.st==='errore'&&p.st!=='errore')frasi.push('Attenzione: '+a.nome+' è in errore. '+String(a.cosa).slice(0,120))}
+  for(const k in lav){const p=JAR.lavPrima&&JAR.lavPrima[k];if(p&&/lavorazione|in corso/.test(p)&&/fatto|esportato|finito/.test(lav[k])){const j=(S.lavori||[]).find(x=>x.id===k),t=(S.tempi||[]).find(x=>x.id===k);
+    frasi.push('Lavoro finito: '+(j?j.nome.replace('·',','):'')+(t?'. Tempo di lavoro '+jMin(t.secondi):''))}}
+  if(JAR.vidPrima!=null&&vid&&vid!==JAR.vidPrima&&vid.length>JAR.vidPrima.length)frasi.push('C\'è un video finito da guardare.');
+  const na=(S.attenzione||[]).length;if(na>JAR.attPrima)frasi.push('Attenzione: '+S.attenzione[na-1].testo);JAR.attPrima=na;
+  if(frasi.length)jDice(frasi.slice(0,3).join('. ')+'.',JAR.on)}
+ else JAR.attPrima=(S.attenzione||[]).length;
+ JAR.prima=ora;JAR.lavPrima=lav;JAR.vidPrima=vid}
+function jAscolta(){const R=window.SpeechRecognition||window.webkitSpeechRecognition,b=$('#jmic');
+ if(JAR.rec){try{JAR.rec.stop()}catch(e){}return}
+ if(!R){const q=prompt('Su questo browser non posso ascoltare. Scrivi la domanda per Jarvis:');if(q)jDice(jRisposta(q));return}
+ const r=JAR.rec=new R();r.lang='it-IT';r.interimResults=false;r.maxAlternatives=1;speechSynthesis.cancel();b.classList.add('rec');$('#jtesto').textContent='Ti ascolto…';$('#jarvis').classList.add('parla');
+ r.onresult=e=>{const q=e.results[0][0].transcript;$('#jtesto').textContent='«'+q+'»';setTimeout(()=>jDice(jRisposta(q)),500)};
+ r.onerror=e=>{$('#jtesto').textContent=e.error==='not-allowed'?'Microfono non autorizzato: dai il permesso al browser.':'Non ho capito, riprova.'};
+ r.onend=()=>{JAR.rec=null;b.classList.remove('rec')};try{r.start()}catch(e){JAR.rec=null;b.classList.remove('rec')}}
+function jAccendi(on){JAR.on=on;try{localStorage.setItem('jarvis',on?'1':'0')}catch(e){}$('#bJar').classList.toggle('on',on);$('#jarvis').style.display=on?'flex':'none';
+ if(on){JAR.salutato=true;jDice(jSaluto())}else{try{speechSynthesis.cancel()}catch(e){}}}
+$('#bJar').onclick=()=>jAccendi(!JAR.on);
+$('#jvoce').onclick=()=>{const v=jVoci();if(!v.length){jDice('Su questo dispositivo non trovo voci italiane.');return}const a=jVoce(),i=(v.indexOf(a)+1)%v.length;try{localStorage.setItem('jarvis_voce',v[i].name)}catch(e){}speechSynthesis.cancel();jDice('Questa è la voce '+(i+1)+' di '+v.length+'. Buongiorno Cristian, siamo pronti a lavorare.')};$('#jmic').onclick=jAscolta;$('#jorb').onclick=()=>jDice(jStato());
+if(JAR.on){$('#bJar').classList.add('on');$('#jarvis').style.display='flex';$('#jtesto').textContent='Jarvis è acceso: tocca la pagina e ti saluto.';
+ addEventListener('pointerdown',function primo(){removeEventListener('pointerdown',primo);if(!JAR.salutato){JAR.salutato=true;setTimeout(()=>jDice(jSaluto()),600)}})}
+if('speechSynthesis' in window)speechSynthesis.getVoices();
+
+
 // ---------- Studio clienti (18/11): chat con Claude Code sul PC, una conversazione per cliente ----------
 const STU={cliente:null,nuovo:false,bozza:'',allegati:[],invio:false,ascolta:null,k:'',firma:''};
 try{STU.cliente=localStorage.getItem('studio_cliente')||null}catch(_){}
@@ -1334,7 +1537,7 @@ const direttaD=()=>S.diretta_ag||{};
 const mandaDiretta=o=>mandaPC('/api/pc/diretta','diretta',o,60);
 function dirScelteUff(){const o={};for(const [k,,m] of DIR_PASSI)o[k]=m?(DIRG.multi[k]||[]).slice():(DIRG.sc[k]||DIR_NO[k]);o.revisore=!!DIRG.rev;o.grafiche=DIRG.sc.grafiche||((direttaD().scelte||{}).grafiche||[])[1]||'';return o}
 function dirOrdine(){const s=dirScelteUff(),q=new Set();for(const [k,,m] of DIR_PASSI){if(m?s[k].length:s[k]!==DIR_NO[k])q.add(k)}
- if(q.has('stile')||q.has('semplici')){q.add('tracker');q.add('revisore')}if(s.revisore)q.add('revisore');
+ if(q.has('stile')&&/^sottotitoli semplici/i.test(String(s.stile))){q.delete('stile');q.add('semplici')}if(q.has('stile'))q.add('tracker');if(q.has('stile')||q.has('semplici'))q.add('revisore');if(s.revisore)q.add('revisore');
  const p=DIR_ORD.filter(([k])=>q.has(k)).map(x=>x[1]);if(!p.length&&DIRG.testo.trim())p.push('Richiesta libera');return p}
 function dirRiep(){const p=dirOrdine(),e=$('#drriep');if(e)e.innerHTML=p.length?'<span class="mut">Faccio, in quest\'ordine:</span> '+p.map((n,i)=>(i+1)+'. <b>'+esc(n)+'</b>').join(' · ')+' · poi <b>anteprima</b> nei Video finiti':'<span class="mut">Niente scelto: scegli almeno una cosa o scrivi cosa vuoi che faccia.</span>'}
 function dirStatoHtml(){const d=direttaD(),r=d.run||{},dv=d.davinci||{},dvOn=S.servizi&&S.servizi.davinci;
@@ -1467,7 +1670,7 @@ async function pcCoda(prova,cliente,crea){if(!PC.sel.size)return;PC.esito='<div 
  pcDisegna()}
 
 // ---------- camera: vista generale e volo ----------
-function poseGenerale(){const a=camera.aspect,k=Math.max(1,1.6/a);const zc=(ST.ZDAVANTI-14)*.5;return {p:new V3(0,23*k+zc*.6,29*k+zc*1.2),t:new V3(0,2.2,-1+zc*.4)}}
+function poseGenerale(){const a=camera.aspect,k=Math.max(1,1.6/a);const zc=(ST.ZDAVANTI-14)*.5;return {p:new V3(0,31*k+zc*.6,37*k+zc*1.2),t:new V3(0,2.2,1+zc*.4)}}
 let volo=null;
 function vola(posto){const d=posto?{p:posto.camPos.clone(),t:posto.camTarget.clone()}:poseGenerale();
  if(posto&&posto.bot&&(posto.bot.dove!=='scrivania'||posto.bot.modo==='cammina')){const r=posto.robot.position;d.t.set(r.x,1.4,r.z);d.p.set(r.x-4.5,4,r.z+5.5)}
@@ -1483,8 +1686,8 @@ const FP={on:false,x:0,z:11.5,yaw:0,pitch:-.05,y:2.05,seduto:false,joy:{x:0,y:0}
 let OST=[];
 function ostacoli(){OST=[];const r=(x,z,w,d)=>OST.push([x-w/2,z-d/2,x+w/2,z+d/2]);
  for(const p of posti)if(p.tipo==='agente'||p.tipo==='libero')r(p.x,p.z+.45,3.5,3.1);
- r(-11.2,-5.4,4.2,3.8);r(14.3,-2.9,3.4,3.4);r(ST.W/2-.95,3.6,1.9,5.6);r(ST.W/2-.75,9.9,1.5,2.9);r(ST.W/2-.8,12.6,1.5,1.6);r(-15.5,-1.2,1.3,3.4);r(-15.5,2.6,1.3,3.4);
- r(0,PALCO.z-.4,4.3,3.2);r(-13.2,9.85,4.4,3.2);r(-13.6,5.6,1.7,2.7)}
+ r(-11.2,-5.4,4.2,3.8);r(14.3,-2.9,3.4,3.4);r(ST.W/2-.95,3.6,1.9,5.6);r(ST.W/2-.75,9.9,1.5,2.9);r(ST.W/2-.8,12.6,1.5,1.6);r(-22.5,-1.2,1.3,3.4);r(-22.5,2.6,1.3,3.4);r(17.2,15.6,4.4,3.2);r(17.2,19.5,4.4,3.2);r(ST.W/2-.6,17.6,1.3,9.4);r(-19.2,-7.2,4.2,4.6);r(-ST.W/2+.7,17.8,1.4,1.6);
+ r(0,PALCO.z-.4,4.3,3.2);r(-18.6,13.85,4.4,3.2);r(-20.6,5.6,1.7,2.7)}
 function altezzaPavimento(x,z){let h=0;const zz=z-ST.ZDIETRO;for(const [w,d] of PALCO.gradini){if(Math.abs(x)<w/2+.2&&zz<d+.2)h+=.35}return h}
 function entraFP(){FP.on=true;document.body.classList.add('fp');$('#joy').classList.toggle('touch',TOUCH);$('#bEntra').textContent='Esci';$('#bEntra').classList.add('on');controls.enabled=false;volo=null;chiudiScheda();
  FP.x=3.6;FP.z=ST.ZDAVANTI-1.6;FP.yaw=0;FP.pitch=-.05;FP.seduto=false;camera.fov=62;camera.updateProjectionMatrix();
