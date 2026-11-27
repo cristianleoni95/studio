@@ -125,6 +125,10 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button class="go" id="start">Avvia teleprompter</button>
     <button id="clear">Svuota testo</button>
   </div>
+  <h2>Prova microfono</h2>
+  <p class="sub" style="margin:0 0 8px">Premi il tasto e parla di continuo per circa 10 secondi: provo tre modi di aprire il microfono e tengo quello che ti sente meglio.</p>
+  <div class="row"><button id="micTest">Prova microfono</button><span id="micRes" style="font-size:14px;color:var(--mute)"></span></div>
+  <pre id="micLog" style="white-space:pre-wrap;font-size:13px;color:var(--mute);margin:8px 0 0"></pre>
   <h2>Comandi vocali</h2>
   <p class="sub" style="margin:0 0 6px">Dì il comando da solo, con una piccola pausa prima e dopo. Puoi anche cominciare con "ok".</p>
   <div class="keys" id="vcList"></div>
@@ -134,7 +138,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
-  <p class="note" style="opacity:.6">Versione 16</p>
+  <p class="note" style="opacity:.6">Versione 17</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -171,7 +175,7 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={eng:'local',lv:true,go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={mic:'base',eng:'local',lv:true,go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg3')||'{}')}}catch(e){}
 const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
@@ -184,6 +188,7 @@ for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
 for(const k of['mx','my','sh','vc','ca','fo','lv']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
 $('eng').value=cfg.eng;$('eng').onchange=()=>{cfg.eng=$('eng').value;save();if(cfg.eng==='local')loadVosk().catch(()=>{});if(listening){stopRec();startRec()}};
+$('micTest').onclick=micTest;
 $('go').value=cfg.go;$('go').onchange=()=>{cfg.go=$('go').value;save()};
 $('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
 $('lv').addEventListener('change',()=>{if(!cfg.lv)stopMeter();else if(listening)startMeter()});
@@ -507,7 +512,8 @@ function tick(t){
       else engSay(d);
       // audio che arriva ma è muto (difetto iPad): riavvio il microfono da solo, al massimo 3 volte
       if(audioFrames>lastFrames&&lastPeak<=-80){if(!silentSince)silentSince=t;
-        if(t-silentSince>4000&&heals<3){heals++;silentSince=0;toast('Riavvio il microfono…');restartAudio()}}
+        if(t-silentSince>4000&&heals<3){heals++;silentSince=0;toast('Riavvio il microfono…');restartAudio()}
+        else if(t-silentSince>4000&&heals>=3){silentSince=0;heals=0;toast('Microfono muto per l\'IA: passo a Siri/Google. Prova "Prova microfono"');stopLocal();startWeb()}}
       else if(lastPeak>-80){silentSince=0}
       lastFrames=audioFrames;
     }}
@@ -617,15 +623,50 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 /* livello del microfono del tablet, mandato al telecomando */
 let actx=null,an=null,lvBuf=null,mStream=null,pkHold=-90,rmsAcc=0,rmsN=0,lastLvl=0;
 /* su iPad il motore audio si accende solo nel momento del tocco: lo creo subito al tocco e lo tengo acceso */
+const MICC={base:{audio:true},raw:{audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}},prima:{audio:true}};
+const MICN={base:'normale',raw:'senza filtri',prima:'motore audio prima'};
+/* prova i tre modi di aprire il microfono e tiene quello che sente meglio */
+async function micTest(){
+  const btn=$('micTest'),log=$('micLog');btn.disabled=true;log.textContent='';
+  const AC=window.AudioContext||window.webkitAudioContext;
+  const early=new AC();early.resume().catch(()=>{}); // per il modo "motore audio prima", creato proprio al tocco
+  const out={};
+  if(listening)stopRec();
+  for(const mode of ['prima','base','raw']){
+    $('micRes').textContent='Parla… prova '+MICN[mode];
+    let st=null,cx=null,peak=-90,info='';
+    try{
+      if(mode==='prima')cx=early;
+      st=await navigator.mediaDevices.getUserMedia(MICC[mode]);
+      if(mode!=='prima'){cx=new AC()}
+      if(cx.state!=='running')await cx.resume().catch(()=>{});
+      const tr=st.getAudioTracks()[0];const s=tr.getSettings?tr.getSettings():{};
+      info=(tr.label||'microfono')+' · '+(s.sampleRate||'?')+' Hz';
+      const a=cx.createAnalyser();a.fftSize=1024;cx.createMediaStreamSource(st).connect(a);const b=new Float32Array(1024);
+      const t0=performance.now();
+      while(performance.now()-t0<3000){await new Promise(r=>setTimeout(r,50));a.getFloatTimeDomainData(b);let p=0;for(let i=0;i<b.length;i++){const v=b[i]<0?-b[i]:b[i];if(v>p)p=v}peak=Math.max(peak,Math.round(20*Math.log10(p||1e-9)))}
+      out[mode]=peak;log.textContent+=MICN[mode]+': '+peak+' dB · motore '+cx.state+' '+cx.sampleRate+' Hz · '+info+'\n';
+    }catch(e){out[mode]=-999;log.textContent+=MICN[mode]+': errore '+(e&&e.message||e)+'\n'}
+    try{st&&st.getTracks().forEach(t=>t.stop())}catch(e){}
+    if(mode!=='prima'){try{cx&&cx.close()}catch(e){}}
+  }
+  try{early.close()}catch(e){}
+  const best=Object.keys(out).sort((a,b)=>out[b]-out[a])[0];
+  if(out[best]>-60){cfg.mic=best;save();$('micRes').textContent='Uso il modo "'+MICN[best]+'" ('+out[best]+' dB)'}
+  else $('micRes').textContent='Nessun modo ti ha sentito: mandami questa schermata';
+  log.textContent+=(navigator.userAgent.includes('CriOS')?'Chrome':'Safari')+(navigator.standalone||matchMedia('(display-mode: standalone)').matches?' · app Home':' · browser')+'\n';
+  btn.disabled=false;try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{actx&&actx.close()}catch(e){}actx=null;mStream=null;msrc=null;an=null;
+}
 function unlockAudio(){
   try{if(actx&&actx.state!=='running')actx.resume().catch(()=>{})}catch(e){}
 }
 async function ensureAudio(){
   if(mStream&&msrc&&actx)return;
   // ordine giusto per l'iPad: prima apro il microfono, poi creo il motore audio (altrimenti il microfono arriva muto)
-  mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false}});
-  try{actx&&actx.close()}catch(e){}
-  actx=new(window.AudioContext||window.webkitAudioContext)();
+  const mode=cfg.mic||'base';
+  if(mode==='prima'&&!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+  mStream=await navigator.mediaDevices.getUserMedia(MICC[mode]||MICC.base);
+  if(mode!=='prima'){try{actx&&actx.close()}catch(e){}actx=new(window.AudioContext||window.webkitAudioContext)()}
   // iPad: se il motore audio lavora a una frequenza diversa dal microfono, l'audio arriva muto
   try{const tr=mStream.getAudioTracks()[0],sr=tr&&tr.getSettings&&tr.getSettings().sampleRate;
     if(sr&&actx.sampleRate!==sr){const nc=new(window.AudioContext||window.webkitAudioContext)({sampleRate:sr});try{actx.close()}catch(e){}actx=nc}}catch(e){diagErr='frequenza: '+e.message}
