@@ -181,6 +181,10 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 
 /* ============================================================
    UFFICIO 3D DEGLI AGENTI - Leoni Studio (v2)
@@ -205,7 +209,9 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
 const scene=new THREE.Scene();
-const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.22;
+const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.5;scene.background=new THREE.Color(0x0b0d11);
+// (28/11) ombre di contatto negli angoli e sotto i mobili: tolgono l'effetto "plastica". Solo su computer: su tablet e telefono resta il disegno diretto.
+let COMP=null;if(!TOUCH){try{COMP=new EffectComposer(renderer);COMP.addPass(new RenderPass(scene,camera));const ao=new GTAOPass(scene,camera,innerWidth,innerHeight);ao.blendIntensity=1;ao.updateGtaoMaterial({radius:.55,distanceExponent:1.4,thickness:1.2,scale:1.15,samples:12});COMP.addPass(ao);COMP.addPass(new OutputPass())}catch(e){COMP=null}}
 const camera=new THREE.PerspectiveCamera(36,1,.25,220);
 const controls=new OrbitControls(camera,canvas);
 Object.assign(controls,{enableDamping:true,dampingFactor:.08,maxPolarAngle:1.47,minDistance:2.5,maxDistance:125,zoomSpeed:.9,rotateSpeed:.7,panSpeed:.8});
@@ -253,7 +259,7 @@ const M={
  divano:new THREE.MeshStandardMaterial({color:0x8a4b3a,roughness:.95}),
  cuscino:new THREE.MeshStandardMaterial({color:0xe2b04a,roughness:1}),
  tappeto:new THREE.MeshStandardMaterial({color:0x4a5670,roughness:1}),
- robot:new THREE.MeshPhysicalMaterial({color:0xf4f6f8,roughness:.28,clearcoat:.6,clearcoatRoughness:.25}),
+ robot:new THREE.MeshPhysicalMaterial({color:0xd9dbde,roughness:.5,metalness:.35,clearcoat:.15,clearcoatRoughness:.5}),
  giunto:new THREE.MeshStandardMaterial({color:0x2b2f36,roughness:.5,metalness:.4}),
  visiera:new THREE.MeshPhysicalMaterial({color:0x06080c,roughness:.12,clearcoat:1}),
  vaso:new THREE.MeshStandardMaterial({color:0xb5623a,roughness:.8}),
@@ -288,8 +294,8 @@ function faiStanza(){
 }
 
 // ---------- luci: sera in ufficio, pozze calde sotto le lampade ----------
-scene.add(new THREE.HemisphereLight(0xffeedd,0x2c2a3a,.42));
-const sole=new THREE.DirectionalLight(0xffd9ad,1.25);sole.position.set(7,24,12);sole.castShadow=true;
+scene.add(new THREE.HemisphereLight(0xfff4e6,0x24262e,.26));
+const sole=new THREE.DirectionalLight(0xffe2c0,2.1);sole.position.set(11,26,15);sole.castShadow=true;
 sole.shadow.mapSize.set(TOUCH?1024:2048,TOUCH?1024:2048);Object.assign(sole.shadow.camera,{left:-29,right:29,top:34,bottom:-30,near:1,far:95});sole.shadow.bias=-.0004;sole.shadow.normalBias=.03;sole.shadow.radius=5;
 scene.add(sole,sole.target);
 function lampada(x,z,luce,alt=7.5){ // 14/11: niente lampade appese al soffitto (Cristian); resta la luce calda dall'alto
@@ -313,15 +319,15 @@ function libreria(x,z,ry){const g=new THREE.Group();g.position.set(x,0,z);g.rota
  pianta(-W/4,0,.55,g,H+.02);scene.add(g)}
 // posti dove i robot passano il tempo libero (x,z, direzione in cui guardano, corridoio da cui si arriva)
 const SPOT={
- caffe:[{x:20.5,z:9.3,ry:PI/2,cx:10.6},{x:20.5,z:10.6,ry:PI/2,cx:10.6}],
- divano:[{x:21.3,z:2.2,ry:-PI/2,cx:10.6},{x:21.3,z:3.6,ry:-PI/2,cx:10.6},{x:21.3,z:5.0,ry:-PI/2,cx:10.6}],
- gioco_:[{x:20.6,z:12.6,ry:PI/2,cx:10.6}],
- mensa:[{x:16.0,z:14.62,ry:0,cx:10.6,ez:14.0},{x:18.4,z:14.62,ry:0,cx:10.6,ez:14.0},{x:17.2,z:18.52,ry:0,cx:10.6,ez:18.0,via:[[17.2,18.0]]},{x:15.4,z:20.48,ry:PI,cx:10.6,ez:21.2}],          // a tavola
+ caffe:[{x:20.5,z:9.3,ry:PI/2,cx:10.6,ez:10.6,via:[[13.3,10.6]]},{x:20.5,z:10.6,ry:PI/2,cx:10.6,ez:10.6,via:[[13.3,10.6]]}],
+ divano:[{x:21.3,z:2.2,ry:-PI/2,cx:10.6,ez:1.2,via:[[13.3,1.2]]},{x:21.3,z:3.6,ry:-PI/2,cx:10.6,ez:1.2,via:[[13.3,1.2]]},{x:21.3,z:5.0,ry:-PI/2,cx:10.6,ez:1.2,via:[[13.3,1.2]]}],
+ gioco_:[{x:20.6,z:12.6,ry:PI/2,cx:10.6,ez:10.6,via:[[13.3,10.6],[18.2,12.2]]}],
+ mensa:[{x:16.0,z:14.62,ry:0,cx:10.6,ez:14.4,via:[[13.3,14.4]]},{x:18.4,z:14.62,ry:0,cx:10.6,ez:14.4,via:[[13.3,14.4],[14.3,14.2]]},{x:17.2,z:18.52,ry:0,cx:10.6,ez:14.4,via:[[13.3,14.4],[14.2,18.0],[17.2,18.0]]},{x:15.4,z:20.48,ry:PI,cx:10.6,ez:14.4,via:[[13.3,14.4],[14.0,21.3]]}],          // a tavola
  led:[{x:-2.4,z:-2.9,ry:PI,cx:-3.6,ez:-2.2},{x:0,z:-3.2,ry:PI,cx:3.6,ez:-2.2},{x:2.4,z:-2.9,ry:PI,cx:3.6,ez:-2.2}],          // guardano la coda sul LED wall
- piante:[{x:20.9,z:7.3,ry:PI/2,cx:10.6},{x:-21.4,z:8.4,ry:-PI/2,cx:-10.6}],                                                // annaffiano le piante
- ginnastica:[{x:18.3,z:.4,ry:-PI/2,cx:10.6},{x:14.6,z:11.0,ry:-PI/2,cx:10.6}],                                              // due piegamenti
- biliardino:[{x:-21.8,z:5.6,ry:PI/2,cx:-10.6,ez:7.5,via:[[-21.8,7.5]]},{x:-19.4,z:5.6,ry:-PI/2,cx:-10.6}],                  // calcio balilla
- libreria:[{x:-20.7,z:-1.2,ry:-PI/2,cx:-10.6},{x:-20.7,z:2.6,ry:-PI/2,cx:-10.6}],
+ piante:[{x:20.9,z:7.0,ry:PI/2,cx:10.6,ez:1.2,via:[[13.3,1.2],[19.4,6.6]]},{x:-21.4,z:9.0,ry:-PI/2,cx:-10.6,ez:11.0,via:[[-13.3,11.0]]}],                                                // annaffiano le piante
+ ginnastica:[{x:18.3,z:.6,ry:-PI/2,cx:10.6,ez:1.2,via:[[13.3,1.2]]},{x:14.8,z:11.4,ry:-PI/2,cx:10.6,ez:10.6,via:[[13.3,10.6]]}],                                              // due piegamenti
+ biliardino:[{x:-21.8,z:5.6,ry:PI/2,cx:-10.6,ez:2.0,via:[[-13.3,2.0],[-17.6,7.0],[-21.8,7.0]]},{x:-19.4,z:5.6,ry:-PI/2,cx:-10.6,ez:2.0,via:[[-13.3,2.0]]}],                  // calcio balilla
+ libreria:[{x:-20.7,z:-1.2,ry:-PI/2,cx:-10.6,ez:2.0,via:[[-13.3,2.0]]},{x:-20.7,z:2.6,ry:-PI/2,cx:-10.6,ez:2.0,via:[[-13.3,2.0]]}],
  lavagna:[{x:10.6,z:-9.5,ry:PI,cx:10.6},{x:11.8,z:-9.5,ry:PI,cx:10.6},{x:13.0,z:-9.5,ry:PI,cx:10.6}],
 };
 function salotto(){ // lato destro: divano, macchinetta del caffe', videogioco
@@ -628,7 +634,7 @@ function faiEdificio(){ // parti fisse: zone, insegne, sale laterali
  EDI.add(box(MAT2.moquette(0x262a33),0,.006,-6.6,23,.012,9.4,false));                       // direzione (dietro, al centro)
  EDI.add(box(MAT2.moquette(0x33302a),19.4,.012,6.3,7,.024,35,false),box(MAT2.moquette(0x2c3038),-19.4,.012,-3.4,7,.024,15.6,false));
  insegna('DIREZIONE',0,8.35,zb+2.2,4.6,'#d97757');insegna('REVISIONE',-11.2,4.9,-3.2,3.6,'#f5b301');insegna('REGIA · GPU',14.0,8.3,-1.0,3.8,'#ff4d6d');
- insegna('MENSA E RELAX',19.3,5.6,.2,4.6,'#34c759');insegna('SALA TEMPI',-19.3,5.6,-2.6,4.2,'#ffffff');insegna('BIBLIOTECA E GIOCHI',-19.3,5.6,4.2,5.2,'#58a6ff');insegna('IL MIO PC',-19.3,5.6,9.6,4.0,'#11f401');
+ insegna('SALA TEMPI',-19.4,8.1,zb+.6,3.6,'#ffffff');
  // lavagna delle ORE PER CLIENTE, sul muro di fondo della Sala Tempi
  CLI.tex=tela(1024,640,()=>{});CLI.tex.anisotropy=8;{const c=rbox(6.3,3.95,.2,.06,M.metallo);c.position.set(-19.4,5.2,zb+.12);EDI.add(c);
   const q=new THREE.Mesh(new THREE.PlaneGeometry(6.06,3.72),new THREE.MeshBasicMaterial({map:CLI.tex,toneMapped:false}));q.position.set(-19.4,5.2,zb+.235);EDI.add(q)}
@@ -639,22 +645,39 @@ function faiEdificio(){ // parti fisse: zone, insegne, sale laterali
  mensa(17.2,15.6);salaPC(-18.6,15.2);
  [[19.5,-6,1],[19.5,16,1],[-19.5,-6,1],[-19.5,15,1],[-19.5,5,0],[0,19,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?0:l,h||7.5));
 }
+// (28/11) MURI VERI: base piena e vetro sopra con montanti (ufficio moderno), porte con telaio e anta aperta
+const MURI=[];MAT2.intonaco=new THREE.MeshStandardMaterial({color:0xdcdad5,roughness:.92});
+MAT2.vetro=new THREE.MeshPhysicalMaterial({color:0xd6ecf5,roughness:.04,metalness:0,transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false,envMapIntensity:1.6});
+function muro(g,x0,z0,x1,z1,o={}){const h=o.h||2.9,base=o.base??1.0,ax=Math.abs(x1-x0)>Math.abs(z1-z0),L=ax?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2,sp=.14;if(L<.08)return;
+ const pz=(m,y,hh,t,om)=>{const b=box(m,cx,y,cz,ax?L:t,hh,ax?t:L,om);g.add(b);return b};
+ if(o.pieno){pz(MAT2.intonaco,h/2,h,sp,true)}
+ else{pz(MAT2.intonaco,base/2,base,sp,true);const v=new THREE.Mesh(G.box,MAT2.vetro);v.position.set(cx,base+(h-base)/2,cz);v.scale.set(ax?L:.035,h-base,ax?.035:L);v.renderOrder=3;g.add(v);
+  pz(MAT2.nero,h+.035,.07,.1,false);pz(MAT2.nero,base+.02,.04,.1,false);const n=Math.max(1,Math.round(L/1.7));
+  for(let i=0;i<=n;i++){const t=-L/2+i*L/n;g.add(box(MAT2.nero,cx+(ax?t:0),base+(h-base)/2,cz+(ax?0:t),.055,h-base,.055,false))}}
+ pz(M.battiscopa,.07,.14,sp+.03,false);
+ MURI.push(ax?[Math.min(x0,x1),z0-sp/2,Math.max(x0,x1),z0+sp/2]:[x0-sp/2,Math.min(z0,z1),x0+sp/2,Math.max(z0,z1)])}
+function muroPorte(g,x0,z0,x1,z1,porte,o={}){const ax=Math.abs(x1-x0)>Math.abs(z1-z0),a=ax?Math.min(x0,x1):Math.min(z0,z1),b=ax?Math.max(x0,x1):Math.max(z0,z1),w=.66,verso=o.verso||1;let da=a;
+ for(const p of porte.slice().sort((q,r)=>q-r)){if(ax)muro(g,da,z0,p-w,z0,o);else muro(g,x0,da,x0,p-w,o);da=p+w;
+  const px=ax?p:x0,pz=ax?z0:p;for(const sg of [-1,1])g.add(box(MAT2.nero,px+(ax?sg*w:0),1.1,pz+(ax?0:sg*w),.09,2.2,.16,false));
+  g.add(box(MAT2.nero,px,2.24,pz,ax?2*w+.09:.16,.09,ax?.16:2*w+.09,false),box(MAT2.intonaco,px,2.6,pz,ax?2*w:.14,.62,ax?.14:2*w,false));
+  const an=new THREE.Mesh(G.box,MAT2.vetro);an.renderOrder=3;if(ax){an.scale.set(.04,2.12,2*w-.12);an.position.set(p-w+.04,1.08,z0+verso*(w-.02))}else{an.scale.set(2*w-.12,2.12,.04);an.position.set(x0+verso*(w-.02),1.08,p-w+.04)}g.add(an);
+  g.add(box(MAT2.acciaio,an.position.x+(ax?.05:verso*.35),1.05,an.position.z+(ax?verso*.35:.05),ax?.03:.14,.03,ax?.14:.03,false))}
+ if(ax)muro(g,da,z0,b,z0,o);else muro(g,x0,da,x0,b,o)}
 const DIV=new THREE.Group();scene.add(DIV);
-function faiDivisori(colonne){ // parti che dipendono da quante scrivanie ci sono: pareti di vetro tra le sale, moquette, strumenti in fondo
- DIV.clear();const zf=ST.ZDAVANTI,telaio=MAT2.nero;
- const vetro=new THREE.MeshPhysicalMaterial({color:0xcfe9ff,roughness:.06,metalness:0,transparent:true,opacity:.22,side:THREE.DoubleSide,depthWrite:false});
- const maxR=Math.max(...colonne.map(c=>c.length),1);
- for(const x of [-9.6,-4.6,4.6,9.6])for(let r=0;r<Math.max(maxR,5);r++){const z0=RIGA0+r*PASSO-1.0,len=2.9;      // pannelli a fianco di ogni fila: il passaggio verso il corridoio resta libero
-  const v=new THREE.Mesh(G.box,vetro);v.position.set(x,1.45,z0+len/2);v.scale.set(.05,2.5,len);DIV.add(v);
-  DIV.add(box(telaio,x,.1,z0+len/2,.09,.2,len,false),box(telaio,x,2.72,z0+len/2,.07,.06,len,false),box(telaio,x,1.45,z0,.07,2.6,.07,false),box(telaio,x,1.45,z0+len,.07,2.6,.07,false))}
- STANZE.forEach((s,i)=>{const n=Math.max(colonne[i].length,1),len=(Math.max(maxR,5)-1)*PASSO+6.4;
-  DIV.add(box(MAT2.moquette(s.tap),COL[i],.014,RIGA0-1.2+len/2,4.6,.028,len,false));insegna(s.nome,COL[i],4.55,RIGA0-1.9,3.9,s.col,DIV)});
- // strumenti nelle file rimaste libere in fondo a ogni sala
+function faiDivisori(colonne){ // muri, porte e sale: si rifanno quando cambia il numero di scrivanie
+ DIV.clear();MURI.length=0;const zf=ST.ZDAVANTI,zr=-1.25,hw=ST.W/2,V={base:.14};
+ // tre sale di lavoro: muri laterali, parete di vetro con porta verso il corridoio davanti alla direzione
+ STANZE.forEach((st,i)=>{const c=COL[i];muro(DIV,c-2.9,zr,c-2.9,zf);muro(DIV,c+2.9,zr,c+2.9,zf);muroPorte(DIV,c-2.9,zr,c+2.9,zr,[c+2.25],V);
+  DIV.add(box(MAT2.moquette(st.tap),c,.014,(zr+zf)/2,5.66,.028,zf-zr,false));insegna(st.nome,c-.7,3.55,zr,3.3,st.col,DIV)});
+ // ala destra: relax, caffe' e giochi, mensa (una porta per stanza sul corridoio)
+ muroPorte(DIV,12.3,-.6,12.3,zf,[1.2,10.6,14.4],{verso:1});muro(DIV,12.3,-.6,hw,-.6,V);muro(DIV,12.3,8.0,hw,8.0,V);muro(DIV,12.3,13.6,hw,13.6,V);
+ // ala sinistra: sala tempi (dietro), biblioteca e giochi, il mio PC
+ muroPorte(DIV,-15.6,ST.ZDIETRO,-15.6,-3.4,[-5.4],{verso:-1});muro(DIV,-hw,-3.4,-12.3,-3.4,V);muroPorte(DIV,-12.3,-3.4,-12.3,zf,[2.0,11.0],{verso:-1});muro(DIV,-hw,7.8,-12.3,7.8,V);
+ insegna('RELAX',17.6,3.7,-.6,2.8,'#34c759',DIV);insegna('CAFFÈ E GIOCHI',17.6,3.7,8.0,4.2,'#ffb454',DIV);insegna('MENSA',17.6,3.7,13.6,2.8,'#34c759',DIV);
+ insegna('BIBLIOTECA E GIOCHI',-17.6,3.7,-3.4,5.0,'#58a6ff',DIV);insegna('IL MIO PC',-17.6,3.7,7.8,3.2,'#11f401',DIV);
  const libero=i=>RIGA0+colonne[i].length*PASSO;
  if(colonne[0].length<=3)salaAudio2(COL[0],libero(0)+.6);
  if(colonne[2].length<=4)salaFoto2(COL[2],libero(2)+1.6);
- // portali verso le ali: pilastri e trave alta (si passa sotto dappertutto)
- for(const x of [-12.3,12.3]){const len=zf-(-.6);DIV.add(box(telaio,x,4.15,-.6+len/2,.34,.3,len,false));for(const z of [-.6,6.2,11.6,17.2,zf-.4])DIV.add(box(telaio,x,2.0,z,.3,4.0,.3))}
 }
 // gli strumenti stanno nel gruppo che si rifa' con le scrivanie (cosi' non restano doppi)
 function salaAudio2(x,z){const prima=EDI.children.length;salaAudio(x,z);while(EDI.children.length>prima)DIV.add(EDI.children[prima])}
@@ -728,7 +751,7 @@ function costruisciFissi(){
  mp.g.add(box(new THREE.MeshBasicMaterial({color:0x11f401}),2.5,.63,.685,.06,1.0,.02,false),box(new THREE.MeshBasicMaterial({color:0x11f401}),2.215,.63,.1,.02,1.0,.9,false));
  const targa=tela(256,64,(x,w,h)=>{x.fillStyle='#111';x.fillRect(0,0,w,h);x.fillStyle='#11f401';x.font='800 34px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('CRISTIAN',w/2,h/2+2)});
  const tg=new THREE.Mesh(G.piano,new THREE.MeshBasicMaterial({map:targa,toneMapped:false}));tg.scale.set(.8,.2,1);tg.position.set(1.35,1.17,.6);tg.rotation.x=-.25;mp.g.add(tg);
- pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-15.6,-10.4,1.3);pianta(-22,8.4,1.4);pianta(22,-10.4,1.5);pianta(13.2,22.4,1.3);
+ pianta(-8.2,-10.4,1.5);pianta(8.2,-10.4,1.6);pianta(-14.4,-10.4,1.3);pianta(-22,8.4,1.4);pianta(22,-10.4,1.5);pianta(13.2,22.4,1.3);
  {const cb=new THREE.Group();cb.position.set(-20.6,0,5.6);   // calcio balilla
   const cassa=rbox(1.25,.4,2.3,.05,M.legnoScuro);cassa.position.y=1.0;cb.add(cassa);cb.add(box(new THREE.MeshStandardMaterial({color:0x2f8f4e,roughness:.8}),0,1.205,0,1.05,.02,2.1,false));
   for(const sx of [-1,1])for(const sz of [-1,1])cb.add(box(M.metalloScuro,sx*.5,.4,sz*1.0,.09,.8,.09));
@@ -761,11 +784,9 @@ function percorso(p,dest){ // dest: {x,z,cx} oppure 'scrivania'
  const corr=(x,verso)=>{const c=CORRIDOI.filter(c=>verso>x?c>x:c<x);return verso>x?c[0]:c[c.length-1]};
  const vicino=x=>CORRIDOI.reduce((a,c)=>Math.abs(c-x)<Math.abs(a-x)?c:a);
  let cxA,zA;
- if(daScr){const s=fine.x>=p.x?1:-1;cxA=corr(p.x,p.x+s);zA=p.z+2.9;pts.push([p.x+1.3*s,p.z+1.05],[p.x+1.3*s,zA],[cxA,zA])}
+ if(daScr){const s=fine.x>=p.x?1:-1;cxA=corr(p.x,p.x+s);zA=FRONTE;pts.push([p.x+2.25,p.z+1.05],[p.x+2.25,zA],[cxA,zA])}   // esce dalla porta della sua sala
  else{const sp=b.spot;if(sp){(sp.via||[]).slice().reverse().forEach(q=>pts.push(q));cxA=sp.cx;zA=sp.ez??r.z}else{cxA=vicino(r.x);zA=r.z}pts.push([cxA,zA])}
- if(aScr){const s=r.x>=p.x?1:-1;const cxB=corr(p.x,p.x+s),zB=p.z+2.9;
-  if(cxB!==cxA){pts.push([cxA,FRONTE],[cxB,FRONTE])}
-  pts.push([cxB,zB],[p.x+1.3*s,zB],[p.x+1.3*s,p.z+1.05],[fine.x,fine.z])}
+ if(aScr){pts.push([cxA,FRONTE],[p.x+2.25,FRONTE],[p.x+2.25,p.z+1.05],[fine.x,fine.z])}   // rientra dalla porta della sua sala
  else{const cxB=dest.cx;if(cxB!==cxA){const zc=daScr?zA:FRONTE;if(!daScr)pts.push([cxA,zc]);pts.push([cxB,zc])}
   pts.push([cxB,dest.ez??dest.z]);(dest.via||[]).forEach(q=>pts.push(q));pts.push([dest.x,dest.z])}
  return pts}
@@ -1684,7 +1705,7 @@ $('#att').onclick=()=>{aperta='attenzione';disegnaScheda()};
 // ---------- prima persona: cammini tu nella stanza ----------
 const FP={on:false,x:0,z:11.5,yaw:0,pitch:-.05,y:2.05,seduto:false,joy:{x:0,y:0},tasti:{},caffe:0};
 let OST=[];
-function ostacoli(){OST=[];const r=(x,z,w,d)=>OST.push([x-w/2,z-d/2,x+w/2,z+d/2]);
+function ostacoli(){OST=[];for(const m of MURI)OST.push(m);const r=(x,z,w,d)=>OST.push([x-w/2,z-d/2,x+w/2,z+d/2]);
  for(const p of posti)if(p.tipo==='agente'||p.tipo==='libero')r(p.x,p.z+.45,3.5,3.1);
  r(-11.2,-5.4,4.2,3.8);r(14.3,-2.9,3.4,3.4);r(ST.W/2-.95,3.6,1.9,5.6);r(ST.W/2-.75,9.9,1.5,2.9);r(ST.W/2-.8,12.6,1.5,1.6);r(-22.5,-1.2,1.3,3.4);r(-22.5,2.6,1.3,3.4);r(17.2,15.6,4.4,3.2);r(17.2,19.5,4.4,3.2);r(ST.W/2-.6,17.6,1.3,9.4);r(-19.2,-7.2,4.2,4.6);r(-ST.W/2+.7,17.8,1.4,1.6);
  r(0,PALCO.z-.4,4.3,3.2);r(-18.6,13.85,4.4,3.2);r(-20.6,5.6,1.7,2.7)}
@@ -1733,7 +1754,7 @@ canvas.addEventListener('pointerup',e=>{if(!giu)return;const d=Math.hypot(e.clie
 canvas.addEventListener('pointercancel',()=>giu=null);
 
 // ---------- ciclo ----------
-function misura(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+function misura(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);if(COMP)COMP.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
 addEventListener('resize',()=>{misura();if(!FP.on&&(!aperta||typeof aperta==='string')&&!volo){const g=poseGenerale();camera.position.copy(g.p);controls.target.copy(g.t)}});
 const orologio=new THREE.Clock();let raf=0,ultimo=0,tOmbre=0,tGioco=0;const v=new V3();
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
@@ -1754,7 +1775,7 @@ function giro(ora){raf=requestAnimationFrame(giro);
  animaThor(dt,t);
  if(t-tGioco>.25){tGioco=t;disegnaGioco(t)}
  if(t-tOmbre>(cammina?.1:1.5)){tOmbre=t;ombre()}
- renderer.render(scene,camera);
+ if(COMP)COMP.render();else renderer.render(scene,camera);
  const w=innerWidth,h=innerHeight;
  if(THOR.el){v.copy(THOR.etV).project(camera);const vis=v.z<1&&Math.abs(v.x)<1.1&&Math.abs(v.y)<1.15&&aperta!=='thor';THOR.el.style.display=vis?'':'none';if(vis)THOR.el.style.transform=`translate(-50%,-100%) translate(${((v.x+1)/2*w).toFixed(1)}px,${((1-v.y)/2*h).toFixed(1)}px)`}
  for(const p of posti){v.copy(p.etPos).project(camera);const vis=v.z<1&&v.x>-1.1&&v.x<1.1&&v.y>-1.1&&v.y<1.2&&!(FP.on&&camera.position.distanceTo(p.etPos)>26);
