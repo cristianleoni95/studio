@@ -134,7 +134,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
-  <p class="note" style="opacity:.6">Versione 13</p>
+  <p class="note" style="opacity:.6">Versione 14</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -377,7 +377,7 @@ function handleSeg(segs){
 }
 function useLocal(){return cfg.eng==='local'&&/^it/.test(cfg.lang)}
 function startRec(){
-  prevLen=0;
+  prevLen=0;if(useLocal())unlockAudio();
   if(useLocal()){startLocal();return}
   startWeb();
 }
@@ -400,7 +400,7 @@ function startWeb(){
 function stopRec(){listening=false;showMic();stopLocal();stopMeter();try{rec&&rec.stop()}catch(e){}rec=null}
 
 /* IA locale (Vosk): gira tutta sul tablet, riconosce solo le parole del copione e dei comandi */
-let voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
+let audioFrames=0,lastFrames=0,lastAudioChk=0,voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
 function engSay(t){$('engSt').textContent=t}
 function loadVosk(){
   if(voskP)return voskP;
@@ -444,7 +444,7 @@ async function startLocal(){
     vrec.on('partialresult',msg=>{const p=((msg.result&&msg.result.partial)||'').replace(/\[unk\]/g,'').trim();handleSeg([{tx:p,fin:false,conf:0}])});
     vrec.on('result',msg=>{const r=msg.result||{},t=r.text||'';const ws=(r.result||[]).filter(w=>w.word!=='[unk]');const conf=ws.length?Math.min(...ws.map(w=>w.conf)):0;if(t)handleSeg([{tx:t.replace(/\[unk\]/g,'').trim(),fin:true,conf}]);prevLen=0});
     vnode=actx.createScriptProcessor(4096,1,1);
-    vnode.onaudioprocess=e=>{try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
+    vnode.onaudioprocess=e=>{audioFrames++;try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
     vmute=actx.createGain();vmute.gain.value=0;msrc.connect(vnode);vnode.connect(vmute);vmute.connect(actx.destination);
     showMic();engSay('IA locale: sto ascoltando');startMeter();
   }catch(e){
@@ -492,12 +492,20 @@ function tick(t){
     if(phase==='read'&&!frozen&&(auto||t-lastHeard<1300))el+=dt;
   }
   meterTick(t);
+  if(t-lastAudioChk>1500){lastAudioChk=t;
+    if(listening&&vrec&&prompter.style.display==='block'){
+      if(actx&&actx.state!=='running'){$('stTxt').textContent='Tocca lo schermo per attivare il microfono';engSay('Audio in pausa: tocca lo schermo')}
+      else if(audioFrames===lastFrames){engSay('Il microfono non manda audio')}
+      else engSay('IA locale: sto ascoltando');
+      lastFrames=audioFrames;
+    }}
   if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
 
 function openPrompter(){
+  if(useLocal())unlockAudio();
   cfg.text=src.value;save();build();
   $('editor').style.display='none';prompter.style.display='block';
   shownPos=-1;applyLook();layout();setPos(0,true);wake();startRec();keepAwake();el=0;begin();
@@ -596,12 +604,16 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 
 /* livello del microfono del tablet, mandato al telecomando */
 let actx=null,an=null,lvBuf=null,mStream=null,pkHold=-90,rmsAcc=0,rmsN=0,lastLvl=0;
+/* su iPad il motore audio si accende solo nel momento del tocco: lo creo subito al tocco e lo tengo acceso */
+function unlockAudio(){
+  try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();if(actx.state!=='running')actx.resume().catch(()=>{})}catch(e){}
+}
 async function ensureAudio(){
-  if(actx&&mStream)return;
-  mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false,channelCount:1}});
-  actx=new(window.AudioContext||window.webkitAudioContext)();
+  unlockAudio();
+  if(mStream&&msrc)return;
+  mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false}});
   msrc=actx.createMediaStreamSource(mStream);
-  if(actx.state==='suspended')actx.resume().catch(()=>{});
+  if(actx.state!=='running')actx.resume().catch(()=>{});
 }
 async function startMeter(){
   if(an||!cfg.lv||!navigator.mediaDevices)return;
@@ -609,8 +621,9 @@ async function startMeter(){
   try{await ensureAudio();an=actx.createAnalyser();an.fftSize=1024;msrc.connect(an);lvBuf=new Float32Array(an.fftSize)}catch(e){an=null}
 }
 function stopMeter(){if(listening&&useLocal()){try{an&&an.disconnect()}catch(e){}an=null;return}
-  try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{actx&&actx.close()}catch(e){}an=null;actx=null;mStream=null;msrc=null}
-document.addEventListener('pointerdown',()=>{if(actx&&actx.state==='suspended')actx.resume().catch(()=>{})});
+  try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{msrc&&msrc.disconnect()}catch(e){}an=null;mStream=null;msrc=null}
+document.addEventListener('pointerdown',()=>{if(actx&&actx.state!=='running')actx.resume().catch(()=>{})});
+document.addEventListener('touchend',()=>{if(actx&&actx.state!=='running')actx.resume().catch(()=>{})});
 function meterTick(t){
   if(!an)return;
   an.getFloatTimeDomainData(lvBuf);let s=0,p=0;
