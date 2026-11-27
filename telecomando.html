@@ -79,6 +79,7 @@ h2{font-size:14px;color:var(--mut);font-weight:600;margin:4px 2px -4px}
 
   <section class="card" aria-live="polite">
     <p id="phase">Teleprompter chiuso</p>
+    <p id="engTxt" style="margin:-6px 0 8px;font-size:13px;color:var(--mut)"></p>
     <div class="prog"><i id="bar"></i></div>
     <div class="times">
       <div><b id="tEl">0:00</b><span>tempo letto</span></div>
@@ -153,6 +154,7 @@ function render(s){
   last=s;seen=Date.now();
   const ph={idle:'Teleprompter chiuso',ciak:'Ciak: aspetto i comandi',count:'Conto alla rovescia…',read:s.fr?'In pausa':'In lettura'}[s.ph]||'';
   $('phase').textContent=ph;
+  $('engTxt').textContent=s.en?'Voce: '+s.en:'';
   markScript(s.open?s.pos:-1);
   const p=s.tot?s.pos/s.tot:0;$('bar').style.width=Math.round(p*100)+'%';
   // stima: parte da 150 parole/min, poi si adatta alla tua velocità vera

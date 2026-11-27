@@ -405,9 +405,16 @@ function loadVosk(){
   if(voskP)return voskP;
   engSay('Carico l\'IA locale… (la prima volta scarica circa 35 MB)');
   voskP=new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement('script');s.src='ia/vosk.js';s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)})
-    .then(()=>Vosk.createModel('ia/vosk-model-small-it-0.4.tar.gz'))
+    .then(()=>new Promise((res,rej)=>{
+      // indirizzo completo: il motore altrimenti cerca il modello nella radice del sito
+      const url=new URL('ia/vosk-model-small-it-0.4.tar.gz',location.href).href;
+      const m=new Vosk.Model(url);
+      const to=setTimeout(()=>rej(new Error('tempo scaduto')),180000);
+      m.on('load',msg=>{clearTimeout(to);msg&&msg.result?res(m):rej(new Error('modello non caricato'))});
+      m.on('error',msg=>{clearTimeout(to);rej(new Error((msg&&msg.error)||'errore'))});
+    }))
     .then(m=>{vModel=m;engSay('IA locale pronta');return m})
-    .catch(e=>{voskP=null;engSay('IA locale non disponibile su questo dispositivo');throw e});
+    .catch(e=>{voskP=null;engSay('IA locale non disponibile ('+(e&&e.message||'errore')+'): uso Siri/Google');throw e});
   return voskP;
 }
 function grammarWords(){
@@ -609,7 +616,7 @@ function meterTick(t){
 let ch=null;
 function curSentence(){if(!S.length)return'';let s=Math.min(pos,S.length-1);while(s>0&&!S[s].st)s--;const out=[];for(let i=s;i<S.length&&(i===s||!S[i].st);i++)out.push(S[i].el.textContent);return out.join(' ').slice(0,160)}
 function stateObj(){const open=prompter.style.display==='block';const tot=S.length||cfg.text.split(/\s+/).filter(Boolean).length;
-  return{open,ph:open?phase:'idle',pos:open?pos:0,tot,li:listening,au:auto,fr:frozen,sp:cfg.sp,fs:cfg.fs,mx:cfg.mx,my:cfg.my,nm:cfg.nm,ca:cfg.ca,go:cfg.go,el:Math.round(el),ciak:ciakDone,line:open?curSentence():''}}
+  return{open,ph:open?phase:'idle',pos:open?pos:0,tot,li:listening,au:auto,fr:frozen,sp:cfg.sp,fs:cfg.fs,mx:cfg.mx,my:cfg.my,nm:cfg.nm,ca:cfg.ca,go:cfg.go,el:Math.round(el),ciak:ciakDone,en:$('engSt').textContent,line:open?curSentence():''}}
 function stateChanged(){const s=JSON.stringify(stateObj());return s!==lastState}
 function sendScript(){if(!ch||!S.length)return;try{ch.send({type:'broadcast',event:'script',payload:{w:S.map(x=>[x.el.textContent,x.st?1:0,x.np?1:0])}})}catch(e){}}
 function sendState(){if(!ch)return;const o=stateObj();lastState=JSON.stringify(o);try{ch.send({type:'broadcast',event:'state',payload:o})}catch(e){}}
