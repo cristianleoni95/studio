@@ -134,6 +134,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
+  <p class="note" style="opacity:.6">Versione 13</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -403,13 +404,21 @@ let voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
 function engSay(t){$('engSt').textContent=t}
 function loadVosk(){
   if(voskP)return voskP;
-  engSay('Carico l\'IA locale… (la prima volta scarica circa 35 MB)');
-  voskP=new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement('script');s.src='ia/vosk.js';s.onload=res;s.onerror=()=>rej(new Error('script'));document.head.appendChild(s)})
+  engSay('Carico l\'IA locale…');
+  // indirizzo completo: il motore altrimenti cerca il modello nella radice del sito
+  const url=new URL('ia/vosk-model-small-it-0.4.tar.gz?v=2',location.href).href;
+  voskP=new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement('script');s.src='ia/vosk.js?v=2';s.onload=res;s.onerror=()=>rej(new Error('motore non scaricato'));document.head.appendChild(s)})
+    .then(async()=>{
+      // scarico prima io il modello per mostrare la percentuale (poi il motore lo ritrova già pronto)
+      const r=await fetch(url);if(!r.ok)throw new Error('modello non trovato '+r.status);
+      const n=+r.headers.get('Content-Length')||34256856;const rd=r.body&&r.body.getReader();
+      if(!rd){engSay('Scarico l\'IA locale…');await r.arrayBuffer();return}
+      let got=0,lastP=-1;for(;;){const {done,value}=await rd.read();if(done)break;got+=value.length;const pc=Math.min(100,Math.round(got/n*100));if(pc!==lastP){lastP=pc;engSay('Scarico l\'IA locale: '+pc+'%')}}
+    })
     .then(()=>new Promise((res,rej)=>{
-      // indirizzo completo: il motore altrimenti cerca il modello nella radice del sito
-      const url=new URL('ia/vosk-model-small-it-0.4.tar.gz',location.href).href;
+      engSay('Preparo l\'IA locale…');
       const m=new Vosk.Model(url);
-      const to=setTimeout(()=>rej(new Error('tempo scaduto')),180000);
+      const to=setTimeout(()=>rej(new Error('preparazione bloccata')),90000);
       m.on('load',msg=>{clearTimeout(to);msg&&msg.result?res(m):rej(new Error('modello non caricato'))});
       m.on('error',msg=>{clearTimeout(to);rej(new Error((msg&&msg.error)||'errore'))});
     }))
