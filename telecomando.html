@@ -205,7 +205,7 @@ function drawLevel(l){
   if(l.p>pkMax||Date.now()-pkT>1500){pkMax=l.p;pkT=Date.now()}
   $('mLit').style.clipPath='inset(0 '+(100-pct(l.p))+'% 0 0)';
   $('mPk').style.left='calc('+pct(pkMax)+'% - 3px)';
-  $('mDb').textContent=l.p+' dB';
+  $('mDb').textContent=l.p+' dB'+(l.g?' · IA alza x'+l.g:'');
   const h=$('mHint');
   if(l.p>=-1){loud=Date.now();h.textContent='Satura: abbassa il volume (o il guadagno) che arriva al tablet';h.className='bad'}
   else if(Date.now()-loud<2500){}
