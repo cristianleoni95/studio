@@ -33,8 +33,9 @@ h1{font-size:20px;margin:0;flex:1}
 #scr{position:relative;height:38vh;min-height:220px;overflow-y:auto;background:#000;border:1px solid var(--line);border-radius:14px;padding:40% 14px;font-size:17px;line-height:1.5;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #scr p{margin:0 0 .7em}
 #scr span{cursor:pointer;border-radius:4px;padding:0 1px}
-#scr .rd{color:#6e7681}
-#scr .cs{background:#1f2a37}
+#scr{color:#8b949e}
+#scr .rd{color:#4d545c}
+#scr .cs{color:#fff;font-weight:600}
 #scr .cu{background:var(--rec);color:#fff}
 #scr .empty{color:var(--mut);text-align:center}
 .scrnote{font-size:13px;color:var(--mut);margin:-4px 2px 0}
@@ -43,6 +44,14 @@ h1{font-size:20px;margin:0;flex:1}
 .times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;text-align:center}
 .times b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
 .times span{font-size:13px;color:var(--mut)}
+.meter{margin-top:12px}
+.mrow{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--mut);margin-bottom:6px}
+.mrow b{font-size:15px;color:var(--txt);font-variant-numeric:tabular-nums}
+.mbar{position:relative;height:16px;border-radius:6px;overflow:hidden;background:linear-gradient(90deg,#1f6f3a 0,#1f6f3a 70%,#7a6512 70%,#7a6512 88%,#7a1f1a 88%,#7a1f1a 100%)}
+.mbar .lit{position:absolute;inset:0;background:linear-gradient(90deg,#30d158 0,#30d158 70%,#ffd60a 70%,#ffd60a 88%,#ff3b30 88%,#ff3b30 100%);clip-path:inset(0 100% 0 0);transition:clip-path .08s linear}
+.mbar .pk{position:absolute;top:0;bottom:0;width:3px;background:#fff;left:0;transition:left .08s linear}
+.mticks{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:3px;font-variant-numeric:tabular-nums}
+#mHint.warn{color:#ffd60a}#mHint.bad{color:var(--rec)}
 .g{display:grid;gap:10px}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
 button{font:inherit;color:inherit;background:var(--panel2);border:1px solid var(--line);border-radius:14px;min-height:60px;padding:6px;font-weight:600;cursor:pointer;touch-action:manipulation;user-select:none}
@@ -75,6 +84,12 @@ h2{font-size:14px;color:var(--mut);font-weight:600;margin:4px 2px -4px}
       <div><b id="tEl">0:00</b><span>tempo letto</span></div>
       <div><b id="tLeft">–</b><span>mancano circa</span></div>
       <div><b id="tTot">–</b><span>durata copione</span></div>
+    </div>
+    <div class="meter">
+      <div class="mrow"><span>Microfono del tablet</span><b id="mDb">–</b></div>
+      <div class="mbar"><div class="lit" id="mLit"></div><div class="pk" id="mPk"></div></div>
+      <div class="mticks"><span>-60</span><span>-40</span><span>-20</span><span>-6</span><span>0 dB</span></div>
+      <div class="mrow" style="margin:6px 0 0"><span id="mHint">Nessun segnale</span></div>
     </div>
   </section>
 
@@ -179,12 +194,32 @@ function markScript(pos){
   const c=spans[Math.min(Math.max(pos,0),spans.length-1)];
   if(c&&Date.now()-userScroll>4000){const top=c.offsetTop-scr.clientHeight*.4;try{scr.scrollTo({top,behavior:'smooth'})}catch(e){scr.scrollTop=top}}
 }
+/* livello microfono */
+let lvSeen=0,pkMax=-90,pkT=0,loud=0;
+const pct=db=>Math.max(0,Math.min(100,(db+60)/60*100));
+function drawLevel(l){
+  lvSeen=Date.now();
+  if(l.p>pkMax||Date.now()-pkT>1500){pkMax=l.p;pkT=Date.now()}
+  $('mLit').style.clipPath='inset(0 '+(100-pct(l.p))+'% 0 0)';
+  $('mPk').style.left='calc('+pct(pkMax)+'% - 3px)';
+  $('mDb').textContent=l.p+' dB';
+  const h=$('mHint');
+  if(l.p>=-1){loud=Date.now();h.textContent='Satura: abbassa il volume (o il guadagno) che arriva al tablet';h.className='bad'}
+  else if(Date.now()-loud<2500){}
+  else if(l.p<-45){h.textContent='Silenzio, o il segnale è molto basso';h.className=''}
+  else if(l.p<-30){h.textContent='Un po\' basso: avvicina il microfono o alza il volume';h.className='warn'}
+  else{h.textContent='Livello buono';h.className=''}
+}
+setInterval(()=>{if(Date.now()-lvSeen>2000){$('mLit').style.clipPath='inset(0 100% 0 0)';$('mPk').style.left='0';$('mDb').textContent='–';
+  $('mHint').textContent=last&&last.li?'Nessun livello: controlla "Livello microfono sul telecomando" sul tablet':'Nessun segnale: l\'ascolto sul tablet è spento';$('mHint').className=''}},1000);
+
 function join(code){
   if(!sb)return;
   if(ch){try{sb.removeChannel(ch)}catch(e){}}
   $('code').value=code;
   ch=sb.channel('tp-'+code,{config:{broadcast:{self:false}}});
   ch.on('broadcast',{event:'state'},({payload})=>render(payload||{}))
+    .on('broadcast',{event:'lvl'},({payload})=>payload&&drawLevel(payload))
     .on('broadcast',{event:'script'},({payload})=>payload&&payload.w&&drawScript(payload.w))
     .subscribe(st=>{if(st==='SUBSCRIBED')send('ping')});
 }

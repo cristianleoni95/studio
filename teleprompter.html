@@ -117,6 +117,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
       <label class="check"><input type="checkbox" id="vc"> Comandi vocali</label>
       <label class="check"><input type="checkbox" id="ca"> Nel ciak chiedi anche "audio"</label>
       <label class="check"><input type="checkbox" id="fo"> Concentrazione sulla riga</label>
+      <label class="check"><input type="checkbox" id="lv"> Livello microfono sul telecomando</label>
     </div>
   </div>
   <div class="row">
@@ -168,7 +169,7 @@ Questo è un testo di prova per il teleprompter. Leggilo ad alta voce con calma 
 Se ti fermi, si ferma anche lui. Se riprendi a parlare, riparte dal punto in cui eri.
 
 Quando vuoi, incolla qui il tuo copione e premi avvia.`;
-const DEF={go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
+const DEF={lv:true,go:'count',ca:true,fo:true,vc:true,text:SAMPLE,fs:64,mg:2,al:'center',nm:false,ln:50,sp:50,lang:'it-IT',mx:false,my:false,sh:false};
 let cfg={...DEF};
 try{cfg={...DEF,...JSON.parse(localStorage.getItem('tp-cfg3')||'{}')}}catch(e){}
 const ACTS=[['mic','Ascolto on/off'],['down','Riga giù'],['up','Riga su'],['next','Frase dopo'],['prev','Frase prima'],['auto','Scorrimento auto'],['fast','Più veloce'],['slow','Più lento'],['plus','Testo più grande'],['minus','Testo più piccolo'],['top','Torna all\'inizio']];
@@ -179,9 +180,10 @@ const src=$('src');src.value=cfg.text;
 const sliders={fs:'px',mg:'%',ln:'%',sp:' px/s'};
 for(const k in sliders){const el=$(k);el.value=cfg[k];$(k+'V').textContent=cfg[k]+sliders[k];
   el.oninput=()=>{cfg[k]=+el.value;$(k+'V').textContent=cfg[k]+sliders[k];save();applyLook()}}
-for(const k of['mx','my','sh','vc','ca','fo']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
+for(const k of['mx','my','sh','vc','ca','fo','lv']){$(k).checked=cfg[k];$(k).onchange=()=>{cfg[k]=$(k).checked;save();applyLook()}}
 $('go').value=cfg.go;$('go').onchange=()=>{cfg.go=$('go').value;save()};
 $('al').value=cfg.al;$('al').onchange=()=>{cfg.al=$('al').value;save();applyLook()};
+$('lv').addEventListener('change',()=>{if(!cfg.lv)stopMeter();else if(listening)startMeter()});
 $('lang').value=cfg.lang;$('lang').onchange=()=>{cfg.lang=$('lang').value;save()};
 src.oninput=()=>{cfg.text=src.value;save()};
 $('clear').onclick=()=>{src.value='';cfg.text='';save();src.focus()};
@@ -380,8 +382,9 @@ function startRec(){
   rec.onend=()=>{if(listening){try{rec.start()}catch(err){setTimeout(()=>{if(listening)try{rec.start()}catch(e){}},300)}}};
   listening=true;showMic();
   try{rec.start()}catch(e){}
+  startMeter();
 }
-function stopRec(){listening=false;showMic();try{rec&&rec.stop()}catch(e){}}
+function stopRec(){listening=false;showMic();stopMeter();try{rec&&rec.stop()}catch(e){}}
 function showMic(){
   $('dot').classList.toggle('on',listening||auto);
   $('bMic').textContent=listening?'Pausa':'Ascolta';
@@ -414,6 +417,7 @@ function tick(t){
     applyScroll();
     if(phase==='read'&&!frozen&&(auto||t-lastHeard<1300))el+=dt;
   }
+  meterTick(t);
   if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
   requestAnimationFrame(tick);
 }
@@ -515,6 +519,29 @@ function restartTake(){if(auto)target=0;setPos(0,true);el=0;begin()}
 let lock=null;
 async function keepAwake(){try{if(navigator.wakeLock&&!lock){lock=await navigator.wakeLock.request('screen');lock.addEventListener('release',()=>lock=null)}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&prompter.style.display==='block')keepAwake()});
+
+/* livello del microfono del tablet, mandato al telecomando */
+let actx=null,an=null,lvBuf=null,mStream=null,pkHold=-90,rmsAcc=0,rmsN=0,lastLvl=0;
+async function startMeter(){
+  if(an||!cfg.lv||!navigator.mediaDevices)return;
+  try{
+    mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    actx=new(window.AudioContext||window.webkitAudioContext)();
+    an=actx.createAnalyser();an.fftSize=1024;actx.createMediaStreamSource(mStream).connect(an);
+    lvBuf=new Float32Array(an.fftSize);if(actx.state==='suspended')actx.resume().catch(()=>{});
+  }catch(e){an=null}
+}
+function stopMeter(){try{mStream&&mStream.getTracks().forEach(t=>t.stop())}catch(e){}try{actx&&actx.close()}catch(e){}an=null;actx=null;mStream=null}
+document.addEventListener('pointerdown',()=>{if(actx&&actx.state==='suspended')actx.resume().catch(()=>{})});
+function meterTick(t){
+  if(!an)return;
+  an.getFloatTimeDomainData(lvBuf);let s=0,p=0;
+  for(let i=0;i<lvBuf.length;i++){const v=lvBuf[i];s+=v*v;const a=v<0?-v:v;if(a>p)p=a}
+  rmsAcc+=s/lvBuf.length;rmsN++;pkHold=Math.max(pkHold,20*Math.log10(p||1e-9));
+  if(t-lastLvl>140&&ch){lastLvl=t;const r=10*Math.log10(rmsAcc/Math.max(1,rmsN)||1e-9);
+    try{ch.send({type:'broadcast',event:'lvl',payload:{r:Math.max(-90,Math.round(r)),p:Math.max(-90,Math.round(pkHold))}})}catch(e){}
+    rmsAcc=0;rmsN=0;pkHold=-90}
+}
 
 /* telefono come telecomando */
 let ch=null;
