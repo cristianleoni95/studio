@@ -56,7 +56,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
 #text p{margin:0 0 .6em}
 #text .w{transition:color .3s,opacity .3s;cursor:pointer;border-radius:4px}
 #text .w.read{opacity:.42}
-#text .w.cur{color:#ffd60a}
+#text .w.cur{}
 .pad{height:100vh;height:100dvh}
 #count{position:absolute;inset:0;display:none;place-items:center;background:#000;z-index:4;font-weight:800;font-size:min(55vw,55vh);line-height:1;color:#fff}
 #count.on{display:grid}
@@ -138,7 +138,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
-  <p class="note" style="opacity:.6">Versione 17</p>
+  <p class="note" style="opacity:.6">Versione 18</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -405,7 +405,7 @@ function startWeb(){
 function stopRec(){listening=false;showMic();stopLocal();stopMeter();try{rec&&rec.stop()}catch(e){}rec=null}
 
 /* IA locale (Vosk): gira tutta sul tablet, riconosce solo le parole del copione e dei comandi */
-let silentSince=0,heals=0,diagErr='',vCount=0,lastPeak=-90,audioFrames=0,lastFrames=0,lastAudioChk=0,voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
+let vGain=1,silentSince=0,heals=0,diagErr='',vCount=0,lastPeak=-90,audioFrames=0,lastFrames=0,lastAudioChk=0,voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
 function engSay(t){$('engSt').textContent=t}
 function loadVosk(){
   if(voskP)return voskP;
@@ -428,7 +428,7 @@ function loadVosk(){
       m.on('error',msg=>{clearTimeout(to);rej(new Error((msg&&msg.error)||'errore'))});
     }))
     .then(m=>{vModel=m;engSay('IA locale pronta');return m})
-    .catch(e=>{voskP=null;engSay('IA locale non disponibile ('+(e&&e.message||'errore')+'): uso Siri/Google');throw e});
+    .catch(e=>{voskP=null;engSay('IA locale non disponibile ('+(e&&e.message||'errore')+')');throw e});
   return voskP;
 }
 function grammarWords(){
@@ -449,13 +449,21 @@ async function startLocal(){
     vrec.on('partialresult',msg=>{vCount++;const p=((msg.result&&msg.result.partial)||'').replace(/\[unk\]/g,'').trim();handleSeg([{tx:p,fin:false,conf:0}])});
     vrec.on('result',msg=>{vCount++;const r=msg.result||{},t=r.text||'';const ws=(r.result||[]).filter(w=>w.word!=='[unk]');const conf=ws.length?Math.min(...ws.map(w=>w.conf)):0;if(t)handleSeg([{tx:t.replace(/\[unk\]/g,'').trim(),fin:true,conf}]);prevLen=0});
     vnode=actx.createScriptProcessor(4096,1,1);
-    vnode.onaudioprocess=e=>{audioFrames++;{const d=e.inputBuffer.getChannelData(0);let p=0;for(let i=0;i<d.length;i+=8){const a=d[i]<0?-d[i]:d[i];if(a>p)p=a}lastPeak=Math.max(-90,Math.round(20*Math.log10(p||1e-9)))}try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
+    vnode.onaudioprocess=e=>{audioFrames++;
+      const d=e.inputBuffer.getChannelData(0);let p=0,s=0;
+      for(let i=0;i<d.length;i++){const v=d[i];s+=v*v;const a=v<0?-v:v;if(a>p)p=a}
+      const ms=s/d.length,rms=Math.sqrt(ms);lastPeak=Math.max(-90,Math.round(20*Math.log10(p||1e-9)));
+      pkHold=Math.max(pkHold,lastPeak);rmsAcc+=ms;rmsN++; // livello per il telecomando
+      // amplificatore automatico: se la voce arriva bassa la alzo (fino a 40 volte) senza farla saturare
+      if(rms>0.0004){const want=Math.min(40,Math.max(1,0.06/rms));vGain+=(want-vGain)*(want<vGain?0.5:0.08)}
+      const g=Math.min(vGain,0.9/(p||1e-9));const o=new Float32Array(d.length);for(let i=0;i<d.length;i++)o[i]=d[i]*g;
+      try{vrec&&vrec.acceptWaveformFloat(o,e.inputBuffer.sampleRate)}catch(err){}};
     vmute=actx.createGain();vmute.gain.value=0;msrc.connect(vnode);vnode.connect(vmute);vmute.connect(actx.destination);
     showMic();engSay('IA locale: sto ascoltando');startMeter();
   }catch(e){
     diagErr=(e&&e.message)||String(e);
     if(!listening)return;
-    toast('IA locale non disponibile: uso Siri/Google');engSay('IA locale non disponibile: uso Siri/Google');startWeb();
+    listening=false;showMic();toast('IA locale non partita: '+diagErr);engSay('IA locale non partita: '+diagErr+'. Prova "Prova microfono"');
   }
 }
 async function restartAudio(){
@@ -505,7 +513,7 @@ function tick(t){
   meterTick(t);
   if(t-lastAudioChk>1500){lastAudioChk=t;
     if(listening&&useLocal()&&prompter.style.display==='block'){
-      const d='Audio '+(actx?actx.state+' '+actx.sampleRate+' Hz':'assente')+' · blocchi '+audioFrames+' · livello '+lastPeak+' dB · risposte IA '+vCount+(diagErr?' · errore: '+diagErr:'');
+      const d='Audio '+(actx?actx.state+' '+actx.sampleRate+' Hz':'assente')+' · blocchi '+audioFrames+' · livello '+lastPeak+' dB · amplifico x'+vGain.toFixed(1)+' · risposte IA '+vCount+(diagErr?' · errore: '+diagErr:'');
       $('diag').textContent=cfg.sh?d:'';
       if(actx&&actx.state!=='running'){$('stTxt').textContent='Tocca lo schermo per attivare il microfono';engSay('Audio in pausa: tocca lo schermo · '+d)}
       else if(audioFrames===lastFrames){engSay('Il microfono non manda audio · '+d)}
@@ -513,7 +521,7 @@ function tick(t){
       // audio che arriva ma è muto (difetto iPad): riavvio il microfono da solo, al massimo 3 volte
       if(audioFrames>lastFrames&&lastPeak<=-80){if(!silentSince)silentSince=t;
         if(t-silentSince>4000&&heals<3){heals++;silentSince=0;toast('Riavvio il microfono…');restartAudio()}
-        else if(t-silentSince>4000&&heals>=3){silentSince=0;heals=0;toast('Microfono muto per l\'IA: passo a Siri/Google. Prova "Prova microfono"');stopLocal();startWeb()}}
+        else if(t-silentSince>4000&&heals>=3){silentSince=0;toast('Il microfono arriva muto: nelle impostazioni premi "Prova microfono"')}}
       else if(lastPeak>-80){silentSince=0}
       lastFrames=audioFrames;
     }}
@@ -683,10 +691,10 @@ function stopMeter(){if(listening&&useLocal()){try{an&&an.disconnect()}catch(e){
 document.addEventListener('pointerdown',()=>{if(actx&&actx.state!=='running')actx.resume().catch(()=>{})});
 document.addEventListener('touchend',()=>{if(actx&&actx.state!=='running')actx.resume().catch(()=>{})});
 function meterTick(t){
-  if(!an)return;
-  an.getFloatTimeDomainData(lvBuf);let s=0,p=0;
-  for(let i=0;i<lvBuf.length;i++){const v=lvBuf[i];s+=v*v;const a=v<0?-v:v;if(a>p)p=a}
-  rmsAcc+=s/lvBuf.length;rmsN++;pkHold=Math.max(pkHold,20*Math.log10(p||1e-9));
+  if(!an&&!vnode)return;
+  if(an&&!vnode){an.getFloatTimeDomainData(lvBuf);let s=0,p=0;
+    for(let i=0;i<lvBuf.length;i++){const v=lvBuf[i];s+=v*v;const a=v<0?-v:v;if(a>p)p=a}
+    rmsAcc+=s/lvBuf.length;rmsN++;pkHold=Math.max(pkHold,20*Math.log10(p||1e-9))}
   if(t-lastLvl>140&&ch){lastLvl=t;const r=10*Math.log10(rmsAcc/Math.max(1,rmsN)||1e-9);
     try{ch.send({type:'broadcast',event:'lvl',payload:{r:Math.max(-90,Math.round(r)),p:Math.max(-90,Math.round(pkHold))}})}catch(e){}
     rmsAcc=0;rmsN=0;pkHold=-90}
