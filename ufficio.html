@@ -181,6 +181,8 @@ import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
@@ -206,7 +208,7 @@ const renderer=new THREE.WebGLRenderer({canvas,antialias:!TOUCH,alpha:true,power
 renderer.setPixelRatio(Math.min(devicePixelRatio,TOUCH?1.5:2));
 renderer.setClearAlpha(0);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=TOUCH?1.0:1.12;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
 const scene=new THREE.Scene();
 const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.5;scene.background=new THREE.Color(0x0b0d11);
@@ -233,12 +235,12 @@ const T={
   for(let i=0;i<900;i++){const a=r()*.035,s=20+r()*120;x.fillStyle=r()>.5?`rgba(255,255,255,${a})`:`rgba(20,22,30,${a})`;x.beginPath();x.ellipse(r()*w,r()*h,s,s*(.4+r()*.6),r()*3,0,7);x.fill()}
   for(let i=0;i<5000;i++){x.fillStyle=`rgba(${r()>.5?255:0},${r()>.5?255:0},${r()>.5?255:0},.05)`;x.fillRect(r()*w,r()*h,2,2)}
   x.strokeStyle='rgba(30,32,38,.35)';x.lineWidth=3;for(let i=1;i<4;i++){x.beginPath();x.moveTo(i*w/4,0);x.lineTo(i*w/4,h);x.stroke();x.beginPath();x.moveTo(0,i*h/4);x.lineTo(w,i*h/4);x.stroke()}}),
- muro:tela(32,256,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#6f7278');g.addColorStop(.35,'#a9acb0');g.addColorStop(.8,'#c9cbcd');g.addColorStop(1,'#8d8f93');x.fillStyle=g;x.fillRect(0,0,w,h)}),
+ muro:tela(32,256,(x,w,h)=>{const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,'#2a2d33');g.addColorStop(.35,'#4a4e56');g.addColorStop(.8,'#676b73');g.addColorStop(1,'#3a3d44');x.fillStyle=g;x.fillRect(0,0,w,h)}),
  alone:sfumato('rgba(255,255,255,1)','rgba(255,225,170,.35)','rgba(255,200,120,0)'),
  pozza:sfumato('rgba(255,214,150,.9)','rgba(255,200,130,.35)','rgba(255,190,110,0)'),
  ombra:sfumato('rgba(0,0,0,.75)','rgba(0,0,0,.4)','rgba(0,0,0,0)'),
 };
-T.parquet=legno('#7a5a3e','rgba(35,20,10,.55)',10,23);
+T.parquet=legno('#5b4636','rgba(20,12,6,.6)',10,23);
 for(const k of ['legnoPalco','legnoTavolo','legnoScuro','cemento','parquet']){T[k].wrapS=T[k].wrapT=THREE.RepeatWrapping}
 T.parquet.repeat.set(9,7);
 T.cemento.repeat.set(3,3);T.legnoPalco.repeat.set(3,2);
@@ -294,8 +296,8 @@ function faiStanza(){
 }
 
 // ---------- luci: sera in ufficio, pozze calde sotto le lampade ----------
-scene.add(new THREE.HemisphereLight(0xfff4e6,0x24262e,.26));
-const sole=new THREE.DirectionalLight(0xffe2c0,2.1);sole.position.set(13,32,30);sole.target.position.set(0,0,13);sole.castShadow=true;
+scene.add(new THREE.HemisphereLight(0xdfe8ff,0x1a1c22,TOUCH?.3:.2));
+const sole=new THREE.DirectionalLight(TOUCH?0xffe2c0:0xfff0dc,TOUCH?2.1:1.25);sole.position.set(13,32,30);sole.target.position.set(0,0,13);sole.castShadow=true;
 sole.shadow.mapSize.set(TOUCH?1024:2048,TOUCH?1024:2048);Object.assign(sole.shadow.camera,{left:-34,right:34,top:42,bottom:-42,near:1,far:130});sole.shadow.bias=-.0004;sole.shadow.normalBias=.03;sole.shadow.radius=5;
 scene.add(sole,sole.target);
 function lampada(x,z,luce,alt=7.5){ // 14/11: niente lampade appese al soffitto (Cristian); resta la luce calda dall'alto
@@ -319,23 +321,19 @@ function libreria(x,z,ry){const g=new THREE.Group();g.position.set(x,0,z);g.rota
  pianta(-W/4,0,.55,g,H+.02);scene.add(g)}
 // posti dove i robot passano il tempo libero (x,z, direzione in cui guardano, corridoio da cui si arriva)
 // (28/11) PIANTA A STANZE: tre corridoi trasversali (HZ) uniti da un corridoio centrale (x = 0). Ogni stanza ha UNA porta.
-const HZ=[-0.6,10,28.4];
+const HZ=[-0.6,12.4,28.4];
 const SALE={
- direzione:{n:'DIREZIONE',c:'#d97757',x0:-15.4,x1:15.4,z0:-11.5,z1:-2,h:0,giu:1,px:0,muri:'b',tap:0x262a33},
- revisione:{n:'REVISIONE',c:'#f5b301',x0:-23,x1:-15.4,z0:-11.5,z1:-2,h:0,giu:1,px:-17.4,muri:'br',tap:0x3a3526},
- regia:{n:'REGIA',c:'#ff4d6d',x0:15.4,x1:23,z0:-11.5,z1:-2,h:0,giu:1,px:16.9,muri:'bl',tap:0x3a2630},
- audio:{n:'SALA AUDIO',c:'#b98cff',x0:-23,x1:-12.3,z0:.8,z1:8.8,h:0,muri:'tbr',tap:0x3a3350,ids:['pulizia','voce','canzone']},
- tagli:{n:'TAGLI',c:'#58a6ff',x0:-12.3,x1:-1.6,z0:.8,z1:8.8,h:0,muri:'tbr',tap:0x2b3f52,ids:['tagli']},
- sottotitoli:{n:'SOTTOTITOLI',c:'#58d6a0',x0:1.6,x1:12.3,z0:.8,z1:8.8,h:0,muri:'tbl',tap:0x27423a,ids:['sottotitoli','tracker']},
- grafiche:{n:'GRAFICHE',c:'#ff9f43',x0:12.3,x1:23,z0:.8,z1:8.8,h:0,muri:'tbl',tap:0x4a3a28,ids:['grafiche']},
- tempi:{n:'SALA TEMPI',c:'#ffffff',x0:-23,x1:-12.3,z0:11.2,z1:19.2,h:1,muri:'tr',tap:0x2c3038},
- foto:{n:'STUDIO FOTO',c:'#ffb454',x0:-12.3,x1:-1.6,z0:11.2,z1:19.2,h:1,muri:'tr',tap:0x4a4238,ids:['selezione_foto','color_foto']},
- studioai:{n:'STUDIO AI',c:'#c77dff',x0:1.6,x1:12.3,z0:11.2,z1:19.2,h:1,muri:'tl',tap:0x3b2f4a,ids:['studioai']},
- clienti:{n:'STUDIO CLIENTI',c:'#4dd0e1',x0:12.3,x1:23,z0:11.2,z1:19.2,h:1,muri:'tl',tap:0x25404a,ids:['studio_clienti']},
- miopc:{n:'IL MIO PC',c:'#11f401',x0:-23,x1:-12.3,z0:19.2,z1:27.2,h:2,giu:1,muri:'tbr',tap:0x1f3a2a},
- render:{n:'RENDER',c:'#ff6b6b',x0:-12.3,x1:-1.6,z0:19.2,z1:27.2,h:2,giu:1,muri:'tbr',tap:0x4a2a2a,ids:['render']},
- mensa:{n:'MENSA',c:'#34c759',x0:1.6,x1:23,z0:19.2,z1:27.2,h:2,giu:1,px:4,muri:'tbl',tap:0x33302a},
- relax:{n:'BIBLIOTECA · GIOCHI · RELAX',c:'#58a6ff',x0:-23,x1:23,z0:29.6,z1:37.6,h:2,px:0,muri:'t',tap:0x2f3440}};
+ direzione:{n:'REGIA',c:'#d97757',x0:-15.4,x1:15.4,z0:-11.5,z1:-2,h:0,giu:1,px:0,muri:'',tap:0x1d2026},
+ revisione:{n:'REVISIONE',c:'#f5b301',x0:-23,x1:-15.4,z0:-11.5,z1:-2,h:0,giu:1,px:-17.4,muri:'br',tap:0x2e2a1f},
+ regia:{n:'SALA MACCHINE',c:'#ff4d6d',x0:15.4,x1:23,z0:-11.5,z1:-2,h:0,giu:1,px:16.9,muri:'bl',tap:0x16181d},
+ montaggio:{n:'SALA MONTAGGIO',c:'#58a6ff',x0:-23,x1:-1.6,z0:.8,z1:11.2,h:0,px:-4.4,muri:'tbr',tap:0x1c2733,ids:['tagli','sottotitoli','tracker','grafiche','render'],pos:[[-7,2.6],[-2.6,2.6],[1.8,2.6],[-7,7.0],[-2.6,7.0],[1.8,7.0]]},
+ audio:{n:'CABINA AUDIO',c:'#b98cff',x0:1.6,x1:12.3,z0:.8,z1:11.2,h:0,muri:'tbl',tap:0x2a2438,ids:['pulizia','voce','canzone'],pos:[[-3.6,2.4],[-0.3,2.4],[-3.6,6.2]]},
+ foto:{n:'FOTO E AI',c:'#ffb454',x0:12.3,x1:23,z0:.8,z1:11.2,h:0,muri:'tbl',tap:0x332c22,ids:['selezione_foto','color_foto','studioai','studio_clienti'],pos:[[-3.6,2.4],[-0.3,2.4],[-3.6,6.2],[-0.3,6.2]]},
+ tempi:{n:'SALA TEMPI',c:'#ffffff',x0:-23,x1:-12.3,z0:13.6,z1:19.2,h:1,px:-13.6,muri:'',tap:0x23262d},
+ lounge:{n:'LOUNGE',c:'#d9a441',x0:-12.3,x1:-1.6,z0:13.6,z1:27.2,h:1,px:-3.2,muri:'',tap:0x2b2620},
+ miopc:{n:'IL MIO PC',c:'#11f401',x0:-23,x1:-12.3,z0:19.2,z1:27.2,h:2,giu:1,muri:'tbr',tap:0x15261c},
+ mensa:{n:'CUCINA E MENSA',c:'#34c759',x0:1.6,x1:23,z0:13.6,z1:27.2,h:1,px:4,muri:'',tap:0x2a2622},
+ relax:{n:'BIBLIOTECA · GIOCHI · RELAX',c:'#58a6ff',x0:-23,x1:23,z0:29.6,z1:37.6,h:2,px:0,muri:'t',tap:0x22262e}};
 for(const k in SALE){const q=SALE[k];q.k=k;q.cx=(q.x0+q.x1)/2;if(q.px==null)q.px=q.cx+4.2;q.in=[q.px,q.giu?q.z1-.75:q.z0+.75];q.out=[q.px,HZ[q.h]]}
 function stanzaDi(x,z){for(const k in SALE){const q=SALE[k];if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1)return q}return null}
 // posti dove i robot passano il tempo libero: st = stanza in cui si trovano (ci entrano dalla porta)
@@ -343,7 +341,7 @@ const SPOT={
  caffe:[{x:13.8,z:32.1,ry:PI,st:SALE.relax},{x:15.1,z:32.1,ry:PI,st:SALE.relax}],
  divano:[{x:6.7,z:31.3,ry:0,ox:0,oz:-.25,st:SALE.relax},{x:8.1,z:31.3,ry:0,ox:0,oz:-.25,st:SALE.relax},{x:9.5,z:31.3,ry:0,ox:0,oz:-.25,st:SALE.relax}],
  gioco_:[{x:17.1,z:32.0,ry:PI,st:SALE.relax}],
- mensa:[{x:10.8,z:20.02,ry:0,st:SALE.mensa,via:[[6.5,24.6],[6.5,19.9]]},{x:13.2,z:20.02,ry:0,st:SALE.mensa,via:[[6.5,24.6],[6.5,19.75],[13.2,19.75]]},{x:12,z:23.92,ry:0,st:SALE.mensa,via:[[8.6,22.95],[12,22.95]]},{x:12,z:25.88,ry:PI,st:SALE.mensa,via:[[12,26.5]]}],
+ mensa:[{x:10.8,z:20.02,ry:0,st:SALE.mensa,via:[[10.8,18.9]]},{x:13.2,z:20.02,ry:0,st:SALE.mensa,via:[[13.2,18.9]]},{x:12,z:23.92,ry:0,st:SALE.mensa,via:[[8.6,22.95],[12,22.95]]},{x:12,z:25.88,ry:PI,st:SALE.mensa,via:[[8.6,26.6],[12,26.6]]}],
  led:[{x:-2.4,z:-2.9,ry:PI,st:SALE.direzione},{x:1.6,z:-3.3,ry:PI,st:SALE.direzione},{x:3.0,z:-2.9,ry:PI,st:SALE.direzione}],
  piante:[{x:11.5,z:31.7,ry:PI,st:SALE.relax},{x:-21.4,z:31.4,ry:PI,st:SALE.relax}],
  ginnastica:[{x:3.6,z:35.4,ry:0,st:SALE.relax},{x:-3.6,z:35.4,ry:0,st:SALE.relax}],
@@ -654,14 +652,14 @@ function faiEdificio(){ // parti fisse: zone, insegne, sale laterali
  CLI.tex=tela(1024,640,()=>{});CLI.tex.anisotropy=8;{const c=rbox(6.3,3.95,.2,.06,M.metallo);c.position.set(-19.4,5.2,zb+.12);EDI.add(c);
   const q=new THREE.Mesh(new THREE.PlaneGeometry(6.06,3.72),new THREE.MeshBasicMaterial({map:CLI.tex,toneMapped:false}));q.position.set(-19.4,5.2,zb+.235);EDI.add(q)}
  // tavolo riunioni nella Sala Tempi
- {const t=new THREE.Group();t.position.set(-17.2,0,15.2);const p=rbox(2.0,.09,4.2,.04,M.tavolo);p.position.y=1.0;t.add(p,box(MAT2.nero,0,.48,-1.5,1.2,.96,.1),box(MAT2.nero,0,.48,1.5,1.2,.96,.1));
+ {const t=new THREE.Group();t.position.set(-18.2,0,16.4);const p=rbox(2.0,.09,4.2,.04,M.tavolo);p.position.y=1.0;t.add(p,box(MAT2.nero,0,.48,-1.5,1.2,.96,.1),box(MAT2.nero,0,.48,1.5,1.2,.96,.1));
   for(const s of [-1,1])for(let i=-1;i<=1;i++){const sd=rbox(.6,.1,.6,.04,M.tessuto);sd.position.set(s*1.6,.62,i*1.3);t.add(sd,cil(MAT2.acciaio,s*1.6,.31,i*1.3,.03,.6));const sc=rbox(.08,.7,.6,.03,M.tessuto);sc.position.set(s*1.92,1.0,i*1.3);t.add(sc)}
-  EDI.add(t);aTerra(M.ombra,-17.2,15.2,5.2,5.4)}
+  EDI.add(t);aTerra(M.ombra,-18.2,16.4,5.2,5.4)}
  mensa(12,21.0);salaPC(-17.65,23.2);
  [[19.5,-6,1],[17,23,1],[-19.5,-6,1],[-17.5,23,1],[-17.5,5,0],[0,19,0,8.3],[12,33,1],[-12,33,1],[7,5,0],[-7,15,0]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?0:l,h||7.5));
 }
 // (28/11) MURI VERI: base piena e vetro sopra con montanti (ufficio moderno), porte con telaio e anta aperta
-const MURI=[];MAT2.intonaco=new THREE.MeshStandardMaterial({color:0xdcdad5,roughness:.92});
+const MURI=[];MAT2.intonaco=new THREE.MeshStandardMaterial({color:0x3b3f47,roughness:.9});
 MAT2.vetro=new THREE.MeshPhysicalMaterial({color:0xd6ecf5,roughness:.04,metalness:0,transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false,envMapIntensity:1.6});
 function muro(g,x0,z0,x1,z1,o={}){const h=o.h||2.9,base=o.base??1.0,ax=Math.abs(x1-x0)>Math.abs(z1-z0),L=ax?Math.abs(x1-x0):Math.abs(z1-z0),cx=(x0+x1)/2,cz=(z0+z1)/2,sp=.14;if(L<.08)return;
  const pz=(m,y,hh,t,om)=>{const b=box(m,cx,y,cz,ax?L:t,hh,ax?t:L,om);g.add(b);return b};
@@ -686,9 +684,10 @@ function faiDivisori(){ // muri, porte, moquette e insegna di ogni stanza
   if(m.includes('b')){if(q.giu)muroPorte(DIV,q.x0,q.z1,q.x1,q.z1,[q.px],{...V,verso:-1});else muro(DIV,q.x0,q.z1,q.x1,q.z1,V)}
   if(m.includes('l'))muro(DIV,q.x0,q.z0,q.x0,q.z1);if(m.includes('r'))muro(DIV,q.x1,q.z0,q.x1,q.z1);
   DIV.add(box(MAT2.moquette(q.tap),q.cx,.014,(q.z0+q.z1)/2,q.x1-q.x0-.16,.028,q.z1-q.z0-.16,false));
-  const w=Math.min(6.4,Math.max(2.6,q.n.length*.34));insegna(q.n,Math.abs(q.cx-q.px)<w/2+.9?(q.px+(q.px>q.cx?-1:1)*(w/2+1.0)):q.cx,3.65,q.giu?q.z1:q.z0,w,q.c,DIV)}
+  const w=Math.min(6.4,Math.max(2.6,q.n.length*.34));insegna(q.n,Math.abs(q.cx-q.px)<w/2+.9?(q.px+(q.px>q.cx?-1:1)*(w/2+1.0)):q.cx,m?3.65:4.6,q.giu?q.z1:q.z0,w,q.c,DIV)}
  // strumenti di riferimento
- const a=SALE.audio;cassaAudio(a.cx+1.6,a.z0+1.3,0,DIV);cassaAudio(a.cx+3.0,a.z1-1.1,PI,DIV);
+ const a=SALE.audio;cassaAudio(a.cx+2.0,a.z0+1.2,0,DIV);cassaAudio(a.x0+1.0,a.z1-1.1,PI*.8,DIV);cassaAudio(a.cx+.6,a.z1-1.1,PI,DIV);
+ faiVetrate();faiLuciSera();
 }
 function disegnaClienti(){if(!CLI.tex)return;const c=CLI.tex.image,x=c.getContext('2d'),W=c.width,H=c.height,L=(S.tempi_clienti||[]).slice(0,7);
  x.fillStyle='#f7f7f3';x.fillRect(0,0,W,H);x.fillStyle='#1a1a1a';x.font=carattere(48,800);x.fillText('ORE DI LAVORO PER CLIENTE',30,62);x.fillStyle='#5f6368';x.font=carattere(22,600);x.fillText('solo il tempo in cui si è lavorato davvero (pause e notti escluse)',30,96);
@@ -698,6 +697,59 @@ function disegnaClienti(){if(!CLI.tex)return;const c=CLI.tex.image,x=c.getContex
   x.fillStyle='#188038';x.font=carattere(32,800);x.fillText(oreMin(k.secondi),810,y+30);x.fillStyle='#5f6368';x.font=carattere(20,600);x.fillText(k.video+' video',30,y+54)});
  CLI.tex.needsUpdate=true}
 const oreMin=s=>{s=Math.max(0,Math.round(s||0));const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?h+' h '+String(m).padStart(2,'0')+' min':m?m+' min':s+' s'};
+
+// ---------- (28/11) sera in studio: vetrate sulla citta', luci calde per zona, arredi veri ----------
+function faiVetrate(){ // grandi finestre in alto sui due muri laterali: fuori e' notte
+ const tx=tela(1024,256,(c,W,H)=>{const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#05070d');g.addColorStop(.6,'#0c1424');g.addColorStop(1,'#1a2540');c.fillStyle=g;c.fillRect(0,0,W,H);const r=rnd(77);
+  for(let i=0;i<70;i++){const x=r()*W,w=18+r()*46,h=40+r()*150;c.fillStyle='#070a12';c.fillRect(x,H-h,w,h);for(let k=0;k<22;k++)if(r()<.45){c.fillStyle=r()<.75?'rgba(255,214,150,.85)':'rgba(170,205,255,.8)';c.fillRect(x+3+((k*5)%(w-6)),H-h+6+Math.floor(k/3)*11,3,5)}}
+  for(let i=0;i<90;i++){c.fillStyle='rgba(255,255,255,'+(.2+r()*.6)+')';c.fillRect(r()*W,r()*H*.45,1.5,1.5)}});
+ const L=ST.ZDAVANTI-ST.ZDIETRO,zc=(ST.ZDAVANTI+ST.ZDIETRO)/2,mat=new THREE.MeshBasicMaterial({map:tx,toneMapped:false});tx.wrapS=THREE.RepeatWrapping;tx.repeat.set(3,1);
+ for(const sx of [-1,1]){const p=new THREE.Mesh(new THREE.PlaneGeometry(L-3,3.9),mat);p.position.set(sx*(ST.W/2-.04),6.3,zc);p.rotation.y=-sx*PI/2;DIV.add(p);
+  for(let i=0;i<=12;i++)DIV.add(box(MAT2.nero,sx*(ST.W/2-.07),6.3,ST.ZDIETRO+1.5+i*(L-3)/12,.1,3.9,.12,false));DIV.add(box(MAT2.nero,sx*(ST.W/2-.07),4.33,zc,.1,.12,L-3,false),box(MAT2.nero,sx*(ST.W/2-.07),8.27,zc,.1,.12,L-3,false))}}
+let LUCI=null;
+function faiLuciSera(){if(LUCI||TOUCH)return;LUCI=new THREE.Group();scene.add(LUCI);
+ for(const k in SALE){const q=SALE[k],n=(q.x1-q.x0)>20?3:1;for(let i=0;i<n;i++){const l=new THREE.PointLight(k==='regia'?0x7fb6ff:k==='montaggio'?0xbfd4ff:0xffc27a,k==='direzione'?70:95,17,1.7);l.position.set(q.x0+(q.x1-q.x0)*(i+.5)/n,5.2,(q.z0+q.z1)/2);LUCI.add(l)}}}
+const URLK='https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/';
+function arredoVero(){if(TOUCH)return;const L=new GLTFLoader();
+ const metti=(g,larg,x,z,ry)=>{const o=g.clone(true),b=new THREE.Box3().setFromObject(o),d=b.getSize(new V3()),k=larg/Math.max(d.x,d.z);o.scale.multiplyScalar(k);b.setFromObject(o);o.position.set(x-(b.min.x+b.max.x)/2,-b.min.y,z-(b.min.z+b.max.z)/2);
+  const w=new THREE.Group();w.add(o);w.traverse(m=>{if(m.isMesh){m.castShadow=m.receiveShadow=true}});const piv=new THREE.Group();piv.position.set(x,0,z);o.position.x-=x;o.position.z-=z;piv.add(w);piv.rotation.y=ry;scene.add(piv);aTerra(M.ombra,x,z,larg*1.15,larg*.8)};
+ L.loadAsync(URLK+'GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb').then(g=>{metti(g.scene,3.6,-7,17.2,0);metti(g.scene,3.6,-7,23.6,PI);metti(g.scene,3.4,-10.6,20.4,PI/2);ombre()}).catch(()=>{});
+ L.loadAsync(URLK+'DiffuseTransmissionPlant/glTF-Binary/DiffuseTransmissionPlant.glb').then(g=>{metti(g.scene,1.5,-3.2,25.6,0);metti(g.scene,1.5,-10.9,15.0,1);metti(g.scene,1.6,3.2,26.0,2);metti(g.scene,1.4,-2.6,-3.4,.5);ombre()}).catch(()=>{});
+ // tavolino basso e tappeto del lounge
+ scene.add(box(MAT2.moquette(0x6b5a48),-7,.03,20.4,6.4,.03,5.6,false));const t=rbox(2.2,.08,1.2,.04,M.legnoScuro);t.position.set(-7,.62,20.4);scene.add(t);for(const a of [-1,1])for(const b of [-1,1])scene.add(box(MAT2.nero,-7+a*.95,.3,20.4+b*.45,.06,.6,.06));aTerra(M.ombra,-7,20.4,3,2)}
+// ---------- (28/11) PERSONE al posto dei robot ----------
+// Crediti dei modelli 3D: figure "Michelle" e "Xbot" dagli esempi di three.js (Mixamo); divano "GlamVelvetSofa" (Wayfair, CC BY 4.0) e pianta
+// "DiffuseTransmissionPlant" (CC BY 4.0) dai glTF Sample Assets di Khronos Group.
+// Modelli liberi degli esempi di three.js (scheletro Mixamo): camminano con la loro animazione, da seduti piego io anche e ginocchia.
+// Solo su computer: su tablet e telefono restano i robot, piu' leggeri.
+const UM={pronti:false,base:[],clip:{},n:0,cfg:{k:1.32,anca:-1.5,ginocchio:1.5,sedile:.9,avanti:.08,braccio:.55,avamb:.9}};window.__UM=UM;
+const URLM='https://cdn.jsdelivr.net/gh/mrdoob/three.js@r170/examples/models/gltf/';
+const _qx=new THREE.Quaternion(),_ax=new V3(1,0,0),_az=new V3(0,0,1);
+function caricaPersone(){if(TOUCH)return;const L=new GLTFLoader();
+ Promise.all(['Xbot.glb','Michelle.glb'].map(n=>L.loadAsync(URLM+n))).then(([x,m])=>{UM.base=[x.scene,m.scene];for(const c of x.animations)UM.clip[c.name]=c;
+  if(!UM.clip.idle||!UM.clip.walk)return;
+  // le due figure hanno il bacino orientato in modo diverso (una ha l'asse Z in alto): converto posizione e rotazione del bacino delle animazioni
+  {const pa=x.scene.getObjectByName('mixamorigHips').parent,pb=m.scene.getObjectByName('mixamorigHips').parent,R=pb.quaternion.clone().invert().multiply(pa.quaternion),q=new THREE.Quaternion(),v=new V3();
+   for(const k of ['idle','walk']){const c=UM.clip[k].clone();for(const t of c.tracks){if(t.name==='mixamorigHips.quaternion'){const a=t.values;for(let i=0;i<a.length;i+=4){q.set(a[i],a[i+1],a[i+2],a[i+3]).premultiply(R);a[i]=q.x;a[i+1]=q.y;a[i+2]=q.z;a[i+3]=q.w}}
+     else if(t.name==='mixamorigHips.position'){const a=t.values;for(let i=0;i<a.length;i+=3){v.set(a[i],a[i+1],a[i+2]).applyQuaternion(R);a[i]=v.x;a[i+1]=v.y;a[i+2]=v.z}}}
+    c.tracks=c.tracks.filter(t=>!/Eye|\.scale$/.test(t.name));UM.clip[k]=c}}
+  UM.pronti=true;for(const p of posti)if(p.robot)vesti(p);ombre()}).catch(()=>{})}
+function vesti(p){const r=p.robot,u=r.userData;if(!UM.pronti||u.um)return;const idx=1,m=SkeletonUtils.clone(UM.base[idx]);UM.n++;   // tutte figure umane vestite (Michelle): il manichino Xbot serve solo per le animazioni
+ const col=new THREE.Color(p.opt&&p.opt.colore||'#8899aa');
+ m.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;o.material=o.material.clone();o.material.metalness=0;o.material.roughness=.78;o.material.color.set(0xffffff).lerp(col,.28)}});
+ for(const c of r.children)c.visible=false;const K=UM.cfg.k*(u.scala||1);m.scale.setScalar(K);r.add(m);
+ u.um=m;u.mix=new THREE.AnimationMixer(m);u.aI=u.mix.clipAction(UM.clip.idle);u.aW=u.mix.clipAction(UM.clip.walk);u.aI.play();u.aW.play();u.aW.setEffectiveWeight(0);u.mix.setTime(Math.random()*4);u.wW=0;u.wS=0;
+ const B=n=>m.getObjectByName('mixamorig'+n);u.bn={h:B('Hips'),lu:B('LeftUpLeg'),ru:B('RightUpLeg'),ll:B('LeftLeg'),rl:B('RightLeg'),la:B('LeftArm'),ra:B('RightArm'),lf:B('LeftForeArm'),rf:B('RightForeArm'),sp:B('Spine')};
+ u.kum=K}
+function animaUmano(p,dt){const r=p.robot,u=r.userData,b=p.bot,c=UM.cfg,cam=!!(b&&b.modo==='cammina'),sed=!cam&&(!b||b.dove==='scrivania'||SEDUTI.has(b.dove));
+ u.wW+=((cam?1:0)-u.wW)*Math.min(1,dt*9);u.wS+=((sed?1:0)-u.wS)*Math.min(1,dt*7);u.aW.setEffectiveWeight(u.wW);u.aI.setEffectiveWeight(1-u.wW);u.aW.timeScale=b&&b.svelto?1.55:1.05;
+ u.mix.update(dt);const s=u.wS,n=u.bn;
+ if(s>.01&&n.lu){for(const q of [n.lu,n.ru]){_qx.setFromAxisAngle(_ax,c.anca*s);q.quaternion.multiply(_qx)}for(const q of [n.ll,n.rl]){_qx.setFromAxisAngle(_ax,c.ginocchio*s);q.quaternion.multiply(_qx)}
+  if(n.la&&(!b||b.dove==='scrivania')){const lav=(p.dati||{}).stato==='lavora'?1:.55,t=performance.now()/1000;
+   _qx.setFromAxisAngle(_ax,c.braccio*s*lav);n.la.quaternion.multiply(_qx);n.ra.quaternion.multiply(_qx);
+   _qx.setFromAxisAngle(_az,c.avamb*s*lav+(lav===1?Math.sin(t*11+u.fase)*.05:0));n.lf.quaternion.multiply(_qx);_qx.setFromAxisAngle(_az,-c.avamb*s*lav-(lav===1?Math.sin(t*13+u.fase)*.05:0));n.rf.quaternion.multiply(_qx)}}
+ // piedi a terra quando e' in piedi; bacino sul sedile quando e' seduto
+ u.um.position.set(0,-r.position.y+(c.sedile-1.0*u.kum)*s+(p.y||0),c.avanti*s)}
 
 // ---------- postazioni ----------
 const posti=[];const etichette=$('#etichette');const pickers=[];
@@ -709,7 +761,7 @@ function postoScrivania(id,tipo,x,y,z,ry,opt){
  const loc=(lx,ly,lz)=>g.localToWorld(new V3(lx,ly,lz));const sc=opt.scala||1;
  const p={id,tipo,g,opt,x,z,etPos:loc(0,sc*2.05+.85,.95),pickPos:loc(0,1.3,.35),pickSize:new V3(opt.grande?4:3.2,2.7,3),pickRot:ry,
   camPos:loc(2.9,4.1,5.6),camTarget:loc(0,1.45,-.1),seduta:loc(0,.6,1.0),sedutaRy:ry+PI,etAlt:sc*2.05+.25};
- if(!opt.libero){const r=faiRobot(opt.colore,sc);r.position.copy(p.seduta);r.rotation.y=p.sedutaRy;posa(r,true);scene.add(r);p.robot=r;
+ if(!opt.libero){const r=faiRobot(opt.colore,sc);r.position.copy(p.seduta);r.rotation.y=p.sedutaRy;posa(r,true);scene.add(r);p.robot=r;p.y=y;
   if(opt.oggetto==='cuffie'){const o=oggetto('cuffie',opt.colore);o.scale.setScalar(1.55);o.position.set(0,-.4,0);r.userData.testa.add(o)}
   if(opt.oggetto==='lente'){const o=oggetto('lente',opt.colore);o.scale.setScalar(.9);o.rotation.set(1.2,0,.3);o.position.set(.02,-.5,.1);r.userData.braccia[0].gom.add(o);r.userData.lente=true}
   p.blob=aTerra(M.ombra,p.seduta.x,p.seduta.z,1.5,1.5,.02);p.blob.visible=false;
@@ -722,9 +774,9 @@ function costruisciPostazioni(S){
  for(const k in SPOT)SPOT[k].forEach(s=>s.occ=null);
  const ag=(S.agenti||[]).filter(a=>!a.posto);const n=Math.max(1,ag.length); // solo le scrivanie degli agenti, niente posti vuoti (Cristian 15/11); quelli con 'posto' stanno fuori dalle file
  const POS1=[[-1.2,3.0]],POS3=[[-3.6,2.4],[-0.3,2.4],[-3.6,5.9]],dentro={};for(const k in SALE)if(SALE[k].ids)dentro[k]=[];
- for(const a of ag){let k=Object.keys(dentro).find(k=>SALE[k].ids.includes(a.id));if(!k)k=['tagli','grafiche','studioai','clienti','render'].find(k=>dentro[k].length<3)||'tagli';dentro[k].push(a)}
+ for(const a of ag){let k=Object.keys(dentro).find(k=>SALE[k].ids.includes(a.id));if(!k)k=['montaggio','foto','audio'].find(k=>dentro[k].length<SALE[k].pos.length)||'montaggio';dentro[k].push(a)}
  ST.ZDAVANTI=37.6;faiStanza();
- for(const k in dentro){const q=SALE[k],L=dentro[k];L.forEach((a,i)=>{const o=(L.length>1?POS3:POS1)[i%3];const p=postoScrivania(a.id,'agente',q.cx+o[0],0,q.z0+o[1],0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto});p.stanza=q})}
+ for(const k in dentro){const q=SALE[k],L=dentro[k];L.forEach((a,i)=>{const o=q.pos[i%q.pos.length];const p=postoScrivania(a.id,'agente',q.cx+o[0],0,q.z0+o[1],0,{colore:a.colore||'#58a6ff',oggetto:a.oggetto});p.stanza=q})}
  faiDivisori();
  // (18/11) robot Diretta: di fianco alla 3090 gigante, vicino al palco di Claude, girato verso la stanza
  for(const a of (S.agenti||[]).filter(a=>a.posto==='gpu')){const d=postoScrivania(a.id,'agente',18.6,0,-8.7,PI,{colore:a.colore||'#ff4d6d',oggetto:a.oggetto,fisso:true});
@@ -781,7 +833,7 @@ function costruisciFissi(){
  nuovoPosto({id:'tempi',tipo:'tempi',etPos:new V3(-ST.W/2+.6,7.65,15.2),pickPos:new V3(-ST.W/2+.45,5.3,15.2),pickSize:new V3(1,4.2,5.8),camPos:new V3(-14.6,5.4,15.2),camTarget:new V3(-ST.W/2,5.2,15.2)});
  [[-12.6,-4.5,1],[12.2,-6.8,1],[-12.6,3.5,1],[12.9,6.2,1],[-12.6,11,1],[12.9,12.2,1],[-3.6,6.6,0,8.3],[3.6,6.6,0,8.3]].forEach(([x,z,l,h],i)=>lampada(x,z,TOUCH?i<4:l,h||7.5));
  scene.add(box(M.tappeto,0,.012,-2.4,4.6,.025,2.0,false));
- faiThor();
+ faiThor();caricaPersone();arredoVero();
 }
 function ombre(){renderer.shadowMap.needsUpdate=true}
 
@@ -1781,7 +1833,7 @@ function giro(ora){raf=requestAnimationFrame(giro);
  GPU.rgb.forEach(m=>m.color.setHSL(tinta,1,SPENTO?.08:.55));if(GPU.luce){GPU.luce.color.setHSL(tinta,1,.55);GPU.luce.intensity=SPENTO?0:3+uso*.04}
  let cammina=false;
  for(const p of posti){const L=p.g&&p.g.userData.lampada;if(L&&Math.abs(L.v-L.obb)>.004){L.v+=(L.obb-L.v)*Math.min(1,dt*4);L.pmat.emissive.set(L.rossa?0xff3020:0xffb347);L.pmat.emissiveIntensity=L.v*2.6;L.al.material.opacity=L.v*.75;L.al.material.color.set(L.rossa?0xff5040:0xffc070);L.lt.material.opacity=L.v*.5;L.anello.material.opacity=L.v*(L.rossa?.7:.62);if(L.rossa)L.anello.material.color.set(0xff3020)}
-  if(!p.robot)continue;animaRobot(p,dt,t);if(p.bot&&p.bot.modo==='cammina')cammina=true;const pr=p.g.userData.prop;if(pr&&pr.userData.gira)pr.userData.gira.rotation.y=t*((p.dati||{}).stato==='lavora'?4:.6)}
+  if(!p.robot)continue;animaRobot(p,dt,t);if(p.robot.userData.um)animaUmano(p,dt);else if(UM.pronti)vesti(p);if(p.bot&&p.bot.modo==='cammina')cammina=true;const pr=p.g.userData.prop;if(pr&&pr.userData.gira)pr.userData.gira.rotation.y=t*((p.dati||{}).stato==='lavora'?4:.6)}
  animaThor(dt,t);
  if(t-tGioco>.25){tGioco=t;disegnaGioco(t)}
  if(t-tOmbre>(cammina?.1:1.5)){tOmbre=t;ombre()}
