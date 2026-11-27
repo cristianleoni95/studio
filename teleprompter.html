@@ -134,7 +134,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
   <p class="sub" style="margin:0">Collega il telecomando al tablet da Impostazioni → Bluetooth. Poi tocca un'azione qui sotto e premi il tasto del telecomando che vuoi usare.</p>
   <div class="keys" id="keys"></div>
   <p class="note" id="keyTest">Prova: premi un tasto del telecomando e qui vedi cosa arriva.</p>
-  <p class="note" style="opacity:.6">Versione 14</p>
+  <p class="note" style="opacity:.6">Versione 15</p>
   <p class="note">Tasti: <kbd>Spazio</kbd> ascolto on/off · <kbd>↑</kbd><kbd>↓</kbd> o rotellina: sposta di una riga · <kbd>←</kbd><kbd>→</kbd> frase prima / dopo · <kbd>G</kbd> margini sì/no · clic su una parola: riparti da lì · <kbd>A</kbd> scorrimento automatico · <kbd>,</kbd><kbd>.</kbd> velocità − / + · <kbd>+</kbd><kbd>−</kbd> testo · <kbd>M</kbd> specchio · <kbd>F</kbd> schermo intero · <kbd>Home</kbd> dall'inizio · <kbd>Esc</kbd> torna al testo.<br>
   Se sbagli, ripeti la frase da capo: il teleprompter riconosce che stai rileggendo e torna indietro da solo (fino a circa 3 frasi prima). Se salti una frase o improvvisi, ti aspetta e si riaggancia appena ritrova le tue parole.</p>
 </section>
@@ -153,7 +153,7 @@ kbd{background:#222;border:1px solid #333;border-radius:5px;padding:0 6px;font-s
     <button id="bFull">Schermo intero</button>
     <div id="status"><span id="dot"></span><span id="stTxt">In pausa</span></div>
   </div>
-  <div id="heard"></div><div id="toast"></div>
+  <div id="heard"></div><div id="diag" style="position:absolute;left:0;right:0;top:56px;text-align:center;font-size:14px;color:#ffd60a;z-index:3;pointer-events:none;padding:0 10px"></div><div id="toast"></div>
   <div id="count"><span id="countN">3</span></div>
   <div id="ciak"><p>Dì "motore", "camera"<span id="ciakAudioHelp">, "audio"</span> e poi "azione". Oppure tocca qui.</p><div id="ciakSteps"></div></div>
 </section>
@@ -400,7 +400,7 @@ function startWeb(){
 function stopRec(){listening=false;showMic();stopLocal();stopMeter();try{rec&&rec.stop()}catch(e){}rec=null}
 
 /* IA locale (Vosk): gira tutta sul tablet, riconosce solo le parole del copione e dei comandi */
-let audioFrames=0,lastFrames=0,lastAudioChk=0,voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
+let diagErr='',vCount=0,lastPeak=-90,audioFrames=0,lastFrames=0,lastAudioChk=0,voskP=null,vModel=null,vrec=null,vnode=null,vmute=null,msrc=null;
 function engSay(t){$('engSt').textContent=t}
 function loadVosk(){
   if(voskP)return voskP;
@@ -441,13 +441,14 @@ async function startLocal(){
     const m=await loadVosk();await ensureAudio();if(!listening)return;
     stopLocal(true);
     vrec=new m.KaldiRecognizer(actx.sampleRate,JSON.stringify(grammarWords()));try{vrec.setWords(true)}catch(e){}
-    vrec.on('partialresult',msg=>{const p=((msg.result&&msg.result.partial)||'').replace(/\[unk\]/g,'').trim();handleSeg([{tx:p,fin:false,conf:0}])});
-    vrec.on('result',msg=>{const r=msg.result||{},t=r.text||'';const ws=(r.result||[]).filter(w=>w.word!=='[unk]');const conf=ws.length?Math.min(...ws.map(w=>w.conf)):0;if(t)handleSeg([{tx:t.replace(/\[unk\]/g,'').trim(),fin:true,conf}]);prevLen=0});
+    vrec.on('partialresult',msg=>{vCount++;const p=((msg.result&&msg.result.partial)||'').replace(/\[unk\]/g,'').trim();handleSeg([{tx:p,fin:false,conf:0}])});
+    vrec.on('result',msg=>{vCount++;const r=msg.result||{},t=r.text||'';const ws=(r.result||[]).filter(w=>w.word!=='[unk]');const conf=ws.length?Math.min(...ws.map(w=>w.conf)):0;if(t)handleSeg([{tx:t.replace(/\[unk\]/g,'').trim(),fin:true,conf}]);prevLen=0});
     vnode=actx.createScriptProcessor(4096,1,1);
-    vnode.onaudioprocess=e=>{audioFrames++;try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
+    vnode.onaudioprocess=e=>{audioFrames++;{const d=e.inputBuffer.getChannelData(0);let p=0;for(let i=0;i<d.length;i+=8){const a=d[i]<0?-d[i]:d[i];if(a>p)p=a}lastPeak=Math.max(-90,Math.round(20*Math.log10(p||1e-9)))}try{vrec&&vrec.acceptWaveform(e.inputBuffer)}catch(err){}};
     vmute=actx.createGain();vmute.gain.value=0;msrc.connect(vnode);vnode.connect(vmute);vmute.connect(actx.destination);
     showMic();engSay('IA locale: sto ascoltando');startMeter();
   }catch(e){
+    diagErr=(e&&e.message)||String(e);
     if(!listening)return;
     toast('IA locale non disponibile: uso Siri/Google');engSay('IA locale non disponibile: uso Siri/Google');startWeb();
   }
@@ -493,10 +494,12 @@ function tick(t){
   }
   meterTick(t);
   if(t-lastAudioChk>1500){lastAudioChk=t;
-    if(listening&&vrec&&prompter.style.display==='block'){
-      if(actx&&actx.state!=='running'){$('stTxt').textContent='Tocca lo schermo per attivare il microfono';engSay('Audio in pausa: tocca lo schermo')}
-      else if(audioFrames===lastFrames){engSay('Il microfono non manda audio')}
-      else engSay('IA locale: sto ascoltando');
+    if(listening&&useLocal()&&prompter.style.display==='block'){
+      const d='Audio '+(actx?actx.state+' '+actx.sampleRate+' Hz':'assente')+' · blocchi '+audioFrames+' · livello '+lastPeak+' dB · risposte IA '+vCount+(diagErr?' · errore: '+diagErr:'');
+      $('diag').textContent=cfg.sh?d:'';
+      if(actx&&actx.state!=='running'){$('stTxt').textContent='Tocca lo schermo per attivare il microfono';engSay('Audio in pausa: tocca lo schermo · '+d)}
+      else if(audioFrames===lastFrames){engSay('Il microfono non manda audio · '+d)}
+      else engSay(d);
       lastFrames=audioFrames;
     }}
   if(t-lastSend>(stateChanged()?400:2000)){lastSend=t;sendState()}
@@ -612,6 +615,9 @@ async function ensureAudio(){
   unlockAudio();
   if(mStream&&msrc)return;
   mStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:true,autoGainControl:false}});
+  // iPad: se il motore audio lavora a una frequenza diversa dal microfono, l'audio arriva muto
+  try{const tr=mStream.getAudioTracks()[0],sr=tr&&tr.getSettings&&tr.getSettings().sampleRate;
+    if(sr&&actx.sampleRate!==sr){const nc=new(window.AudioContext||window.webkitAudioContext)({sampleRate:sr});try{actx.close()}catch(e){}actx=nc}}catch(e){diagErr='frequenza: '+e.message}
   msrc=actx.createMediaStreamSource(mStream);
   if(actx.state!=='running')actx.resume().catch(()=>{});
 }
